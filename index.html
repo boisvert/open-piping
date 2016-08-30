@@ -2,8 +2,14 @@
 <meta charset="utf-8" />
 
 <head>
-    <script src="open workflow.js"></script>
-    <title>Compile an S-expression</title>
+
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jsPlumb/1.4.1/jquery.jsPlumb-1.4.1-all-min.js"></script>
+<script src="workflow editor.js"></script>
+<script src="open workflow.js"></script>
+    
+    <title>Edit and interpret a workflow</title>
     
 <style>
     
@@ -13,19 +19,19 @@
         width:80%; height: 400px;
         border: 1px solid gray;
     }
-    
+
     .block {
         position: absolute;
         height:50px; width: 80px;
         border: 1px solid blue;
     }
-    
+
     .blockType {
         position: absolute;
         height:50px; width: 80px;
         border: 1px solid red;
     }
-    
+
     .block:hover {
         border: 2px solid blue;
     }
@@ -42,230 +48,13 @@
 
 <body>
 
-<h1>Compile an S-expression into a function call and function set</h1>
+<h1>Open workflow: lowering the barriers to data science</h1>
 
-This page is a starting point for a system of "pipes" - of graphical functional programming for web service / SOA applications.
-All code is open source (license and github project, er, coming soon). The json s-expression can be defined from 
-graphical blocks, and compiled into not just one, but multiple languages common on web server and clients - e.g. javascript, jquery,
-php, node.js etc. The resulting systems could then be executed, but also deployed in new systems.
-<p>
-Functions pre-defined both provide access to the capability of the language(s); limit that access - so that an end-user can program
-a service running remotely in a secure environment, sand-boxed by defined functions; and will define the graphical blocks available
-to the end-user. Limits to processing capabilities must not be inherent to the language, but instead to the environment in which it runs,
-which can be set with, for example, a processing time limit.
-<p>
-The intention is to have a graphical tool that can prolong the availability of Open data and services with an Open system for user-defined processes,
-that would have to be at once open, easy to use and deploy, and interoperate, allowing users to take control of the processes they want to
-operate on data.
+<h2>Compile an S-expression into a function call and function set</h2>
+<a href="about.html">about</a>
 
+<p>
 <div id="pipeContainer"></div>
-
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jsPlumb/1.4.1/jquery.jsPlumb-1.4.1-all-min.js"></script>
-
-<script>
-
-// i: used to define a unique ID for blocks dragged to the canvas
-var i = 1;
-
-// position of blockType for the new block being brought in
-var oldPos;
-
-// currently selected block(s)
-var blockSelection = [];
-
-jsPlumb.ready(function() {
-    addBlockType("plus", {top:10,left:10}, 2 );
-    addBlockType("Number value", {top:70,left:10} );
-    endBlock();
-
-    $( ".blockType" ).draggable({
-        start: function( event, ui) {
-            oldPos = $(this).position();
-        },
-        stop: function( event, ui ) {
-            var blockType = $(this).attr("id");
-            if (!$(this).attr("inConn")) {
-                addBlock(blockType,ui.position);
-            }
-            else {
-                addBlock(blockType,ui.position,$(this).attr("inConn"));
-            }
-            $(this).css(oldPos);
-        }
-    });
-    
-    $('html').keyup(function(e){
-        if(e.keyCode == 46) {
-            while (blockSelection.length>0) {removeBlock(blockSelection[0]);}
-        }
-    });
-    
-});
-
-// block functions - add, select, deselect, remove, blocktype, endblock - are messy
-// project for a rainy day: to group these functions into an encapsulated object
-// for clarity and better reusability
-
-// inConn is the number of input connections accepted (ie of parameters for function)
-function addBlock(label, position, inConn) {
-    var blockID = 'id-'+i;
-    var block = $('<div>').attr('id',blockID).addClass('block').html(label);
-    if(position) {
-        block.css(position);
-    }
-    
-    $('#pipeContainer').append(block);
-    
-    var common = {
-        endpoint:"Dot",
-        paintStyle:{ fillStyle:"lightgrey" },
-        hoverPaintStyle:{ fillStyle:"lightgreen" },
-        connectorStyle:{ strokeStyle:"lightgrey", lineWidth:8 },
-        connectorHoverStyle:{strokeStyle:"lightgreen", lineWidth:10 },
-        ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
-    };
- 
-    jsPlumb.addEndpoint(blockID, { 
-        anchor:"Right",
-        isSource: true
-    }, common); 
-    
-    if (inConn) {
-        jsPlumb.addEndpoint(blockID, { 
-            anchors:["Left","Top"],
-            isTarget: true,
-            maxConnections: inConn
-        }, common);
-    }
-    
-    jsPlumb.draggable(blockID, {containment: 'parent'});
-    
-    $(block).click(function() {
-         blockSelection = [];
-         selectBlock(block);
-         displayExpression(blockID);
-    });
-    i++;
-}
-
-function selectBlock(block) {
-    blockSelection.push(block);
-    $(block).addClass("blockSelected");
-    
-    $('#pipeContainer').click(function(e) {
-        // If the click was not inside the active span
-        if(!$(e.target).hasClass('blockSelected')) {
-            while (blockSelection.length>0) {deselectBlock(blockSelection[0]);}
-            // Remove the bind as it will be bound again on the next span click
-            $('#pipeContainer').unbind('click');
-        }
-    });
-}
-
-function deselectBlock(block) {
-    var index = blockSelection.indexOf(block);
-    if (index > -1) {
-        blockSelection.splice(index, 1);
-        $(block).removeClass("blockSelected");
-    }
-}
-
-function removeBlock(block) {
-    jsPlumb.detachAllConnections(block);
-    jsPlumb.removeAllEndpoints(block);
-    jsPlumb.detach(block);
-    deselectBlock(block);
-    block.remove();
-}
-
-// inConn is the number of input connections accepted (ie of parameters for function)
-function addBlockType(label,position, inConn) {
-    var block = $('<div>').attr('id',label).addClass('blockType').html(label);
-    if (inConn) {
-        $(block).attr('inConn',inConn);
-    }
-    if(position) {
-        block.css(position);
-    }
-    $('#pipeContainer').append(block);
-}
-
-function addConnector(from,to) {
-
-    // define style of connectors
-    var connStyle = {
-        anchor:["Bottom","Left"],
-        endpoint:"Dot"
-    };
-
-    jsPlumb.connect({
-        source:from,
-        target:to
-    },
-    connStyle); 
-}
-
-// the 'endBlock' is the return of the function defined. Unlike others,
-// it has no output endpoint; it also can't be removed from the canvas.
-function endBlock() {
-    var blockID = 'end';
-    var block = $('<div>').attr('id',blockID).addClass('block').html("End");
-    block.css({bottom:10, right:10});
-    
-    $('#pipeContainer').append(block);
-    
-    var common = {
-        endpoint:"Dot",
-        paintStyle:{ fillStyle:"lightgrey" },
-        hoverPaintStyle:{ fillStyle:"lightgreen" },
-        connectorStyle:{ strokeStyle:"lightgrey", lineWidth:8 },
-        connectorHoverStyle:{strokeStyle:"lightgreen", lineWidth:10 },
-        ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
-    };
-    
-    jsPlumb.addEndpoint(blockID, { 
-        anchors:["Left","Top"],
-        isTarget: true,
-        maxConnections: 1
-    }, common);
-    
-    $(block).click(function() {
-         blockSelection = [];
-         displayExpression(blockID);
-    });
-    
-    jsPlumb.draggable(blockID, {containment: 'parent'});
-
-}
-
-function getExpression(blockID) {
-    var connections = jsPlumb.getConnections({ target:blockID });
-    var op = $('#'+blockID).text();
-    if (connections.length==0) {
-        return op;
-    }
-    else {
-        result = [op];
-        for (var i =0; i<connections.length; i++) {
-            result.push(getExpression(connections[i].sourceId));
-        }
-        return result
-    }
-}
-
-function displayExpression(blockID) {
-    var exp = JSON.stringify(getExpression(blockID));
-    $('#s-exp').val(exp);
-}
-</script>
-
-<p>
-The test tool below compiles an expression in javascript and you can run the compiled code, alerting the result.
-It is limited in many ways - needs variable setting, error handling, more example result languages, poor interface -
-But it is a proof of concept. Functions defined are a small set of mathematical and logic primitives:
-plus, minus, times, lt (for less than), pythagoras, sqrt, plus if for conditional and defun for new functions.
 
 <p>
 Code

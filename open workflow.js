@@ -30,27 +30,36 @@ result:
 // predefined functions will both define the blocks available to interconnect
 // in a graphical interface and will 
 
-var predefined_functions = {
-   plus: {args: "a,b", body: "return a+b;"},
-   minus: {args: "a,b", body: "return a-b;"},
-   times: {args: "a,b", body: "return a*b;"},
-   lt: {args: "a,b", body: "return a<b;"},
-   pythagoras: {args: "a,b", body:" return sqrt(a*a+b*b);", requires:["sqrt"]},
-   sqrt: {args:"a", body: "return Math.sqrt(a);"}
-}
+var predefined_functions;
+
+$(function () {
+    $.ajax({
+        url: "functions.json",
+        beforeSend: function(xhr){
+            if (xhr.overrideMimeType) {
+                xhr.overrideMimeType("application/json");
+            }
+        },
+        success: function(json) {
+            predefined_functions = json;
+        },
+        error: function(_, status, err) {alert(status+'\n'+err);}
+    });
+});
 
 // as well as functions, some substititions should be allowed, e.g. like below.
 // this is still in progress.
 // a call is either substitution or function, not both;
 // substitutions may have prerequisite functions; should it have prerequisite substitutions?
 // var substitutions = {
-//    plus: {replace:"$1 + $2"},
-//    triple: {replace:"times($1,3)", requires:["times"]},
+//    plus: {replace:"$a + $b"},
+//    triple: {replace:"times($a,3)", requires:["times"]},
 //    if: {replace: "$1?$2:$3;"}
 // }
-// substitutions could replace special cases of the compiler engine
-// uncoupling language specific sturctures like conditionals
-// and possibly function definition
+// substitutions could uncoupling language specific structures
+// and replace special cases of the compiler engine
+// like conditionals and possibly function definition
+//
 // a set of defined vars (setq) also needed
 
 var code; // code of functions to include in result

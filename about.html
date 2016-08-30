@@ -1,0 +1,35 @@
+<!doctype html>
+<meta charset="utf-8" />
+
+<head>
+    <title>Open workflow: about</title>
+</head>
+
+<body>
+
+<h1>Open workflow: lowering the barriers to data science</h1>
+
+<a href="index.html">try it</a>
+
+<p>
+This page is a starting point for a system of "pipes" - of graphical functional programming for web service / SOA applications.
+All code is open source (license and github project, er, coming soon). The json s-expression can be defined from 
+graphical blocks, and compiled into not just one, but multiple languages common on web server and clients - e.g. javascript, jquery,
+php, node.js etc. The resulting systems could then be executed, but also deployed in new systems.
+<p>
+Functions pre-defined both provide access to the capability of the language(s); limit that access - so that an end-user can program
+a service running remotely in a secure environment, sand-boxed by defined functions; and will define the graphical blocks available
+to the end-user. Limits to processing capabilities must not be inherent to the language, but instead to the environment in which it runs,
+which can be set with, for example, a processing time limit.
+<p>
+The intention is to have a graphical tool that can prolong the availability of Open data and services with an Open system for user-defined processes,
+that would have to be at once open, easy to use and deploy, and interoperate, allowing users to take control of the processes they want to
+operate on data.
+<p>
+The test tool below compiles an expression in javascript and you can run the compiled code, alerting the result.
+It is limited in many ways - needs variable setting, error handling, more example result languages, poor interface -
+But it is a proof of concept. Functions defined are a small set of mathematical and logic primitives:
+plus, minus, times, lt (for less than), pythagoras, sqrt, plus if for conditional and defun for new functions.
+
+</body>
+</html>

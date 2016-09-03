@@ -8,11 +8,13 @@ var oldPos;
 // currently selected block(s)
 var blockSelection = [];
 
+// set up UI
 jsPlumb.ready(function() {
     // initialise with block types to the left
     addBlockType("plus", {top:10,left:10}, 2 );
-    addBlockType("Number value", {top:70,left:10} );
-    endBlock(); // marks the result of the function
+    addBlockType("Number value", {top:70,left:10}, 0, '<form><input type="text" /><form>' );
+    // function x(b) {return b.form.input.value);
+    endBlock(); // identifies the result of the function
 
     // drag and drop blocks
     $( ".blockType" ).draggable({
@@ -20,18 +22,12 @@ jsPlumb.ready(function() {
             oldPos = $(this).position();
         },
         stop: function( event, ui ) {
-            var blockType = $(this).attr("id");
-            if (!$(this).attr("inConn")) {
-                addBlock(blockType,ui.position);
-            }
-            else {
-                addBlock(blockType,ui.position,$(this).attr("inConn"));
-            }
+            addBlock($(this),ui.position);
             $(this).css(oldPos);
         }
     });
     
-    // delete selected block
+    // delete selected block(s)
     $('html').keyup(function(e){
         if(e.keyCode == 46) {
             while (blockSelection.length>0) {removeBlock(blockSelection[0]);}
@@ -44,10 +40,22 @@ jsPlumb.ready(function() {
 // project for a rainy day: to group these functions into an encapsulated object
 // for clarity and better reusability
 
+// addBlock: create a new block of the given type.
+// the attributes within blockType provide all the data to customise the block.
 // inConn is the number of input connections accepted (ie of parameters for function)
-function addBlock(label, position, inConn) {
+function addBlock(blockType, position) {
+    
+    var label = blockType.attr("id");
+    var inHTML = label;
+    if (blockType.attr('blockHTML')) {
+        inHTML += '<br />'+blockType.attr('blockHTML');
+    }
     var blockID = 'id-'+i;
-    var block = $('<div>').attr('id',blockID).addClass('block').html(label);
+    var block = $('<div>')
+                .attr('id',blockID)
+                .addClass('block')
+                .html(inHTML)
+                .attr('label',label);
     if(position) {
         block.css(position);
     }
@@ -67,22 +75,39 @@ function addBlock(label, position, inConn) {
         anchor:"Right",
         isSource: true
     }, common); 
-    
-    if (inConn) {
-        jsPlumb.addEndpoint(blockID, { 
-            anchors:["Left","Top"],
-            isTarget: true,
-            maxConnections: inConn
-        }, common);
+
+    // check if input connections are required for this block
+    if (inConn = blockType.attr("inConn")) {
+        // add input connections
+        var pos;
+        var ct;
+        for (ct=0; ct<inConn; ct++) {
+            pos = 0.1+ct/5
+            jsPlumb.addEndpoint(blockID, {
+                anchors:[[pos, 0],"Top"],
+                isTarget: true,
+                maxConnections: 1
+            }, common);            
+        }
     }
     
     jsPlumb.draggable(blockID, {containment: 'parent'});
     
-    $(block).click(function() {
+    block.click(function() {
          blockSelection = [];
          selectBlock(block);
          displayExpression(blockID);
     });
+    
+    var exp;
+    if (label=='Number value') { // dreadful kludge - the events for special blocks should be data of that block
+        exp = function () { var inpt = block.find("form > input")[0]; return Number(inpt.value); }
+    }
+    else {
+        exp = function(){return label;};        
+    }
+    block.on("expression", exp)
+    
     i++;
 }
 
@@ -117,9 +142,18 @@ function removeBlock(block) {
 }
 
 // create block type - ie the source of a function to drag in and use
+// position is a css expression of the blockType's position
 // inConn is the number of input connections accepted (ie of parameters for function)
-function addBlockType(label,position, inConn) {
+// blockHTML is a string giving the HTML to be used to display the block (label by default)
+// blockValue is a function to use when the block is called ($.text() by default)
+function addBlockType(label, position, inConn, blockHTML, blockValue) {
     var block = $('<div>').attr('id',label).addClass('blockType').html(label);
+    if (blockHTML) {
+        $(block).attr('blockHTML',blockHTML)
+    }
+    if (blockValue) {
+        $(block).attr('blockValue',blockValue)
+    }
     if (inConn) {
         $(block).attr('inConn',inConn);
     }
@@ -144,6 +178,7 @@ function addConnector(from,to) {
     },
     connStyle); 
 }
+
 // the 'endBlock' is the return of the function defined. Unlike others,
 // it has no output endpoint; it also can't be removed from the canvas.
 function endBlock() {
@@ -187,7 +222,7 @@ function getExpression(blockID) {
             op = getExpression(connections[0].sourceId);        
         }
         else {
-            op = [$('#'+blockID).text()];
+            op = [$('#'+blockID).triggerHandler('expression')];
             for (var i =0; i<connections.length; i++) {
                 // alert(blockID+' '+i+' '+JSON.stringify(result));
                 op[i+1] = getExpression(connections[i].sourceId);
@@ -195,7 +230,10 @@ function getExpression(blockID) {
         }
     }
     else {
-        op = $('#'+blockID).text();
+        // 'trgger' in JQuery calls the event but returns the JQuery object to which the trigger applied
+        // triggerHandler calls the actual handling function, without any cascading of the event, and so
+        // returns the actual return of the function.
+        op = $('#'+blockID).triggerHandler('expression');
     }
     // alert(blockID+' '+JSON.stringify(op));
     return op;

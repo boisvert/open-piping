@@ -18,12 +18,15 @@
         padding: 20px;
         width:80%; height: 400px;
         border: 1px solid gray;
+        display: flex;
+        flex-direction: column;
     }
 
     .block {
         position: absolute;
-        height:50px; width: 80px;
+        min-height:50px; min-width: 80px;
         border: 1px solid blue;
+        flex: 1;
     }
 
     .blockType {
@@ -48,10 +51,10 @@
 
 <body>
 
-<h1>Open workflow: lowering the barriers to data science</h1>
+<h1>Open piping: lowering the barriers to data science</h1>
 
 <h2>Compile an S-expression into a function call and function set</h2>
-<a href="about.html">about</a>
+<a href="https://github.com/boisvert/open-piping/wiki">The project on github</a>
 
 <p>
 <div id="pipeContainer"></div>

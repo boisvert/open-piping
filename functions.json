@@ -1,8 +1,19 @@
 {
-   "plus": {"args": "a,b", "body": "return a+b;"},
-   "minus": {"args": "a,b", "body": "return a-b;"},
-   "times": {"args": "a,b", "body": "return a*b;"},
-   "lt": {"args": "a,b", "body": "return a<b;"},
-   "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
-   "sqrt": {"args":"a", "body": "return Math.sqrt(a);"}
+    "gui": {
+        "Number value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return Number(inpt.value);"},
+        "plus": {"args": 2},
+        "minus":{"args": 2},
+        "times": {"args": 2},
+        "lt": {"args": 2},
+        "pythagoras": {"args": 2},
+        "sqrt": {"args":1}
+    },
+    "js": {
+        "plus": {"args": "a,b", "body": "return a+b;"},
+        "minus": {"args": "a,b", "body": "return a-b;"},
+        "times": {"args": "a,b", "body": "return a*b;"},
+        "lt": {"args": "a,b", "body": "return a<b;"},
+        "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
+        "sqrt": {"args":"a", "body": "return Math.sqrt(a);"}
+    }
 }

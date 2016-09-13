@@ -1,4 +1,46 @@
 
+// Set of predefined functions
+// predefined functions both define the blocks available to interconnect
+// in a graphical interface and the code to use to compile the workflow 
+
+var predefined_functions;
+var predefined_gui;
+/*
+predefined_functions & predefined_gui are in a JSON file (functions.json) that follows this notation:
+
+{
+    gui: ... // list of the blocks the user can drag and drop
+    js: ... // javascript code for the functions defined by each block
+    // more languages are planned, but only js is implemented at present
+}
+
+More about gui:
+
+gui: {
+    <block name>: {
+        "args": <number-of-arguments>, // how many arguments in the function = how many in-points for the block
+        optional "blockCode": <some HTML code for the block> // the code used to display the block
+                                                             // by default, the block name is used
+        optional "getExp": <a JQuery expression which returns the value for the block to form the s-expression>
+                                                             // the s-expression is made by finding the expression for each block
+                                                             // and traversing the block structure
+                                                             // by default, the block name is used
+        }   
+}
+
+More about js:
+
+js: {
+    <block name>: {
+        "args": <argument names list> // e.g. "a,b" - as in the language - used to make the function in the target language
+        "body": <body of function> // e.g. "return a+b" - as in the language...
+        optional "requires": <list of required functions> // e.g. ["sqrt", "plus"]
+                                                          // - pre-requisite functions needed to define the current one
+                                                          // by default, there are no prerequisites (empty list)
+}
+
+*/
+
 // i: used to define a unique ID for blocks dragged to the canvas
 var i = 1;
 
@@ -8,11 +50,45 @@ var oldPos;
 // currently selected block(s)
 var blockSelection = [];
 
-// set up UI
+// start:
+// - load the file of predefined functions
+// - launch initialisation
+
 jsPlumb.ready(function() {
+    $.ajax({
+        url: "functions.json",
+        beforeSend: function(xhr){
+            if (xhr.overrideMimeType) {
+                xhr.overrideMimeType("application/json");
+            }
+        },
+        success: function(json) {
+            predefined_functions = json.js;
+            predefined_gui = json.gui;
+            initialise();
+        },
+        error: function(_, status, err) {alert(status+'\n'+err);}
+    });
+});
+
+// set up UI
+function initialise() {
     // initialise with block types to the left
-    addBlockType("plus", {top:10,left:10}, 2 );
-    addBlockType("Number value", {top:70,left:10}, 0, '<form><input type="text" /><form>' );
+    var numBlock = 0;
+    var args;
+    // alert(predefined_gui.length);  //JSON.stringify(predefined_gui));
+    for (block in predefined_gui) {
+        if (typeof (predefined_gui[block].args) !== 'undefined') {
+            args=predefined_gui[block].args;
+        }
+        else {
+            args = 2;
+        }
+        
+        addBlockType(block, {top:55*numBlock+10,left:10}, args );
+        numBlock++;
+    }
+    //  addBlockType("Number value", {top:70,left:10}, 0, '<form><input type="text" /><form>' );
     // function x(b) {return b.form.input.value);
     endBlock(); // identifies the result of the function
 
@@ -33,8 +109,8 @@ jsPlumb.ready(function() {
             while (blockSelection.length>0) {removeBlock(blockSelection[0]);}
         }
     });
-    
-});
+
+}
 
 // block functions - add, select, deselect, remove, blocktype, endblock - are messy
 // project for a rainy day: to group these functions into an encapsulated object
@@ -47,9 +123,11 @@ function addBlock(blockType, position) {
     
     var label = blockType.attr("id");
     var inHTML = label;
-    if (blockType.attr('blockHTML')) {
-        inHTML += '<br />'+blockType.attr('blockHTML');
+    
+    if (typeof (predefined_gui[label].blockCode) !== 'undefined') {
+        inHTML += '<br />'+predefined_gui[label].blockCode;
     }
+
     var blockID = 'id-'+i;
     var block = $('<div>')
                 .attr('id',blockID)
@@ -100,8 +178,9 @@ function addBlock(blockType, position) {
     });
     
     var exp;
-    if (label=='Number value') { // dreadful kludge - the events for special blocks should be data of that block
-        exp = function () { var inpt = block.find("form > input")[0]; return Number(inpt.value); }
+    
+    if (typeof (predefined_gui[label].getExp) !== 'undefined') {
+        eval("exp = function() {" + predefined_gui[label].getExp + "}");
     }
     else {
         exp = function(){return label;};        
@@ -145,12 +224,9 @@ function removeBlock(block) {
 // position is a css expression of the blockType's position
 // inConn is the number of input connections accepted (ie of parameters for function)
 // blockHTML is a string giving the HTML to be used to display the block (label by default)
-// blockValue is a function to use when the block is called ($.text() by default)
-function addBlockType(label, position, inConn, blockHTML, blockValue) {
+// blockValue - in progress - is a function to use when the block is called ($.text() by default)
+function addBlockType(label, position, inConn, blockValue) {
     var block = $('<div>').attr('id',label).addClass('blockType').html(label);
-    if (blockHTML) {
-        $(block).attr('blockHTML',blockHTML)
-    }
     if (blockValue) {
         $(block).attr('blockValue',blockValue)
     }

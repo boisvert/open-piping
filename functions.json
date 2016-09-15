@@ -6,7 +6,8 @@
         "times": {"args": 2},
         "lt": {"args": 2},
         "pythagoras": {"args": 2},
-        "sqrt": {"args":1}
+        "sqrt": {"args":1},
+        "if": {"args":3}
     },
     "js": {
         "plus": {"args": "a,b", "body": "return a+b;"},

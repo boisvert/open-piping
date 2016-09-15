@@ -119,7 +119,7 @@ function defun(Exp) {
     var body = "return "+encode(Exp[3])+";";
     f["body"] = body;
     tokens = []; // if we use seta/setq, shift needed to manage the list
-    code += "function "+ name + "(" + args + ") {" + body +"}\n\n";
+    code += "var "+ name + " = function (" + args + ") {" + body +"}\n\n";
 }
 
 // conditional returns the code for a conditional execution

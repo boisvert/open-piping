@@ -5,41 +5,7 @@
 
 var predefined_functions;
 var predefined_gui;
-/*
-predefined_functions & predefined_gui are in a JSON file (functions.json) that follows this notation:
 
-{
-    gui: ... // list of the blocks the user can drag and drop
-    js: ... // javascript code for the functions defined by each block
-    // more languages are planned, but only js is implemented at present
-}
-
-More about gui:
-
-gui: {
-    <block name>: {
-        "args": <number-of-arguments>, // how many arguments in the function = how many in-points for the block
-        optional "blockCode": <some HTML code for the block> // the code used to display the block
-                                                             // by default, the block name is used
-        optional "getExp": <a JQuery expression which returns the value for the block to form the s-expression>
-                                                             // the s-expression is made by finding the expression for each block
-                                                             // and traversing the block structure
-                                                             // by default, the block name is used
-        }   
-}
-
-More about js:
-
-js: {
-    <block name>: {
-        "args": <argument names list> // e.g. "a,b" - as in the language - used to make the function in the target language
-        "body": <body of function> // e.g. "return a+b" - as in the language...
-        optional "requires": <list of required functions> // e.g. ["sqrt", "plus"]
-                                                          // - pre-requisite functions needed to define the current one
-                                                          // by default, there are no prerequisites (empty list)
-}
-
-*/
 
 // i: used to define a unique ID for blocks dragged to the canvas
 var i = 1;

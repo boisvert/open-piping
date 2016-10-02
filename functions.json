@@ -10,11 +10,17 @@
         "if": {"args":3}
     },
     "js": {
-        "plus": {"args": "a,b", "body": "return a+b;"},
-        "minus": {"args": "a,b", "body": "return a-b;"},
-        "times": {"args": "a,b", "body": "return a*b;"},
-        "lt": {"args": "a,b", "body": "return a<b;"},
         "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
         "sqrt": {"args":"a", "body": "return Math.sqrt(a);"}
+    },
+    "replace": {
+        "if": {"args": "a,b,c", "js": "@a?@b:@c"},
+        "plus": {"args": "a,b", "js": "(@a+@b)"},
+        "minus": {"args": "a,b", "js": "(@a-@b)"},
+        "times": {"args": "a,b", "js": "(@a*@b)"},
+        "divide": {"args": "a,b", "js": "(@a/@b)"},
+        "equals": {"args": "a,b", "js": "(@a==@b)"},
+        "lt": {"args": "a,b", "js": "(@a<@b)"},
+        "mt": {"args": "a,b", "js": "(@a>@b)"}
     }
 }

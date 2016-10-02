@@ -30,15 +30,10 @@ result:
 // predefined functions both define the gui blocks
 // and this compilation, so the functions are loaded in the editor
 
-// as well as functions, some substititions should be allowed, e.g. like below.
+// as well as functions, some substititions should be allowed
 // this is still in progress.
-// a call is either substitution or function, not both;
-// substitutions may have prerequisite functions; should it have prerequisite substitutions?
-// var substitutions = {
-//    plus: {replace:"$1 + $2"},
-//    triple: {replace:"times($1,3)", requires:["times"]},
-//    if: {replace: "$1?$2:$3;"}
-// }
+// a call is either substitution or function;
+// substitutions may have prerequisite functions; but not prerequisite substitutions (?)
 // substitutions could uncoupling language specific structures
 // and replace special cases of the compiler engine
 // like conditionals and possibly function definition
@@ -47,12 +42,14 @@ result:
 
 var code; // code of functions to include in result
 var counted; // list of functions in use (to not repeat them)
+var ready_replacements; // list of substitutions already parsed
 var tokens; // list of variables in use (to parse them)
 
 function compile(Exp) {
    code = "// Automatic generated code \n\n";
    counted = [];
    tokens = [];
+   ready_replacements = [];
    var call = encode(Exp);
    code += "process("+call+");";
   // alert(process(call));
@@ -61,7 +58,7 @@ function compile(Exp) {
 
 function encode(Exp) {
     var res;
-
+    
     if (Exp instanceof Array) {
     // case 1: expression is an empty array
         if (Exp.length==0) res = [];
@@ -71,14 +68,18 @@ function encode(Exp) {
             if (H == "defun") {
                 res = defun(Exp);
             }
-    // case 3: expression is an if statement
-            else if (H == "if") {
-                res = conditional(Exp);
+    // case 3 predefined_replacements
+            else if (H in predefined_replacements) {
+                var s = getSubstitutor(H);
+                Exp.shift();
+                // should there be validation on number and type of arguments?
+                Arguments = Exp.map(encode);
+                res = s(Arguments);
             }
             else if (H in predefined_functions) {
     // case 4: expression is a function call
                 // getOperator returns the string defining the function
-                op = getOperator(H);
+                var op = getOperator(H);
                 code += op;
                 Exp.shift();
                 // should there be validation on number and type of arguments?
@@ -122,15 +123,88 @@ function defun(Exp) {
     code += "var "+ name + " = function (" + args + ") {" + body +"}\n\n";
 }
 
-// conditional returns the code for a conditional execution
+function getSubstitutor(X) {
+    var s;
+    
+    if (ready_replacements[X]) {
+        s = ready_replacements[X];
+    }
+    else {
+        rX = predefined_replacements[X];
+        
+        // parse rX.args and get strings to replace in the substitution
+        args = rX.args.split(',').map(String.trim);
+        
+        // then parse rX.js - get the substrings that start with substitutions
+        reps = rX.js.split('@');
+        
+        // each string in reps (bar the first) starts with one of the strings in args
+        // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
+        var indexes = [];
+        // results_parts is a list of strings that need to be concatenated
+        var result_parts = [reps[0]]; // ['','?',':',''] ;
 
-// works for javascript syntax
-function conditional(Exp) {
-    // adds a function definition to the "predefined functions" JSON list
-    var condition = encode(Exp[1]);
-    var iftrue = encode(Exp[2]);
-    var iffalse = encode(Exp[3]);
-    return "("+ condition + ")?(" + iftrue + "):(" + iffalse +")";
+        for (var i=1; i<reps.length; i++) {
+            ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
+            indexes.push(ind); // add to indexes array
+            res_part = reps[i].slice(args[ind].length); // find the next substring
+            result_parts.push(res_part);
+        }
+
+        // return a function that makes the subtitition
+        // the function uses indexes and results_parts which are in its environment
+        // (thank you closure!)
+        s = function(bits) {
+                res = '';
+                for (var i=0; i<indexes.length; i++) {                
+                    res += result_parts[i]+bits[indexes[i]];
+                }
+                res += result_parts[i];
+                return res;
+            };
+        // add prerequisites to the code
+        if (rX.requires) {
+            var pre = rX.requires.map(getOperator);
+            code += pre.join("");
+        }
+
+        ready_replacements[X] = s;
+    }
+
+    return s;
+}
+
+// start with which takes a list of tokens and a string to check.
+// It returns the index of the token with which the string starts
+// if the string starts with none of them, it returns undefined.
+function startsWithWhich(tokens, str) {
+    for (var which=0; which<tokens.length; which++) {
+        if (str.indexOf(tokens[which])==0) {
+            return which;
+        }
+    }
+    console.log('Not found any "'+tokens+'" in "'+str+'"');
+    return undefined;
+}
+
+function getOperator(X) {
+    var o = '';
+    
+    if (counted.indexOf(X) === -1) {
+        fX = predefined_functions[X];
+        counted.push(X);
+
+        // find pre-requisites
+        if (fX.requires) {
+            var pre = fX.requires.map(getOperator);
+            o += pre.join("");
+        }
+ 
+        // concatenate function definition
+        o = "function "+ X + "(" + fX.args + ") {" + fX.body +"}\n\n";        
+    }
+
+    return o;
 }
 
 function process(Exp) {
@@ -147,24 +221,7 @@ function process(Exp) {
     }
     // done
     return res;
-    
-}
 
-function getOperator(X) {
-    var o = '';
-    
-    if (counted.indexOf(X) === -1) {
-        fX = predefined_functions[X];
-        counted.push(X);
-        // concatenate function definition
-        o = "function "+ X + "(" + fX.args + ") {" + fX.body +"}\n\n";
-        if (fX.requires) {
-            var pre = fX.requires.map(getOperator);
-            code += pre.join("");
-        }
-    }
-    
-    return o;
 }
 
 function isString(s) {

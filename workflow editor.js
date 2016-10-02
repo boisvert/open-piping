@@ -4,7 +4,9 @@
 // in a graphical interface and the code to use to compile the workflow 
 
 var predefined_functions;
+var predefined_replacements; // doc...
 var predefined_gui;
+
 
 
 // i: used to define a unique ID for blocks dragged to the canvas
@@ -30,6 +32,7 @@ jsPlumb.ready(function() {
         },
         success: function(json) {
             predefined_functions = json.js;
+            predefined_replacements = json.replace;
             predefined_gui = json.gui;
             initialise();
         },

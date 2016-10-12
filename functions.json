@@ -17,8 +17,8 @@
         "if": {"args": "a,b,c", "js": "@a?@b:@c"},
         "plus": {"args": "a,b", "js": "(@a+@b)"},
         "minus": {"args": "a,b", "js": "(@a-@b)"},
-        "times": {"args": "a,b", "js": "(@a*@b)"},
-        "divide": {"args": "a,b", "js": "(@a/@b)"},
+        "times": {"args": "a,b", "js": "@a*@b"},
+        "divide": {"args": "a,b", "js": "@a/@b"},
         "equals": {"args": "a,b", "js": "(@a==@b)"},
         "lt": {"args": "a,b", "js": "(@a<@b)"},
         "mt": {"args": "a,b", "js": "(@a>@b)"}

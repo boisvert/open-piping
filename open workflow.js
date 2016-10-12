@@ -194,14 +194,14 @@ function getOperator(X) {
         fX = predefined_functions[X];
         counted.push(X);
 
+        // concatenate function definition
+        o = "function "+ X + "(" + fX.args + ") {" + fX.body +"}\n\n";
+
         // find pre-requisites
         if (fX.requires) {
             var pre = fX.requires.map(getOperator);
-            o += pre.join("");
+            code += pre.join("");
         }
- 
-        // concatenate function definition
-        o = "function "+ X + "(" + fX.args + ") {" + fX.body +"}\n\n";        
     }
 
     return o;

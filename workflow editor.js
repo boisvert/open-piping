@@ -114,7 +114,7 @@ function addBlock(blockType, position) {
         paintStyle:{ fillStyle:"lightgrey" },
         hoverPaintStyle:{ fillStyle:"lightgreen" },
         connectorStyle:{ strokeStyle:"lightgrey", lineWidth:8 },
-        connectorHoverStyle:{strokeStyle:"lightgreen", lineWidth:10 },
+        connectorHoverStyle:{ strokeStyle:"lightgreen", lineWidth:10 },
         ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
     };
  
@@ -129,7 +129,7 @@ function addBlock(blockType, position) {
         var pos;
         var ct;
         for (ct=0; ct<inConn; ct++) {
-            pos = 0.1+ct/5
+            pos = 0.1+ct/3.5
             jsPlumb.addEndpoint(blockID, {
                 anchors:[[pos, 0],"Top"],
                 isTarget: true,

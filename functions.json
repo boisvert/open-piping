@@ -7,7 +7,8 @@
         "lt": {"args": 2},
         "pythagoras": {"args": 2},
         "sqrt": {"args":1},
-        "if": {"args":3}
+        "if": {"args":3},
+        "setq": {"args":1}
     },
     "js": {
         "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
@@ -24,3 +25,4 @@
         "mt": {"args": "a,b", "js": "(@a>@b)"}
     }
 }
+

@@ -43,31 +43,38 @@ result:
 var code; // code of functions to include in result
 var counted; // list of functions in use (to not repeat them)
 var ready_replacements; // list of substitutions already parsed
-var tokens; // list of variables in use (to parse them)
 
 function compile(Exp) {
    code = "// Automatic generated code \n\n";
    counted = [];
-   tokens = [];
+   tokens.clear();
    ready_replacements = [];
    var call = encode(Exp);
    code += "process("+call+");";
-  // alert(process(call));
    return code;
 }
 
 function encode(Exp) {
-    var res;
+    var res = "";
     
     if (Exp instanceof Array) {
     // case 1: expression is an empty array
         if (Exp.length==0) res = [];
         else { // non-empty array
             var H = Exp[0];
+            
     // case 2: expression is a function definition
             if (H == "defun") {
-                res = defun(Exp);
+                defun(Exp);
             }
+            
+    // case 2a: expression is a variable setting
+            else if (H == "setq") {
+                var tok = Exp[1];
+                tokens.add(tok)
+                code += "var "+tok+" = "+encode(Exp[2])+";\n\n";
+            }
+    
     // case 3 predefined_replacements
             else if (H in predefined_replacements) {
                 var s = getSubstitutor(H);
@@ -92,7 +99,7 @@ function encode(Exp) {
     }
     else if (isString(Exp)) {
     // case 6: expression is a known variable
-        if (tokens.indexOf(Exp) >=0) res = Exp
+        if (tokens.contain(Exp)) res = Exp
     // case 7: expression is a string
         else res = '"'+Exp+'"';
     }
@@ -109,18 +116,18 @@ function encode(Exp) {
 function defun(Exp) {
     // adds a function definition to the "predefined functions" JSON list
     var name = Exp[1];
-    var args = Exp[2].join(", ");
+    var args = Exp[2];
     var f = {};
-    f["args"] = args;
+    f["args"] = args.join(", ");
     predefined_functions[name] = f;
     counted.push(name);
-    // tokens and arguments are thee same in this simplified system
-    tokens = args; // for (var i=args.length; i>0; i--) {tokens.push(args[i-1]);}
-    // alert(tokens);
+   
+    tokens.addAll(args); // for (var i=args.length; i>0; i--) {toks.add(args[i-1]);} // tokens list is filled with the function arguments
+    debugMsg(tokens);
     var body = "return "+encode(Exp[3])+";";
     f["body"] = body;
-    tokens = []; // if we use seta/setq, shift needed to manage the list
-    code += "var "+ name + " = function (" + args + ") {" + body +"}\n\n";
+    tokens.removeAll(args);
+    code += "var "+ name + " = function (" + f["args"] + ") {" + body +"}\n\n";
 }
 
 function getSubstitutor(X) {
@@ -177,13 +184,13 @@ function getSubstitutor(X) {
 // start with which takes a list of tokens and a string to check.
 // It returns the index of the token with which the string starts
 // if the string starts with none of them, it returns undefined.
-function startsWithWhich(tokens, str) {
-    for (var which=0; which<tokens.length; which++) {
-        if (str.indexOf(tokens[which])==0) {
+function startsWithWhich(toks, str) {
+    for (var which=0; which<toks.length; which++) {
+        if (str.indexOf(toks[which])==0) {
             return which;
         }
     }
-    console.log('Not found any "'+tokens+'" in "'+str+'"');
+    console.log('Not found any "'+toks+'" in "'+str+'"');
     return undefined;
 }
 
@@ -226,4 +233,43 @@ function process(Exp) {
 
 function isString(s) {
    return (typeof s === 'string' || s instanceof String)
+}
+
+// list of variables in use (to parse them)
+// with encapsulated functions for handling the list
+var tokens = {
+    list: [],
+    clear: function() { tokens.list=[]; },
+    contain: function(tok) {
+        return tokens.list.indexOf(tok)>-1;
+    },
+    add: function (tok) {
+        tokens.list.unshift(tok);
+        return tokens;
+    },
+    addAll: function (toks) {
+        debugMsg(toks); 
+        toks.map(tokens.add)
+    },
+    remove: function (tok) {
+        if (tokens.contain(tok)) {
+            return false;
+        } else {
+            tokens.list.splice(list.indexOf(tok),1)
+            return tokens;
+        }
+    },
+    removeAll: function (toks) {
+        toks.map(tokens.remove);
+    },
+    shift: function (n) {
+        if (!n) n=1;
+        do {tokens.list.shift();} while (n-->0);
+        return tokens;
+    }
+};
+
+function debugMsg(m) {
+    // uncomment this line to display debug data
+    // console.log(JSON.stringify(m)+'\n');
 }

@@ -97,7 +97,7 @@ function addBlock(blockType, position) {
         inHTML += '<br />'+predefined_gui[label].blockCode;
     }
 
-    var blockID = 'id-'+i;
+    var blockID = 'id'+i;
     var block = $('<div>')
                 .attr('id',blockID)
                 .addClass('block')
@@ -118,10 +118,14 @@ function addBlock(blockType, position) {
         ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
     };
  
-    jsPlumb.addEndpoint(blockID, { 
-        anchor:"Right",
-        isSource: true
-    }, common); 
+    var endProps;
+    if (label == "setq") {
+        endProps = {anchor:"Right", isSource: true, maxConnections: -1};
+    } else {
+        endProps = {anchor:"Right", isSource: true}
+    }
+    
+    jsPlumb.addEndpoint(blockID, endProps, common);
 
     // check if input connections are required for this block
     if (inConn = blockType.attr("inConn")) {
@@ -259,6 +263,7 @@ function endBlock() {
 
 // Given a block, traverse the tree that ends with that block
 // And return the corresponding s-expression
+var tokenList = {};
 function getExpression(blockID) {
     var connections = jsPlumb.getConnections({ target:blockID });
     var op;
@@ -267,10 +272,25 @@ function getExpression(blockID) {
             op = getExpression(connections[0].sourceId);        
         }
         else {
-            op = [$('#'+blockID).triggerHandler('expression')];
-            for (var i =0; i<connections.length; i++) {
-                // alert(blockID+' '+i+' '+JSON.stringify(result));
-                op[i+1] = getExpression(connections[i].sourceId);
+            var exp = $('#'+blockID).triggerHandler('expression');
+            if (exp == "setq") {
+                if (!tokenList[blockID]) {
+                    op = [exp,blockID];
+                    for (var i =0; i<connections.length; i++) {
+                        // alert(blockID+' '+i+' '+JSON.stringify(result));
+                        op[i+2] = getExpression(connections[i].sourceId);
+                    }
+                    tokenList[blockID] = op;
+                    // alert(JSON.stringify(tokenList));
+                }
+                op = blockID;
+            }
+            else {
+                op = [exp];
+                for (var i =0; i<connections.length; i++) {
+                    // alert(blockID+' '+i+' '+JSON.stringify(result));
+                    op[i+1] = getExpression(connections[i].sourceId);
+                }
             }
         }
     }
@@ -286,6 +306,28 @@ function getExpression(blockID) {
 
 // output function to view the expression for a block
 function displayExpression(blockID) {
-    var exp = JSON.stringify(getExpression(blockID));
-    $('#s-exp').val(exp);
+    tokenList = {};
+    var exp = getExpression(blockID);
+    // alert(JSON.stringify(tokenList));
+    var result = [];
+    for (var i in tokenList) {
+        result.push(tokenList[i]);
+    }
+    result.push(exp);
+    $('#s-exp').val(JSON.stringify(result));
 }
+
+/*
+// token generation - not needed?
+token = function () {
+        tokenRoots = {};
+        getNext = function(root) {
+            if (!root) root = "token";
+            var next = 0;
+            if (tokenRoots[root])
+                next = ++tokenRoots[root]
+            else
+                tokenRoots[root] = next;
+        }
+    }();
+*/

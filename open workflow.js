@@ -26,32 +26,43 @@ result:
 
 */
 
-// Set of predefined functions
-// predefined functions both define the gui blocks
-// and this compilation, so the functions are loaded in the editor
+/*
+Set of predefined functions
+predefined functions both define the gui blocks
+and this compilation, so the functions are loaded in the editor
 
-// as well as functions, some substititions should be allowed
-// this is still in progress.
-// a call is either substitution or function;
-// substitutions may have prerequisite functions; but not prerequisite substitutions (?)
-// substitutions could uncoupling language specific structures
-// and replace special cases of the compiler engine
-// like conditionals and possibly function definition
-//
-// a set of defined vars (setq) also needed
+as well as functions, some substititions are allowed
+this is still in progress.
+a call is either substitution or function;
+substitutions may have prerequisite functions; but not prerequisite substitutions (?)
+substitutions could uncoupling language specific structures
+and replace special cases of the compiler engine
+like conditionals and possibly function definition
 
-var code; // code of functions to include in result
+A stack of defined vars (setq) is also maintained
+*/
+
+// var code; // code of functions to include in result
 var counted; // list of functions in use (to not repeat them)
 var ready_replacements; // list of substitutions already parsed
 
+// list of variables in use (to parse them)
+// with encapsulated functions for handling the list
+var code = {
+    text: "",
+    clear: function() { code.text = ""; },
+    line: function(lin) { code.text += lin + "\n\n"; }
+};
+
 function compile(Exp) {
-   code = "// Automatic generated code \n\n";
+   code.clear();
+   code.line("// Automatically generated code");
    counted = [];
    tokens.clear();
    ready_replacements = [];
    var call = encode(Exp);
-   code += "process("+call+");";
-   return code;
+   code.line("process("+call+");");
+   return code.text;
 }
 
 function encode(Exp) {
@@ -72,7 +83,7 @@ function encode(Exp) {
             else if (H == "setq") {
                 var tok = Exp[1];
                 tokens.add(tok)
-                code += "var "+tok+" = "+encode(Exp[2])+";\n\n";
+                code.line("var "+tok+" = "+encode(Exp[2])+";");
             }
     
     // case 3 predefined_replacements
@@ -87,11 +98,10 @@ function encode(Exp) {
     // case 4: expression is a function call
                 // getOperator returns the string defining the function
                 var op = getOperator(H);
-                code += op;
                 Exp.shift();
                 // should there be validation on number and type of arguments?
                 Arguments = Exp.map(encode);
-                res = H+"("+Arguments.join(",")+")";
+                res = op(Arguments); //H+"("+Arguments.join(",")+")";
             } else
     // case 5: expression is any other array - treated like a data array
                 res = "["+Exp.map(encode)+"]";
@@ -127,7 +137,7 @@ function defun(Exp) {
     var body = "return "+encode(Exp[3])+";";
     f["body"] = body;
     tokens.removeAll(args);
-    code += "var "+ name + " = function (" + f["args"] + ") {" + body +"}\n\n";
+    code.line("var "+ name + " = function (" + f["args"] + ") {" + body +"}");
 }
 
 function getSubstitutor(X) {
@@ -172,7 +182,7 @@ function getSubstitutor(X) {
         // add prerequisites to the code
         if (rX.requires) {
             var pre = rX.requires.map(getOperator);
-            code += pre.join("");
+            code.line(pre.join(""));
         }
 
         ready_replacements[X] = s;
@@ -195,23 +205,22 @@ function startsWithWhich(toks, str) {
 }
 
 function getOperator(X) {
-    var o = '';
     
     if (counted.indexOf(X) === -1) {
         fX = predefined_functions[X];
         counted.push(X);
 
         // concatenate function definition
-        o = "function "+ X + "(" + fX.args + ") {" + fX.body +"}\n\n";
+        code.line("function "+ X + "(" + fX.args + ") {" + fX.body +"}");
 
         // find pre-requisites
         if (fX.requires) {
             var pre = fX.requires.map(getOperator);
-            code += pre.join("");
+            // code.line(pre.join(""));
         }
     }
-
-    return o;
+    
+    return function (Args) {return X+"("+Args.join(",")+")";};
 }
 
 function process(Exp) {

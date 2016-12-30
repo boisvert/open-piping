@@ -1,3 +1,4 @@
+<?
 /*
 
 (plus 2 3) in JSON = ["plus", 2, 3]
@@ -42,38 +43,45 @@ like conditionals and possibly function definition
 A stack of defined vars (setq) is also maintained
 */
 
-// var code; // code of functions to include in result
-var counted; // list of functions in use (to not repeat them)
-var ready_replacements; // list of substitutions already parsed
+
+// $counted - list of functions in use (to not repeat them)
+$counted = [];
+
+// $ready_replacements - list of substitutions already parsed
 
 // list of variables in use (to parse them)
 // with encapsulated functions for handling the list
-var code = {
-    text: "",
-    clear: function() { code.text = ""; },
-    line: function(lin) { code.text += lin + "\n\n"; }
-};
+
+
+// Code = string containing code of functions to include in result
+class Code {
+    
+    static $text = "";
+
+    static function clear() { self::$text = ""; },
+    static function line($lin) { self::$text += $lin + "\n\n"; }    
+}
 
 function compile(Exp) {
-   code.clear();
-   code.line("// Automatically generated code");
+   Code::clear();
+   Code::line("// Automatically generated code");
    counted = [];
    tokens.clear();
    ready_replacements = [];
-   var call = encode(Exp);
-   code.line("process("+call+");");
-   return code.text;
+   $call = encode(Exp);
+   Code::line("process("+call+");");
+   return Code::text;
 }
 
 function encode(Exp) {
-    var res = "";
+    $res = "";
     
     if (Exp instanceof Array) {
         debugMsg(Exp+" is an Array");
     // case 1: expression is an empty array
         if (Exp.length==0) res = [];
         else { // non-empty array
-            var H = Exp[0];
+            $H = Exp[0];
             
     // case 2: expression is a function definition
             if (H == "defun") {
@@ -82,14 +90,14 @@ function encode(Exp) {
             
     // case 2a: expression is a variable setting
             else if (H == "setq") {
-                var tok = Exp[1];
+                $tok = Exp[1];
                 tokens.add(tok);
-                code.line("var "+tok+" = "+encode(Exp[2])+";");
+                Code::line("$"+tok+" = "+encode(Exp[2])+";");
             }
     
     // case 3 predefined_replacements
             else if (H in predefined_replacements) {
-                var s = getSubstitutor(H);
+                $s = getSubstitutor(H);
                 Exp.shift();
                 // should there be validation on number and type of arguments?
                 Arguments = encodeEach(Exp);
@@ -98,7 +106,7 @@ function encode(Exp) {
             else if (H in predefined_functions) {
     // case 4: expression is a function call
                 // getOperator returns the string defining the function
-                var op = getOperator(H);
+                $op = getOperator(H);
                 Exp.shift();
                 // should there be validation on number and type of arguments?
                 Arguments = encodeEach(Exp);
@@ -108,7 +116,7 @@ function encode(Exp) {
                 res = "["+encodeEach(Exp)+"]";
         }
     }
-    else if (isString(Exp)) {
+    else if (is_string(Exp)) {
     // case 6: expression is a known variable
         if (tokens.contain(Exp)) res = Exp
     // case 7: expression is a string
@@ -124,12 +132,12 @@ function encode(Exp) {
 function encodeEach(E) {
     debugMsg("encoding each of "+E);
     if (E instanceof Array) {
-        var Res = [];
+        $Res = [];
         if (E.length>0) {
             debugMsg("encoding "+E[0]);
-            var First = encode(E[0]);
+            $First = encode(E[0]);
             E.shift();
-            var Res = encodeEach(E);
+            $Res = encodeEach(E);
             if (First != "") {Res.unshift(First);}
         }
        return Res;
@@ -142,42 +150,42 @@ function encodeEach(E) {
 // the syntax is javascript: funtion foo(arguments) {return body;}
 function defun(Exp) {
     // adds a function definition to the "predefined functions" JSON list
-    var name = Exp[1];
-    var args = Exp[2];
-    var f = {};
+    $name = Exp[1];
+    $args = Exp[2];
+    $f = {};
     f["args"] = args.join(", ");
     predefined_functions[name] = f;
     counted.push(name);
     tokens.addAll(args); // tokens list is filled with the function arguments
     debugMsg(tokens);
-    var body = "return "+encode(Exp[3])+";";
+    $body = "return "+encode(Exp[3])+";";
     f["body"] = body;
     tokens.removeAll(args);
-    code.line("var "+ name + " = function (" + f["args"] + ") {" + body +"}");
+    Code::line("$"+ name + " = function (" + f["args"] + ") {" + body +"}");
 }
 
-function getSubstitutor(X) {
-    var s;
+function getSubstitutor($x) {
+    $s;
     
-    if (ready_replacements[X]) {
-        s = ready_replacements[X];
+    if ($ready_replacements[$x]) {
+        $s = $ready_replacements[$x];
     }
     else {
-        rX = predefined_replacements[X];
+        $rX = $predefined_replacements[$x];
         
         // parse rX.args and get strings to replace in the substitution
-        args = rX.args.split(',').map(String.trim);
+        $args = array_map("trim", explode($rX['args'],','));
         
         // then parse rX.js - get the substrings that start with substitutions
-        reps = rX.js.split('@');
+        $reps = explode(rX["php"],'@');
         
         // each string in reps (bar the first) starts with one of the strings in args
         // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
-        var indexes = [];
+        $indexes = [];
         // results_parts is a list of strings that need to be concatenated
-        var result_parts = [reps[0]]; // ['','?',':',''] ;
+        $result_parts = [reps[0]]; // ['','?',':',''] ;
 
-        for (var i=1; i<reps.length; i++) {
+        for ($i=1; i<reps.length; i++) {
             ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
             indexes.push(ind); // add to indexes array
             res_part = reps[i].slice(args[ind].length); // find the next substring
@@ -189,7 +197,7 @@ function getSubstitutor(X) {
         // (thank you closure!)
         s = function(bits) {
                 res = '';
-                for (var i=0; i<indexes.length; i++) {                
+                for ($i=0; i<indexes.length; i++) {                
                     res += result_parts[i]+bits[indexes[i]];
                 }
                 res += result_parts[i];
@@ -197,8 +205,8 @@ function getSubstitutor(X) {
             };
         // add prerequisites to the code
         if (rX.requires) {
-            var pre = rX.requires.map(getOperator);
-            code.line(pre.join(""));
+            $pre = rX.requires.map(getOperator);
+            Code::line(pre.join(""));
         }
 
         ready_replacements[X] = s;
@@ -209,92 +217,104 @@ function getSubstitutor(X) {
 
 // start with which takes a list of tokens and a string to check.
 // It returns the index of the token with which the string starts
-// if the string starts with none of them, it returns undefined.
-function startsWithWhich(toks, str) {
-    for (var which=0; which<toks.length; which++) {
-        if (str.indexOf(toks[which])==0) {
-            return which;
+// if the string starts with none of them, it returns null.
+function startsWithWhich($toks, $str) {
+    for ($which=0; $which<count($toks); $which++) {
+        if (strpos($str, $toks[$which])==0) {
+            return $which;
         }
     }
-    console.log('Not found any "'+toks+'" in "'+str+'"');
-    return undefined;
+    debugMsg("Not found any $toks in $str");
+    return null;
 }
 
-function getOperator(X) {
+function getOperator($x) {
     
-    if (counted.indexOf(X) === -1) {
-        fX = predefined_functions[X];
-        counted.push(X);
+    if (in_array($x,$counted)==0) {
+        $fX = $predefined_functions[$x];
+        array_push($counted,$x);
 
         // concatenate function definition
-        code.line("function "+ X + "(" + fX.args + ") {" + fX.body +"}");
+        Code::line("function $x(". $fX['args'] .") {". $fX['body'] ."}");
 
         // find pre-requisites
-        if (fX.requires) {
-            var pre = fX.requires.map(getOperator);
-            // code.line(pre.join(""));
+        if (is_set($fX['requires'])) {
+            $pre = array_map($fX['requires'],'getOperator'); //getOperator = the function
         }
     }
-    
-    return function (Args) {return X+"("+Args.join(",")+")";};
+
+    return function ($args) {return "$x(".array_join($args,",").")";};
 }
 
-function process(Exp) {
+// needs work
+function process($exp) {
    // calls the compiled instructions, respecting the structure, and returns a string to display.
-   
-    var res;
+   // needs thinking - best would be to send PHP code to a virtual machine 
+/*
+    $res;
 
-    if (Exp instanceof Array) {
-        res = Exp.map(process);
+    if ($exp instanceof Array) {
+        $res = $exp.map(process);
     }
     else {
-        res = eval(Exp);
+        $res = eval($exp);
         if (typeof(res == "undefined")) res = Exp;
     }
     // done
-    return res;
-
-}
-
-function isString(s) {
-   return (typeof s === 'string' || s instanceof String)
+    return $res;
+*/
 }
 
 // list of variables in use (to parse them)
 // with encapsulated functions for handling the list
-var tokens = {
-    list: [],
-    clear: function() { tokens.list=[]; },
-    contain: function(tok) {
-        return tokens.list.indexOf(tok)>-1;
-    },
-    add: function (tok) {
-        tokens.list.unshift(tok);
-        return tokens;
-    },
-    addAll: function (toks) {
-        debugMsg(toks); 
-        toks.map(tokens.add)
-    },
-    remove: function (tok) {
-        if (tokens.contain(tok)) {
+class Tokens {
+    
+    // static or in __construct??
+    static $list = [];
+    
+    static function clear() { self::$list=[]; }
+    
+    /* not needed (?)
+    static function contain($tok) {
+        return in_array($tok,self::$list);
+    }
+    */
+    
+    static function add($tok) {
+        array_unshift(self::$list,$tok);
+        return self;
+    }
+
+    static function addAll($toks) {
+        debugMsg($toks); 
+        array_map('self::add',$toks);
+    }
+    
+    static function remove($tok) {
+        if (in_array($tok,self::$list)) {
             return false;
         } else {
-            tokens.list.splice(list.indexOf(tok),1)
-            return tokens;
+            array_splice(self::$list,array_search(self::$list,$tok),1)
+            return self;
         }
-    },
-    removeAll: function (toks) {
-        toks.map(tokens.remove);
-    },
-    shift: function (n) {
-        if (!n) n=1;
-        do {tokens.list.shift();} while (n-->0);
-        return tokens;
     }
-};
-
-function debugMsg(m) {
-    var debug = false; // set to true to turn on debugging
-    if (debug) console.log(JSON.stringify(m)+'\n');
+    
+    static function removeAll($toks) {
+        array_map('self::remove',$toks);
+    }
+    
+    static shift: function ($n=1) {
+        do {array_shift(self::$list);} while (n-->0);
+        return self;
+    }
 }
+
+// work statically - no need
+//$tokens = new Tokens();
+
+function debugMsg($msg) {
+    $debug = false; // set to true to turn on debugging
+    if ($debug) echo(print_r($msg)+'\n');
+}
+
+?>

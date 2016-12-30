@@ -309,11 +309,17 @@ function displayExpression(blockID) {
     tokenList = {};
     var exp = getExpression(blockID);
     // alert(JSON.stringify(tokenList));
-    var result = [];
-    for (var i in tokenList) {
-        result.push(tokenList[i]);
+    if (Object.keys(tokenList).length === 0) {
+        debugMsg("No tokens");
+        result = exp;
+    } else {
+        debugMsg("Some tokens");
+        var result = [];
+        for (var i in tokenList) {
+            result.push(tokenList[i]);
+        }
+        result.push(exp);
     }
-    result.push(exp);
     $('#s-exp').val(JSON.stringify(result));
 }
 

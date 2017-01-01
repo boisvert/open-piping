@@ -70,12 +70,12 @@ Code
 <br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />
-<input type="button" value="compile" onClick="go()" /> <br />
+   <input type="button" value="compile (javaScript)" onClick="goJS()" />
+   <input type="button" value="compile (PHP)" onClick="goPHP()" /> <br />
 Result<br />
 <textarea id="result" cols="80" rows="10">
 </textarea>
 <input type="button" value="Show result" onClick="runres();" /> <br />
-
 
 <script>
 
@@ -93,9 +93,18 @@ function inject(num) {
 }
 
 // compile event
-function go() {
+function goJS() {
    var Exp = JSON.parse(document.getElementById('s-exp').value);
    document.getElementById('result').value=compile(Exp);
+}
+
+function goPHP() {
+   var Exp = JSON.parse(document.getElementById('s-exp').value);
+   url = 'compile_workflow.php';
+   $.post(url, 'exp='+Exp)
+     .done(function( data ) {
+        alert( "PHP result: " + data );
+   });
 }
 
 // run result

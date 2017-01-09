@@ -1,7 +1,7 @@
 <?php
 
 error_reporting(E_ALL ^ E_WARNING);
-xdebug_disable();
+//xdebug_disable();
 
 ini_set( 'magic_quotes_gpc', 0 );
 
@@ -197,7 +197,7 @@ function defun($exp) {
 
     global $predefined_functions;
     $name = $exp[1];
-    $args = array_map(function($a){return '$'.$a;},$exp[2]);
+    $args = array_map('add_dollar',$exp[2]);
     $tokens->addAll($args); // tokens list is filled with the function arguments
     $f = array();
     $f['args'] = implode(", ",$args);
@@ -210,6 +210,8 @@ function defun($exp) {
     $tokens->removeAll($args);
     Code::line("function $name(". $f['args'] . ") {".$body."}");
 }
+
+function add_dollar($str) {return '$'.$str;}
 
 function getOperator($x) {
 
@@ -309,7 +311,7 @@ class Replacement {
             // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
             $indexes = array();
             // results_parts is a list of strings that need to be concatenated
-            $this->result_parts = [$rep_parts[0]]; // ['','?',':',''] ;
+            $this->result_parts = array($rep_parts[0]); // ['','?',':',''] ;
             array_shift($rep_parts);
 
             foreach ($rep_parts as $part) {

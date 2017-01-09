@@ -1,77 +1,4 @@
 <?
-/*
-
-(plus 2 3) in JSON = ["plus", 2, 3]
-
-(1 2 3) in JSON = [1, 2, 3]
-
-Examples of expression that ought to be interpretable:
-
-[
-  ["defun", "square", ["x"], ["times", "x", "x"]],
-  ["square", 2]
-]
-
-result:
-   function square(x) { return x*x; }
-   square(2);
-
-[
-  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],
-  ["fac", 10]
-]
-
-result:
-   function fac(n) {return lt(n,2)?1:times(n,fac(n-1));}
-   fac(10);
-
-*/
-
-/*
-Set of predefined functions
-predefined functions both define the gui blocks
-and this compilation, so the functions are loaded in the editor
-
-as well as functions, some substititions are allowed
-this is still in progress.
-a call is either substitution or function;
-substitutions may have prerequisite functions; but not prerequisite substitutions (?)
-substitutions could uncoupling language specific structures
-and replace special cases of the compiler engine
-like conditionals and possibly function definition
-
-A stack of defined vars (setq) is also maintained
-*/
-
-
-// $counted - list of functions in use (to not repeat them)
-$counted = [];
-
-// $ready_replacements - list of substitutions already parsed
-
-// list of variables in use (to parse them)
-// with encapsulated functions for handling the list
-
-
-// Code = string containing code of functions to include in result
-class Code {
-    
-    static $text = "";
-
-    static function clear() { self::$text = ""; },
-    static function line($lin) { self::$text += $lin + "\n\n"; }    
-}
-
-function compile(Exp) {
-   Code::clear();
-   Code::line("// Automatically generated code");
-   counted = [];
-   tokens.clear();
-   ready_replacements = [];
-   $call = encode(Exp);
-   Code::line("process("+call+");");
-   return Code::text;
-}
 
 function encode(Exp) {
     $res = "";
@@ -129,25 +56,10 @@ function encode(Exp) {
     return res;
 }
 
-function encodeEach(E) {
-    debugMsg("encoding each of "+E);
-    if (E instanceof Array) {
-        $Res = [];
-        if (E.length>0) {
-            debugMsg("encoding "+E[0]);
-            $First = encode(E[0]);
-            E.shift();
-            $Res = encodeEach(E);
-            if (First != "") {Res.unshift(First);}
-        }
-       return Res;
-    }
-    else throw "Should get an array, received "+JSON.stringify(E);
-}
-
 // defun adds necessary code for the function definition and updates the list of functions available
 // and the list of functions in use
 // the syntax is javascript: funtion foo(arguments) {return body;}
+
 function defun(Exp) {
     // adds a function definition to the "predefined functions" JSON list
     $name = Exp[1];
@@ -218,6 +130,7 @@ function getSubstitutor($x) {
 // start with which takes a list of tokens and a string to check.
 // It returns the index of the token with which the string starts
 // if the string starts with none of them, it returns null.
+
 function startsWithWhich($toks, $str) {
     for ($which=0; $which<count($toks); $which++) {
         if (strpos($str, $toks[$which])==0) {
@@ -228,23 +141,7 @@ function startsWithWhich($toks, $str) {
     return null;
 }
 
-function getOperator($x) {
-    
-    if (in_array($x,$counted)==0) {
-        $fX = $predefined_functions[$x];
-        array_push($counted,$x);
 
-        // concatenate function definition
-        Code::line("function $x(". $fX['args'] .") {". $fX['body'] ."}");
-
-        // find pre-requisites
-        if (is_set($fX['requires'])) {
-            $pre = array_map($fX['requires'],'getOperator'); //getOperator = the function
-        }
-    }
-
-    return function ($args) {return "$x(".array_join($args,",").")";};
-}
 
 // needs work
 function process($exp) {
@@ -263,58 +160,6 @@ function process($exp) {
     // done
     return $res;
 */
-}
-
-// list of variables in use (to parse them)
-// with encapsulated functions for handling the list
-class Tokens {
-    
-    // static or in __construct??
-    static $list = [];
-    
-    static function clear() { self::$list=[]; }
-    
-    /* not needed (?)
-    static function contain($tok) {
-        return in_array($tok,self::$list);
-    }
-    */
-    
-    static function add($tok) {
-        array_unshift(self::$list,$tok);
-        return self;
-    }
-
-    static function addAll($toks) {
-        debugMsg($toks); 
-        array_map('self::add',$toks);
-    }
-    
-    static function remove($tok) {
-        if (in_array($tok,self::$list)) {
-            return false;
-        } else {
-            array_splice(self::$list,array_search(self::$list,$tok),1)
-            return self;
-        }
-    }
-    
-    static function removeAll($toks) {
-        array_map('self::remove',$toks);
-    }
-    
-    static shift: function ($n=1) {
-        do {array_shift(self::$list);} while (n-->0);
-        return self;
-    }
-}
-
-// work statically - no need
-//$tokens = new Tokens();
-
-function debugMsg($msg) {
-    $debug = false; // set to true to turn on debugging
-    if ($debug) echo(print_r($msg)+'\n');
 }
 
 ?>

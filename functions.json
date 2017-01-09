@@ -14,15 +14,18 @@
         "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
         "sqrt": {"args":"a", "body": "return Math.sqrt(a);"}
     },
+    "php": {
+        "pythagoras": {"args": "$a,$b", "body": "return sqrt($a*$a+$b*$b);"}
+    },
     "replace": {
-        "if": {"args": "a,b,c", "js": "@a?@b:@c"},
-        "plus": {"args": "a,b", "js": "(@a+@b)"},
-        "minus": {"args": "a,b", "js": "(@a-@b)"},
-        "times": {"args": "a,b", "js": "@a*@b"},
-        "divide": {"args": "a,b", "js": "@a/@b"},
-        "equals": {"args": "a,b", "js": "(@a==@b)"},
-        "lt": {"args": "a,b", "js": "(@a<@b)"},
-        "mt": {"args": "a,b", "js": "(@a>@b)"}
+        "if": {"args": "a,b,c", "js": "@a?@b:@c", "php":"@a?@b:@c"},
+        "plus": {"args": "a,b", "js": "(@a+@b)", "php":"(@a+@b)"},
+        "minus": {"args": "a,b", "js": "(@a-@b)", "php":"(@a-@b)"},
+        "times": {"args": "a,b", "js": "@a*@b", "php":"(@a*@b)"},
+        "divide": {"args": "a,b", "js": "@a/@b", "php":"(@a/@b)"},
+        "equals": {"args": "a,b", "js": "(@a===@b)", "php":"(@a===@b)"},
+        "lt": {"args": "a,b", "js": "(@a<@b)", "php":"(@a<@b)"},
+        "mt": {"args": "a,b", "js": "(@a>@b)", "php":"(@a>@b)"}
     }
 }
 

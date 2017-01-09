@@ -42,7 +42,6 @@ like conditionals and possibly function definition
 A stack of defined vars (setq) is also maintained
 */
 
-// var code; // code of functions to include in result
 var counted; // list of functions in use (to not repeat them)
 var ready_replacements; // list of substitutions already parsed
 
@@ -207,19 +206,6 @@ function getSubstitutor(X) {
     return s;
 }
 
-// start with which takes a list of tokens and a string to check.
-// It returns the index of the token with which the string starts
-// if the string starts with none of them, it returns undefined.
-function startsWithWhich(toks, str) {
-    for (var which=0; which<toks.length; which++) {
-        if (str.indexOf(toks[which])==0) {
-            return which;
-        }
-    }
-    console.log('Not found any "'+toks+'" in "'+str+'"');
-    return undefined;
-}
-
 function getOperator(X) {
     
     if (counted.indexOf(X) === -1) {
@@ -231,7 +217,7 @@ function getOperator(X) {
 
         // find pre-requisites
         if (fX.requires) {
-            var pre = fX.requires.map(getOperator);
+            fX.requires.map(getOperator);
             // code.line(pre.join(""));
         }
     }
@@ -254,10 +240,6 @@ function process(Exp) {
     // done
     return res;
 
-}
-
-function isString(s) {
-   return (typeof s === 'string' || s instanceof String)
 }
 
 // list of variables in use (to parse them)
@@ -293,6 +275,23 @@ var tokens = {
         return tokens;
     }
 };
+
+// start with which takes a list of tokens and a string to check.
+// It returns the index of the token with which the string starts
+// if the string starts with none of them, it returns undefined.
+function startsWithWhich(toks, str) {
+    for (var which=0; which<toks.length; which++) {
+        if (str.indexOf(toks[which])==0) {
+            return which;
+        }
+    }
+    debugMsg('Not found any "'+toks+'" in "'+str+'"');
+    return undefined;
+}
+
+function isString(s) {
+   return (typeof s === 'string' || s instanceof String)
+}
 
 function debugMsg(m) {
     var debug = false; // set to true to turn on debugging

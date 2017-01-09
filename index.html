@@ -95,15 +95,16 @@ function inject(num) {
 // compile event
 function goJS() {
    var Exp = JSON.parse(document.getElementById('s-exp').value);
-   document.getElementById('result').value=compile(Exp);
+   $('#result').val(compile(Exp));
 }
 
 function goPHP() {
-   var Exp = JSON.parse(document.getElementById('s-exp').value);
+   var Exp = encodeURIComponent(document.getElementById('s-exp').value);
    url = 'compile_workflow.php';
+   // post (was Exp=..., but now collecting data with php://input)
    $.post(url, 'exp='+Exp)
      .done(function( data ) {
-        alert( "PHP result: " + data );
+        $('#result').val(data);
    });
 }
 

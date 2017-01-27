@@ -3,10 +3,12 @@
 // predefined functions both define the blocks available to interconnect
 // in a graphical interface and the code to use to compile the workflow 
 
+// set of functions available (used by compiler)
 var predefined_functions;
-var predefined_replacements; // doc...
+// set of replacements - e.g. [plus 1 2] -> 1+2 - (used by compiler)
+var predefined_replacements;
+// GUI - for the draggable blocks
 var predefined_gui;
-
 
 
 // i: used to define a unique ID for blocks dragged to the canvas
@@ -47,15 +49,26 @@ function initialise() {
     var args;
     // alert(predefined_gui.length);  //JSON.stringify(predefined_gui));
     for (block in predefined_gui) {
+        
+        // pick up the number of arguments for the block
         if (typeof (predefined_gui[block].args) !== 'undefined') {
             args=predefined_gui[block].args;
         }
         else {
-            args = 2;
+            args = 2; // 2 arguments by default
         }
         
+        // position and add the block
         addBlockType(block, {top:55*numBlock+10,left:10}, args );
         numBlock++;
+        
+        // if a block belongs to a group
+        // if it is a new group, a block should be added that has a drop down,
+        // and the first block's name filled
+        // if it is not new (pre-existing block)
+        // then drop-down should be populated with data about new block
+        // in which case numBlock shouldn't be incremented.
+        // this is easier if block of the same group have the same number of arguments.
     }
     //  addBlockType("Number value", {top:70,left:10}, 0, '<form><input type="text" /><form>' );
     // function x(b) {return b.form.input.value);

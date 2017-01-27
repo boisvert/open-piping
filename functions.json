@@ -1,9 +1,9 @@
 {
     "gui": {
         "Number value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return Number(inpt.value);"},
-        "plus": {"args": 2},
-        "minus": {"args": 2},
-        "times": {"args": 2},
+        "plus": {"args": 2, group: "arithmetic"},
+        "minus": {"args": 2}, group: "arithmetic",
+        "times": {"args": 2, group: "arithmetic"},
         "lt": {"args": 2},
         "pythagoras": {"args": 2},
         "sqrt": {"args":1},

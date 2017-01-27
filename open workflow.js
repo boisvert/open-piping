@@ -42,23 +42,93 @@ like conditionals and possibly function definition
 A stack of defined vars (setq) is also maintained
 */
 
-var counted; // list of functions in use (to not repeat them)
-var ready_replacements; // list of substitutions already parsed
-
-// list of variables in use (to parse them)
-// with encapsulated functions for handling the list
+// String with the resulting code
+// plus simple encapsulatedd functions
 var code = {
     text: "",
     clear: function() { code.text = ""; },
     line: function(lin) { code.text += lin + "\n\n"; }
 };
 
+// list of functions in use (to not repeat them)
+var includedFunctions = {
+    list: [],
+    clear: function() { 
+        includedFunctions.list=[];
+        return includedFunctions;
+    },
+    notContain: function(F) {
+        return includedFunctions.list.indexOf(F) === -1;
+    },
+    add: function (F) {
+        includedFunctions.list.push(F);
+        return includedFunctions;
+    }
+}
+
+// list of substitutions already parsed
+var readyReplacements = {
+    list: [],
+    clear: function() { 
+        readyReplacements.list=[];
+        return readyReplacements;
+    },
+    contain: function(X) {
+        return readyReplacements[X] === null;
+    },
+    set: function (X,R) {
+        readyReplacements.list[X] = R;
+        return readyReplacements;
+    },
+    get: function (X) {
+        if (readyReplacements.contain(X))
+            return readyReplacements[X]
+        else
+            return false;        
+    }
+}
+
+
+// list of tokens (variables) in use, to parse them
+// with encapsulated functions for handling the list
+var tokens = {
+    list: [],
+    clear: function() { tokens.list=[]; },
+    contain: function(tok) {
+        return tokens.list.indexOf(tok)>-1;
+    },
+    add: function (tok) {
+        tokens.list.unshift(tok);
+        return tokens;
+    },
+    addAll: function (toks) {
+        debugMsg(toks); 
+        toks.map(tokens.add)
+    },
+    remove: function (tok) {
+        if (tokens.contain(tok)) {
+            return false;
+        } else {
+            tokens.list.splice(list.indexOf(tok),1)
+            return tokens;
+        }
+    },
+    removeAll: function (toks) {
+        toks.map(tokens.remove);
+    },
+    shift: function (n) {
+        if (!n) n=1;
+        do {tokens.list.shift();} while (n-->0);
+        return tokens;
+    }
+};
+
 function compile(Exp) {
    code.clear();
    code.line("// Automatically generated code");
-   counted = [];
+   includedFunctions.clear();
    tokens.clear();
-   ready_replacements = [];
+   readyReplacements.clear();
    var call = encode(Exp);
    code.line("process("+call+");");
    return code.text;
@@ -146,7 +216,7 @@ function defun(Exp) {
     var f = {};
     f["args"] = args.join(", ");
     predefined_functions[name] = f;
-    counted.push(name);
+    includedFunctions.add(name);
     tokens.addAll(args); // tokens list is filled with the function arguments
     debugMsg(tokens);
     var body = "return "+encode(Exp[3])+";";
@@ -158,8 +228,8 @@ function defun(Exp) {
 function getSubstitutor(X) {
     var s;
     
-    if (ready_replacements[X]) {
-        s = ready_replacements[X];
+    if (readyReplacements.contain(X)) {
+        s = readyReplacements.get(X);
     }
     else {
         rX = predefined_replacements[X];
@@ -200,7 +270,7 @@ function getSubstitutor(X) {
             code.line(pre.join(""));
         }
 
-        ready_replacements[X] = s;
+        readyReplacements.set(X,s);
     }
 
     return s;
@@ -208,9 +278,9 @@ function getSubstitutor(X) {
 
 function getOperator(X) {
     
-    if (counted.indexOf(X) === -1) {
+    if (includedFunctions.notContain(X)) {
         fX = predefined_functions[X];
-        counted.push(X);
+        includedFunctions.add(X);
 
         // concatenate function definition
         code.line("function "+ X + "(" + fX.args + ") {" + fX.body +"}");
@@ -241,40 +311,6 @@ function process(Exp) {
     return res;
 
 }
-
-// list of variables in use (to parse them)
-// with encapsulated functions for handling the list
-var tokens = {
-    list: [],
-    clear: function() { tokens.list=[]; },
-    contain: function(tok) {
-        return tokens.list.indexOf(tok)>-1;
-    },
-    add: function (tok) {
-        tokens.list.unshift(tok);
-        return tokens;
-    },
-    addAll: function (toks) {
-        debugMsg(toks); 
-        toks.map(tokens.add)
-    },
-    remove: function (tok) {
-        if (tokens.contain(tok)) {
-            return false;
-        } else {
-            tokens.list.splice(list.indexOf(tok),1)
-            return tokens;
-        }
-    },
-    removeAll: function (toks) {
-        toks.map(tokens.remove);
-    },
-    shift: function (n) {
-        if (!n) n=1;
-        do {tokens.list.shift();} while (n-->0);
-        return tokens;
-    }
-};
 
 // start with which takes a list of tokens and a string to check.
 // It returns the index of the token with which the string starts

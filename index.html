@@ -101,7 +101,6 @@ function goJS() {
 function goPHP() {
    var Exp = encodeURIComponent(document.getElementById('s-exp').value);
    url = 'compile_workflow.php';
-   // post (was Exp=..., but now collecting data with php://input)
    $.post(url, 'exp='+Exp)
      .done(function( data ) {
         $('#result').val(data);

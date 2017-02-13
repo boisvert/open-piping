@@ -329,7 +329,13 @@ function isString(s) {
    return (typeof s === 'string' || s instanceof String)
 }
 
-function debugMsg(m) {
-    var debug = false; // set to true to turn on debugging
-    if (debug) console.log(JSON.stringify(m)+'\n');
+function debugMsg() {
+    var debug = true; // set to true to turn on debugging
+    if (debug) {
+        var m = '';
+        for (i in arguments) {
+            m += JSON.stringify(arguments[i]);
+        }
+        console.log(m);
+    } 
 }

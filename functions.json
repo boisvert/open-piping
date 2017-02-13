@@ -1,10 +1,13 @@
 {
     "gui": {
         "Number value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return Number(inpt.value);"},
-        "plus": {"args": 2, group: "arithmetic"},
-        "minus": {"args": 2}, group: "arithmetic",
-        "times": {"args": 2, group: "arithmetic"},
-        "lt": {"args": 2},
+        "plus": {"args": 2, "group": "arithmetic"},
+        "minus": {"args": 2, "group": "arithmetic"},
+        "times": {"args": 2, "group": "arithmetic"},
+        "divide": {"args": 2, "group": "arithmetic"},
+        "lt": {"args": 2, "group": "comparison"},
+        "mt": {"args": 2, "group": "comparison"},
+        "equals": {"args": 2, "group": "comparison"},
         "pythagoras": {"args": 2},
         "sqrt": {"args":1},
         "if": {"args":3},

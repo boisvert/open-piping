@@ -43,36 +43,62 @@ jsPlumb.ready(function() {
 });
 
 // set up UI
+var groups = [];
+
 function initialise() {
-    // initialise with block types to the left
+    // initialise the GUI list of block types
     var numBlock = 0;
     var args;
-    // alert(predefined_gui.length);  //JSON.stringify(predefined_gui));
+
     for (block in predefined_gui) {
-        
-        // pick up the number of arguments for the block
-        if (typeof (predefined_gui[block].args) !== 'undefined') {
-            args=predefined_gui[block].args;
+
+        defGUI = predefined_gui[block];
+
+        if (typeof  (defGUI.group) !== 'undefined') {
+        // the block belongs to a group
+            debugMsg("found group of"+block);
+            var group = defGUI.group;
+            if (groups[group]) {
+                // if it is not new (pre-existing block)
+                // then drop-down should be populated with data about new block
+                // in which case numBlock shouldn't be incremented.
+                groups[group].push(block);
+               // debugMsg();
+            } else {
+                // if it is a new group, a block should be added that has a drop down,
+                // and the first block's name filled
+                groups[group]=[block];
+            }
+
+            // Can blocks of the same group have a varying number of arguments?
+
         }
         else {
-            args = 2; // 2 arguments by default
+        // the block is stand-alone
+            // position and add the block
+            addBlockType(block, numBlock, defGUI ); // was args, as defined above 2017-01-28
+            numBlock++;
         }
+    }
+    debugMsg(groups);
+
+    for (block_group in groups) {
+
+        group = groups[block_group];
+        debugMsg(group);
+
+        // work out the GUI for the block
+        // to work out the GUI we need to analyse blocks in the group
         
         // position and add the block
-        addBlockType(block, {top:55*numBlock+10,left:10}, args );
+        addBlockGroup(block_group, numBlock, group );
         numBlock++;
-        
-        // if a block belongs to a group
-        // if it is a new group, a block should be added that has a drop down,
-        // and the first block's name filled
-        // if it is not new (pre-existing block)
-        // then drop-down should be populated with data about new block
-        // in which case numBlock shouldn't be incremented.
-        // this is easier if block of the same group have the same number of arguments.
+
     }
-    //  addBlockType("Number value", {top:70,left:10}, 0, '<form><input type="text" /><form>' );
-    // function x(b) {return b.form.input.value);
-    endBlock(); // identifies the result of the function
+
+    // add the 'end' block
+    // the endBlock identifies the result of the function
+    endBlock();
 
     // drag and drop blocks
     $( ".blockType" ).draggable({
@@ -84,14 +110,76 @@ function initialise() {
             $(this).css(oldPos);
         }
     });
-    
+
     // delete selected block(s)
     $('html').keyup(function(e){
         if(e.keyCode == 46) {
             while (blockSelection.length>0) {removeBlock(blockSelection[0]);}
         }
     });
+}
 
+// create block type - ie the source of a function to drag in and use
+// position is a css expression of the blockType's position
+// inConn is the number of input connections accepted (ie of parameters for function)
+// blockHTML is a string giving the HTML to be used to display the block (label by default)
+// blockValue - in progress - is a function to use when the block is called ($.text() by default)
+function addBlockType(label, position, defGUI) {
+    // block is a single
+    debugMsg("adding block type",label,defGUI);
+    
+    var block = $('<div>').attr('id',label).addClass('blockType').html(label);
+
+    if (typeof (defGUI.blockCode) !== 'undefined') {
+        $(block).attr('blockCode',defGUI.blockCode);
+    }
+
+    if (typeof (defGUI.getExp) !== 'undefined') {
+        $(block).attr('getExp',defGUI.getExp);
+    }
+
+    var inConn = 2;
+    if (typeof (defGUI.args) !== 'undefined') {
+        inConn=defGUI.args;
+    }
+
+    $(block).attr('inConn',inConn);
+
+    if (position) {
+        block.css({top:55*position+20,left:10});
+    }
+
+    $('#pipeContainer').append(block);
+}
+
+function addBlockGroup(label, position, group) {
+    // block is for a group with drop down option
+
+    debugMsg("adding block type",label,group);
+    
+    var block = $('<div>').attr('id',label).addClass('blockType').html(label);
+
+    var code = "<form><select>";
+    for (i in group) {
+        code += "<option value="+group[i]+">"+group[i]+"</option>"; // value missing
+    }
+    code += "</select></form>";
+    $(block).attr('blockCode',code);
+    
+    $(block).attr('getExp',"return block.find('form > select').val();");
+
+    var base = predefined_gui[group[0]]; 
+    var inConn = 2;
+    if (typeof (base.args) !== 'undefined') {
+        inConn=base.args;
+    }
+    $(block).attr('inConn',inConn);
+
+    if (position) {
+        block.css({top:55*position+20,left:10});
+    }
+
+    $('#pipeContainer').append(block);
 }
 
 // block functions - add, select, deselect, remove, blocktype, endblock - are messy
@@ -101,16 +189,19 @@ function initialise() {
 // addBlock: create a new block of the given type.
 // the attributes within blockType provide all the data to customise the block.
 // inConn is the number of input connections accepted (ie of parameters for function)
+var idNum=0;
 function addBlock(blockType, position) {
-    
+
     var label = blockType.attr("id");
     var inHTML = label;
-    
-    if (typeof (predefined_gui[label].blockCode) !== 'undefined') {
-        inHTML += '<br />'+predefined_gui[label].blockCode;
-    }
 
-    var blockID = 'id'+i;
+    if (typeof (blockType.attr("blockCode")) !== 'undefined') {
+        inHTML += '<br />'+blockType.attr("blockCode");
+    }
+    
+    var blockID = 'id'+idNum;
+    idNum++; // need token generator
+    
     var block = $('<div>')
                 .attr('id',blockID)
                 .addClass('block')
@@ -119,9 +210,9 @@ function addBlock(blockType, position) {
     if(position) {
         block.css(position);
     }
-    
+
     $('#pipeContainer').append(block);
-    
+
     var common = {
         endpoint:"Dot",
         paintStyle:{ fillStyle:"lightgrey" },
@@ -137,7 +228,7 @@ function addBlock(blockType, position) {
     } else {
         endProps = {anchor:"Right", isSource: true}
     }
-    
+
     jsPlumb.addEndpoint(blockID, endProps, common);
 
     // check if input connections are required for this block
@@ -151,29 +242,30 @@ function addBlock(blockType, position) {
                 anchors:[[pos, 0],"Top"],
                 isTarget: true,
                 maxConnections: 1
-            }, common);            
+            }, common);
         }
     }
-    
+
     jsPlumb.draggable(blockID, {containment: 'parent'});
-    
+
     block.click(function() {
-         blockSelection = [];
+         blockSelection = []; // currently only one block can be selected
          selectBlock(block);
          displayExpression(blockID);
     });
-    
+
     var exp;
-    
-    if (typeof (predefined_gui[label].getExp) !== 'undefined') {
-        eval("exp = function() {" + predefined_gui[label].getExp + "}");
+
+    if (typeof (blockType.attr("getExp")) !== 'undefined') {
+        eval("exp = function() {" + blockType.attr("getExp") + "}");
     }
     else {
         exp = function(){return label;};        
     }
     block.on("expression", exp)
-    
+
     i++;
+
 }
 
 function selectBlock(block) {
@@ -204,25 +296,6 @@ function removeBlock(block) {
     jsPlumb.detach(block);
     deselectBlock(block);
     block.remove();
-}
-
-// create block type - ie the source of a function to drag in and use
-// position is a css expression of the blockType's position
-// inConn is the number of input connections accepted (ie of parameters for function)
-// blockHTML is a string giving the HTML to be used to display the block (label by default)
-// blockValue - in progress - is a function to use when the block is called ($.text() by default)
-function addBlockType(label, position, inConn, blockValue) {
-    var block = $('<div>').attr('id',label).addClass('blockType').html(label);
-    if (blockValue) {
-        $(block).attr('blockValue',blockValue)
-    }
-    if (inConn) {
-        $(block).attr('inConn',inConn);
-    }
-    if (position) {
-        block.css(position);
-    }
-    $('#pipeContainer').append(block);
 }
 
 // create new connector
@@ -337,16 +410,17 @@ function displayExpression(blockID) {
 }
 
 /*
-// token generation - not needed?
-token = function () {
-        tokenRoots = {};
-        getNext = function(root) {
-            if (!root) root = "token";
-            var next = 0;
-            if (tokenRoots[root])
-                next = ++tokenRoots[root]
-            else
-                tokenRoots[root] = next;
-        }
-    }();
+// token generation
+// not good
+var token = {
+    tokenRoots: {},
+    getNext: function(root) {
+        if (!root) root = "token";
+        var next = 0;
+        if (token.tokenRoots[root])
+            next = ++token.tokenRoots[root]
+        else
+            token.tokenRoots[root] = next;
+    }
+};
 */

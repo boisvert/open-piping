@@ -387,7 +387,7 @@ function getExpression(blockID) {
         op = $('#'+blockID).triggerHandler('expression');
     }
     // alert(blockID+' '+JSON.stringify(op));
-    return op;
+    return op; 
 }
 
 // output function to view the expression for a block

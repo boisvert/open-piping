@@ -47,7 +47,7 @@ function get_json_data($file) {
     $replacements->populate($json['replace']);
     debugMsg($replacements);
 
-}
+} 
 
 function compile($exp) {
     global $counted;

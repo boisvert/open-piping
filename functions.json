@@ -18,7 +18,7 @@
         "isNull": {"args": 1, "group":"type check"},
         "or": {"args": 2, "group": "logic"},
         "and": {"args": 2, "group": "logic"}
-    },
+    }, 
     "js": {
         "isNumber": {"args": "n", "body": "return $.isNumeric(n);"},
         "isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},

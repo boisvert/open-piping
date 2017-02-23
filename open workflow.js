@@ -276,7 +276,7 @@ function getSubstitutor(X) {
         readyReplacements.set(X,s);
     }
 
-    return s;
+    return s; 
 }
 
 function getOperator(X) {

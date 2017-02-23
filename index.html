@@ -59,8 +59,7 @@
 <p>
 <div id="pipeContainer"></div>
 
-<p>
-Code
+<form>
 <input type="button" value="Example1" onClick="inject(0);" /> 
 <input type="button" value="Example2" onClick="inject(1);" /> 
 <input type="button" value="Example3" onClick="inject(2);" />
@@ -70,12 +69,18 @@ Code
 <br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />
-   <input type="button" value="compile (javaScript)" onClick="goJS()" />
-   <input type="button" value="compile (PHP)" onClick="goPHP()" /> <br />
-Result<br />
+Language:
+<select id="chooseLang">
+<option value="JS" selected>JS</option>
+<option value="PHP">PHP</option>
+</select>
+   <input type="button" value="Get code" onClick="getCode($('#chooseLang').val());" />
+<br />
 <textarea id="result" cols="80" rows="10">
 </textarea>
 <input type="button" value="Show result" onClick="runres();" /> <br />
+
+</form>
 
 <script>
 
@@ -93,18 +98,19 @@ function inject(num) {
 }
 
 // compile event
-function goJS() {
-   var Exp = JSON.parse(document.getElementById('s-exp').value);
-   $('#result').val(compile(Exp));
-}
-
-function goPHP() {
-   var Exp = encodeURIComponent(document.getElementById('s-exp').value);
-   url = 'compile_workflow.php';
-   $.post(url, 'exp='+Exp)
-     .done(function( data ) {
-        $('#result').val(data);
-   });
+function getCode(lang) {
+    if(lang==='JS') {
+        var Exp = JSON.parse(document.getElementById('s-exp').value);
+        $('#result').val(compile(Exp));
+    }
+    else if(lang==='PHP') {
+        var Exp = encodeURIComponent(document.getElementById('s-exp').value);
+        url = 'compile_workflow.php';
+        $.post(url, 'exp='+Exp)
+         .done(function( data ) {
+            $('#result').val(data);
+        });
+    }
 }
 
 // run result

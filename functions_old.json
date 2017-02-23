@@ -10,20 +10,14 @@
         "lt": {"args": 2, "group": "comparison"},
         "mt": {"args": 2, "group": "comparison"},
         "equals": {"args": 2, "group": "comparison"},
+        "pythagoras": {"args": 2},
+        "sqrt": {"args":1},
         "if": {"args":3},
-        "setq": {"args":1},
-        "isNumber": {"args":1, "group":"type check"},
-        "isString": {"args":1, "group":"type check"},
-        "isArray": {"args":1, "group":"type check"},
-        "isNull": {"args": 1, "group":"type check"},
-        "or": {"args": 2, "group": "logic"},
-        "and": {"args": 2, "group": "logic"}
+        "setq": {"args":1}
     },
     "js": {
-        "isNumber": {"args": "n", "body": "return $.isNumeric(n);"},
-        "isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},
-        "isArray": {"args": "a", "body": "return $.isArray(a);"},
-        "isNull": {"args": "x", "body": "return x==null;"}
+        "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
+        "sqrt": {"args":"a", "body": "return Math.sqrt(a);"}
     },
     "php": {
         "pythagoras": {"args": "$a,$b", "body": "return sqrt($a*$a+$b*$b);"}
@@ -36,9 +30,7 @@
         "divide": {"args": "a,b", "js": "@a/@b", "php":"(@a/@b)"},
         "equals": {"args": "a,b", "js": "(@a===@b)", "php":"(@a===@b)"},
         "lt": {"args": "a,b", "js": "(@a<@b)", "php":"(@a<@b)"},
-        "mt": {"args": "a,b", "js": "(@a>@b)", "php":"(@a>@b)"},
-        "or": {"args": "a,b", "js": "(@a||@b)", "php":"(@a||@b)"},
-        "and": {"args": "a,b", "js": "(@a&&@b)", "php":"(@a&&@b)"}
+        "mt": {"args": "a,b", "js": "(@a>@b)", "php":"(@a>@b)"}
     }
 }
 

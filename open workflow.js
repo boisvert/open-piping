@@ -74,7 +74,7 @@ var readyReplacements = {
         return readyReplacements;
     },
     contain: function(X) {
-        return readyReplacements[X] === null;
+        return readyReplacements.list.indexOf[X] >= 0;
     },
     set: function (X,R) {
         readyReplacements.list[X] = R;
@@ -82,7 +82,7 @@ var readyReplacements = {
     },
     get: function (X) {
         if (readyReplacements.contain(X))
-            return readyReplacements[X]
+            return readyReplacements[X];
         else
             return false;        
     }
@@ -93,7 +93,10 @@ var readyReplacements = {
 // with encapsulated functions for handling the list
 var tokens = {
     list: [],
-    clear: function() { tokens.list=[]; },
+    clear: function() {
+        tokens.list=[];
+        return tokens;
+    },
     contain: function(tok) {
         return tokens.list.indexOf(tok)>-1;
     },
@@ -137,7 +140,7 @@ function compile(Exp) {
 function encode(Exp) {
     var res = "";
     
-    if (Exp instanceof Array) {
+    if (isArray(Exp)) {
         debugMsg(Exp+" is an Array");
     // case 1: expression is an empty array
         if (Exp.length==0) res = [];
@@ -192,7 +195,7 @@ function encode(Exp) {
 
 function encodeEach(E) {
     debugMsg("encoding each of "+E);
-    if (E instanceof Array) {
+    if (isArray(E)) {
         var Res = [];
         if (E.length>0) {
             debugMsg("encoding "+E[0]);
@@ -298,10 +301,15 @@ function getOperator(X) {
 function process(Exp) {
    // calls the compiled instructions, respecting the structure, and returns a string to display.
    
+    debugMsg('processing ', Exp);
     var res;
 
-    if (Exp instanceof Array) {
+    if (isArray(Exp)) {
         res = Exp.map(process);
+    }
+    else if(isString(Exp)) {
+        debugMsg('processing a string ',Exp)
+        res = Exp;
     }
     else {
         res = eval(Exp);
@@ -326,7 +334,11 @@ function startsWithWhich(toks, str) {
 }
 
 function isString(s) {
-   return (typeof s === 'string' || s instanceof String)
+   return (typeof s === 'string' || s instanceof String);
+}
+
+function isArray(a) {
+   return (typeof a === 'array' || a instanceof Array);
 }
 
 function debugMsg() {

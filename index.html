@@ -7,7 +7,7 @@
 <script src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/jsPlumb/1.4.1/jquery.jsPlumb-1.4.1-all-min.js"></script>
 <script src="workflow editor.js"></script>
-<script src="open workflow.js"></script>
+<script src="compile_workflow.js"></script>
     
     <title>Edit and interpret a workflow</title>
     
@@ -73,7 +73,7 @@ Language:
 <select id="chooseLang">
 <option value="JS" selected>JS</option>
 <option value="PHP">PHP</option>
-</select>  
+</select>
    <input type="button" value="Get code" onClick="getCode($('#chooseLang').val());" />
 <br />
 <textarea id="result" cols="80" rows="10">
@@ -90,7 +90,7 @@ function inject(num) {
       '["plus", 1, 2]',
       '[\n  ["defun", "square", ["x"], ["times", "x", "x"]],\n  ["square", 2]\n]',
       '[\n  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],\n  ["fac", 10]\n]',
-      '["pythagoras", 3, 4]',
+      '["or",["isNumber", 3], ["isNumber", "a"]]',
       '[1, 2, 3]',
       '1'
    ];
@@ -115,7 +115,7 @@ function getCode(lang) {
 
 // run result
 function runres() {
-   var c = document.getElementById('result').value;
+   var c = $('#result').val();
    alert(eval(c));
 }
 

@@ -170,10 +170,13 @@ function encode(Exp) {
 
 function encodeArray(Exp) {
     
-    var res=[]; // case 1 (by default): expression is an empty array
-
-    if (Exp.length>0) { // non-empty array 
-
+    var res;
+    // case 1: expression is an empty array
+    if (Exp.length==0)
+        res = [];
+    else
+    // Cases 2-6: non-empty array 
+    {
         var H = Exp[0]; // take the head
         var choice = caseOfHead(H);
     
@@ -208,9 +211,9 @@ function encodeArray(Exp) {
                 // should there be validation on number and type of arguments?
                 Arguments = encodeEach(Exp);
                 res = op(Arguments); //H+"("+Arguments.join(",")+")";
-            } // cases 3-6
-        } // cases 2-6
-    } // non-empty array
+            } // case 6
+        } // cases 3-6
+    } // cases 2-6 (non-empty array)
 
     return res;
 }
@@ -222,6 +225,26 @@ function caseOfHead(H) {
    if (H in predefined_functions) return 6; // JSON function
    return 2;
 }
+
+function caseOfExpression(Exp) {
+
+    if (isArray(Exp)) {
+       // cases 1 to 6 - Exp is an array
+       if (Exp.length==0) return 1; // empty array
+       var H = Exp[0];
+       if (H=="defun") return 3; //function definition
+       if (H=="setq") return 4; // variable setting
+       if (H in predefined_replacements) return 5; // JSON replacement
+       if (H in predefined_functions) return 6; // JSON function
+       return 2; // all other array cases = data array
+    }
+    else if (isString(Exp)) {
+        if (tokens.contain(Exp)) return 7; // known variable
+        return 8; // data string
+    }
+    return 9; // anything else - number, boolean, null
+}
+
 
 function encodeEach(E) {
     debugMsg("encoding each of "+E);

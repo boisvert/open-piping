@@ -3,9 +3,14 @@
 
 <head>
 
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+<script src="../libraries/jquery-3.2.1.min.js"></script>
+<script src="../libraries/jquery-ui-1.12.1/jquery-ui.min.js"></script>
+<script src="../libraries/jsPlumb-2.3.2.min.js"></script>
+
+<!-- script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
 <script src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jsPlumb/1.4.1/jquery.jsPlumb-1.4.1-all-min.js"></script>
+<script src="http://cdnjs.cloudflare.com/ajax/libs/jsPlumb/1.4.1/jquery.jsPlumb-1.4.1-all-min.js"></script-->
+
 <script src="workflow editor.js"></script>
 <script src="compile_workflow.js"></script>
     
@@ -53,19 +58,21 @@
 
 <h1>Open piping: lowering the barriers to data science</h1>
 
-<h2>Compile an S-expression into a function call and function set</h2>
+<h2>Interpret a symbolic expression into a function call and function set</h2>
 <a href="https://github.com/boisvert/open-piping/wiki">The project on github</a>
 
 <p>
 <div id="pipeContainer"></div>
 
+You can compose an expression by using the blocks above, or try one of the ready-made ones below:
 <form>
-<input type="button" value="Example1" onClick="inject(0);" /> 
-<input type="button" value="Example2" onClick="inject(1);" /> 
-<input type="button" value="Example3" onClick="inject(2);" />
-<input type="button" value="Example4" onClick="inject(3);" /> 
-<input type="button" value="Example5" onClick="inject(4);" /> 
-<input type="button" value="Example6" onClick="inject(5);" /> 
+<input type="button" value="simple list" onClick="inject(0);" /> 
+<input type="button" value="booleans" onClick="inject(1);" /> 
+<input type="button" value="function call" onClick="inject(2);" /> 
+<input type="button" value="defun" onClick="inject(3);" /> 
+<input type="button" value="defun recursive (fatorial)" onClick="inject(4);" />
+<input type="button" value="defun higher order function (map)" onClick="inject(5);" />
+<input type="button" value="numeric" onClick="inject(6);" /> 
 <br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />
@@ -87,11 +94,12 @@ Language:
 // show sample of code
 function inject(num) {
    var samples = [
+      '[1, 2, 3, "a", "b", "c"]',
+      '["or",["isNumber", 3], ["isNumber", "a"]]',
       '["plus", 1, 2]',
       '[\n  ["defun", "square", ["x"], ["times", "x", "x"]],\n  ["square", 2]\n]',
       '[\n  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],\n  ["fac", 10]\n]',
-      '["or",["isNumber", 3], ["isNumber", "a"]]',
-      '[1, 2, 3]',
+      '[\n  ["defun", "map", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["map", "f", ["rest", "arr"] ] ] ]\n],\n["map", "\\\\isNumber", [1,2,3,"a","b","c"] ] ]',
       '1'
    ];
    document.getElementById('s-exp').value=samples[num];

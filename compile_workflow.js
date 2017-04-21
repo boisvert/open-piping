@@ -1,45 +1,4 @@
 /*
-
-(plus 2 3) in JSON = ["plus", 2, 3]
-
-(1 2 3) in JSON = [1, 2, 3]
-
-Examples of expression that ought to be interpretable:
-
-[
-  ["defun", "square", ["x"], ["times", "x", "x"]],
-  ["square", 2]
-]
-
-result:
-   function square(x) { return x*x; }
-   square(2);
-
-=============
-   
-[
-  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],
-  ["fac", 10]
-]
-
-result:
-   function fac(n) {return lt(n,2)?1:times(n,fac(n-1));}
-   fac(10);
-   
-======== not yet working - requires functions as first-class objects
-
-[
-  ["defun", "square", ["x"], ["times", "x", "x"]],
-  ["map", "square", [1,2,3] ]
-]
-
-result:
-   function square(x) { return x*x; }
-   map(square,[1,2,3]);
-
-*/
-
-/*
 Set of predefined functions
 predefined functions both define the gui blocks
 and this compilation, so the functions are loaded in the editor
@@ -157,23 +116,30 @@ function encode(Exp) {
     }
     else if (isString(Exp)) {
     // case 7: expression is a known variable
-        if (tokens.contain(Exp)) res = Exp
+        if (tokens.contain(Exp)) res = Exp;
+    // case 7.5 (ahem...) - expression is a function being given as parameter
+	    else if(Exp.indexOf('\\') == 0) {
+			res = Exp.substring(1);
+			getOperator(res); 
+		}
     // case 8: expression is a string
         else res = '"'+Exp+'"';
     }
     // case 9: expression is anything else - left unprocessed - works for number, boolean, null
     else res = Exp;
-    
+
     // done
     return res;
 }
+
+// "call_fn": {"args": "f, arr", "body":"var fn=window[f]; return fn.apply(this,arr);"},
 
 function encodeArray(Exp) {
     
     var res;
     // case 1: expression is an empty array
     if (Exp.length==0)
-        res = [];
+        res = '[]';
     else
     // Cases 2-6: non-empty array 
     {
@@ -197,6 +163,23 @@ function encodeArray(Exp) {
                 tokens.add(tok);
                 code.line("var "+tok+" = "+encode(Exp[1])+";");
             }
+        // case 4.5: (yeah, well...) expression is a higher order function (x->y)->z
+            else if (choice==4.5) {
+				Arguments = encodeEach(Exp);
+				H = Arguments[0]; // new head
+				enforce(H, isString); // must be a string: it's a function call (!)
+ 				Arguments.shift(); // rest are arguments
+				if ((H in predefined_functions) || tokens.contain(H)) {
+					// if H is a token - when token resolved, we need to find and process the prerequisite functions
+					res = H+".apply(this,"+Arguments+")";
+				}
+				//	H is a replacement... TBC
+				else if (H in predefined_replacements) {
+					res = "work in progress";
+				}
+				else
+				    throw "Apply requires a predefined function";	
+			}
         // case 5: predefined_replacements
             else if (choice==5) {
                 var s = getSubstitutor(H);
@@ -220,31 +203,12 @@ function encodeArray(Exp) {
 
 function caseOfHead(H) {
    if (H=="defun") return 3; //function definition
-   if (H=="setq") return 4; // variable setting
+   if (H=="setq") return 4; // variable
+   if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
    if (H in predefined_replacements) return 5; // JSON replacement
    if (H in predefined_functions) return 6; // JSON function
-   return 2;
+   return 2; // anything else - data array
 }
-
-function caseOfExpression(Exp) {
-
-    if (isArray(Exp)) {
-       // cases 1 to 6 - Exp is an array
-       if (Exp.length==0) return 1; // empty array
-       var H = Exp[0];
-       if (H=="defun") return 3; //function definition
-       if (H=="setq") return 4; // variable setting
-       if (H in predefined_replacements) return 5; // JSON replacement
-       if (H in predefined_functions) return 6; // JSON function
-       return 2; // all other array cases = data array
-    }
-    else if (isString(Exp)) {
-        if (tokens.contain(Exp)) return 7; // known variable
-        return 8; // data string
-    }
-    return 9; // anything else - number, boolean, null
-}
-
 
 function encodeEach(E) {
     debugMsg("encoding each of "+E);
@@ -255,7 +219,9 @@ function encodeEach(E) {
         var First = encode(E[0]);
         E.shift();
         var Res = encodeEach(E);
-        if (First != "") {Res.unshift(First);}
+        //if (First != "") {
+			Res.unshift(First);
+		//}
     }
    return Res;
 }
@@ -423,3 +389,97 @@ function debugMsg() {
         console.log(m);
     } 
 }
+
+/*
+
+(plus 2 3) in JSON = ["plus", 2, 3]
+
+(1 2 3) in JSON = [1, 2, 3]
+
+Examples of expression that ought to be interpretable:
+
+[
+  ["defun", "square", ["x"], ["times", "x", "x"]],
+  ["square", 2]
+]
+
+result:
+   function square(x) { return x*x; }
+   square(2);
+
+=============
+   
+[
+  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],
+  ["fac", 10]
+]
+
+result:
+   function fac(n) {return lt(n,2)?1:times(n,fac(n-1));}
+   fac(10);
+   
+====== map defined from "apply" ====
+
+["apply", "plus", [1, 2]]
+
+result:
+   plus(1,2);
+   function plus(a,b) {return a+b;}
+
+===
+
+(defun
+    map
+    (f arr) 
+    (if (empty arr)
+	    ()
+	    (concat
+    		(apply
+			    f
+		        ((first arr))
+		    )
+			(map f (rest arr))
+	    )
+    )
+)
+
+===
+
+definition of map - result
+
+function map(f,arr) {
+   return (empty(arr))?[]:concat(f(first(arr)),map(f,rest(arr)));
+}
+
+================ example of map =============
+
+[
+  ["defun", "map",
+            ["f", "arr"],
+            ["if", ["isEmpty", "arr"],
+                   [],
+                   ["cons",
+                         ["apply", "f", [["first", "arr"]] ],
+                         ["map", "f", ["rest", "arr"] ]
+                   ]
+            ]
+  ],
+  ["map", "\\isNumber", [1,2,3,"a","b","c"] ]
+]
+
+// almost works in js (12 April 2017)
+// result:
+// Automatically generated code
+
+var map = function (f, arr) {return (arr.length==0)?map(f,arr.slice(1)).unshift(f.apply(this,arr[0])):undefined;}
+
+process([,map("isNumber",[1,2,3,"a","b","c"])]);
+
+==================
+
+an alternative notation?
+
+]}
+
+*/
+

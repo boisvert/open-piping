@@ -1,0 +1,20 @@
+{
+	"Number value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return Number(inpt.value);"},
+	"String value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return inpt.value;"},
+	"JSON value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"},
+	"plus": {"args": 2, "group": "arithmetic"},
+	"minus": {"args": 2, "group": "arithmetic"},
+	"times": {"args": 2, "group": "arithmetic"},
+	"divide": {"args": 2, "group": "arithmetic"},
+	"lt": {"args": 2, "group": "comparison"},
+	"mt": {"args": 2, "group": "comparison"},
+	"equals": {"args": 2, "group": "comparison"},
+	"if": {"args":3},
+	"setq": {"args":1},
+	"isNumber": {"args":1, "group":"type check"},
+	"isString": {"args":1, "group":"type check"},
+	"isArray": {"args":1, "group":"type check"},
+	"isNull": {"args": 1, "group":"type check"},
+	"or": {"args": 2, "group": "logic"},
+	"and": {"args": 2, "group": "logic"}
+}

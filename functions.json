@@ -27,22 +27,26 @@
 		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"}
     },
     "php": {
-        "pythagoras": {"args": "$a,$b", "body": "return sqrt($a*$a+$b*$b);"}
+        "pythagoras": {"args": "$a,$b", "body": "return sqrt($a*$a+$b*$b);"},
+        "isNumber": {"args": "$n", "body": "return is_numeric($n);"},
+        "isString": {"args": "&$s", "body": "return is_string($s);"},
+		"isEmpty": {"args": "$a", "body": "return empty($a);"},
+		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"}
     },
     "replace": {
-        "if": {"args": "a,b,c", "js": "@a?@b:@c", "php":"@a?@b:@c"},
-        "plus": {"args": "a,b", "js": "(@a+@b)", "php":"(@a+@b)"},
-        "minus": {"args": "a,b", "js": "(@a-@b)", "php":"(@a-@b)"},
-        "times": {"args": "a,b", "js": "@a*@b", "php":"(@a*@b)"},
-        "divide": {"args": "a,b", "js": "@a/@b", "php":"(@a/@b)"},
-        "equals": {"args": "a,b", "js": "(@a===@b)", "php":"(@a===@b)"},
-        "lt": {"args": "a,b", "js": "(@a<@b)", "php":"(@a<@b)"},
-        "mt": {"args": "a,b", "js": "(@a>@b)", "php":"(@a>@b)"},
-        "or": {"args": "a,b", "js": "(@a||@b)", "php":"(@a||@b)"},
-        "and": {"args": "a,b", "js": "(@a&&@b)", "php":"(@a&&@b)"},
+        "if": {"args": "a,b,c", "js": "@a?@b:@c", "php": "@a?@b:@c"},
+        "plus": {"args": "a,b", "js": "(@a+@b)", "php": "(@a+@b)"},
+        "minus": {"args": "a,b", "js": "(@a-@b)", "php": "(@a-@b)"},
+        "times": {"args": "a,b", "js": "@a*@b", "php": "(@a*@b)"},
+        "divide": {"args": "a,b", "js": "@a/@b", "php": "(@a/@b)"},
+        "equals": {"args": "a,b", "js": "(@a===@b)", "php": "(@a===@b)"},
+        "lt": {"args": "a,b", "js": "(@a<@b)", "php": "(@a<@b)"},
+        "mt": {"args": "a,b", "js": "(@a>@b)", "php": "(@a>@b)"},
+        "or": {"args": "a,b", "js": "(@a||@b)", "php": "(@a||@b)"},
+        "and": {"args": "a,b", "js": "(@a&&@b)", "php": "(@a&&@b)"},
 		"first": {"args": "a", "js": "@a[0]", "php": "@a[0]"},
-		"rest": {"args": "a", "js": "@a.slice(1)", "php": "@a"},
-        "isArray": {"args": "a", "js": "$.isArray(@a);"},
-        "isNull": {"args": "x", "js": "@x===null;"}
+		"rest": {"args": "a", "js": "@a.slice(1)", "php": "array_shift(@a)"},
+        "isArray": {"args": "a", "js": "$.isArray(@a);", "php": "is_array(@a}"},
+        "isNull": {"args": "x", "js": "@x===null;", "php": "is_null(@x}"}
     }
 }

@@ -1,0 +1,25 @@
+{
+	"functions": {
+		"pythagoras": {"args": "$a,$b", "body": "return sqrt($a*$a+$b*$b);"}
+		"isNumber": {"args": "$n", "body": "return is_numeric($n);"},
+		"isString": {"args": "&$s", "body": "return is_string($s);"},
+		"isEmpty": {"args": "$a", "body": "return empty($a);"},
+		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"}
+	},
+	"replace": {
+		"if": {"args": "a,b,c", "php":"@a?@b:@c"},
+		"plus": {"args": "a,b", "php":"(@a+@b)"},
+		"minus": {"args": "a,b", "php":"(@a-@b)"},
+		"times": {"args": "a,b", "php":"(@a*@b)"},
+		"divide": {"args": "a,b", "php":"(@a/@b)"},
+		"equals": {"args": "a,b", "php":"(@a===@b)"},
+		"lt": {"args": "a,b", "php":"(@a<@b)"},
+		"mt": {"args": "a,b", "php":"(@a>@b)"},
+		"or": {"args": "a,b", "php":"(@a||@b)"},
+		"and": {"args": "a,b", "php":"(@a&&@b)"},
+		"first": {"args": "a", "php": "@a[0]"},
+		"rest": {"args": "a", "php": "array_shift(@a)"},
+		"isArray": {"args": "a", "php": "is_array(@a}"},
+		"isNull": {"args": "x", "php": "is_null(@x}"}
+	}
+}

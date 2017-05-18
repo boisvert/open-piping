@@ -1,0 +1,25 @@
+{
+	"functions": {
+		"isNumber": {"args": "n", "body": "return $.isNumeric(n);"},
+		"isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},
+		"pythagoras": {"args": "a,b", "body": "return Math.sqrt(a*a+b*b);"},
+		"isEmpty": {"args": "a", "body": "return $.isArray(a) && a.length==0;"},
+		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"}
+	},
+	"replace": {
+		"if": {"args": "a,b,c", "js": "@a?@b:@c"},
+		"plus": {"args": "a,b", "js": "(@a+@b)"},
+		"minus": {"args": "a,b", "js": "(@a-@b)"},
+		"times": {"args": "a,b", "js": "@a*@b"},
+		"divide": {"args": "a,b", "js": "@a/@b"},
+		"equals": {"args": "a,b", "js": "(@a===@b)"},
+		"lt": {"args": "a,b", "js": "(@a<@b)"},
+		"mt": {"args": "a,b", "js": "(@a>@b)"},
+		"or": {"args": "a,b", "js": "(@a||@b)"},
+		"and": {"args": "a,b", "js": "(@a&&@b)"},
+		"first": {"args": "a", "js": "@a[0]"},
+		"rest": {"args": "a", "js": "@a.slice(1)"},
+		"isArray": {"args": "a", "js": "$.isArray(@a);"},
+		"isNull": {"args": "x", "js": "@x===null;"}
+    }
+}

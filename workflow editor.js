@@ -10,7 +10,6 @@ var predefined_replacements;
 // GUI - for the draggable blocks
 var predefined_gui;
 
-
 // i: used to define a unique ID for blocks dragged to the canvas
 var i = 1;
 
@@ -25,18 +24,31 @@ var blockSelection = [];
 // - launch initialisation
 
 jsPlumb.ready(function() {
+	// load block GUI
     $.ajax({
-        url: "functions.json",
+        url: "gui.json",
         beforeSend: function(xhr){
             if (xhr.overrideMimeType) {
                 xhr.overrideMimeType("application/json");
             }
         },
         success: function(json) {
-            predefined_functions = json.js;
-            predefined_replacements = json.replace;
-            predefined_gui = json.gui;
+            predefined_gui = json;
             initialise();
+        },
+        error: function(_, status, err) {alert(status+'\n'+err);}
+    });
+    // load js and PHP
+    $.ajax({
+        url: "js_blocks.json",
+        beforeSend: function(xhr){
+            if (xhr.overrideMimeType) {
+                xhr.overrideMimeType("application/json");
+            }
+        },
+        success: function(json) {
+            predefined_functions = json.functions;
+            predefined_replacements = json.replace;
         },
         error: function(_, status, err) {alert(status+'\n'+err);}
     });

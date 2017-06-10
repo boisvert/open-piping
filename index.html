@@ -3,25 +3,30 @@
 
 <head>
 
-<script src="../libraries/jquery-3.2.1.min.js"></script>
-<script src="../libraries/jquery-ui-1.12.1/jquery-ui.min.js"></script>
-<script src="../libraries/jquery.jsPlumb-1.4.1-all-min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
 
-<!-- script src="http://cdnjs.cloudflare.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-<script src="http://cdnjs.cloudflare.com/ajax/libs/jsPlumb/1.4.1/jquery.jsPlumb-1.4.1-all-min.js"></script-->
+<!-- jsPlumb version: the code is incompatible version versions 2.2.x - endPoints not showing -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script>
 
 <script src="workflow editor.js"></script>
 <script src="compile_workflow.js"></script>
     
     <title>Edit and interpret a workflow</title>
-    
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+	
 <style>
-    
+
+    #createNewBlock {
+        position: absolute;
+		right: 10px; top: 10px;
+    }
+
     #pipeContainer {
         position: relative;
         padding: 20px;
-        width:80%; height: 500px;
+        width:90%; height: 500px;
         border: 1px solid gray;
         display: flex;
         flex-direction: column;
@@ -49,9 +54,20 @@
     .selectedBlock{
         border: 2px solid blue;
     }
+	
+	.editBlock {
+	    position: absolute;
+		right: 10px; top: 35px;
+	    border: 2px solid black;
+		height: 400px; width: 300px;
+	}
 
+	.jtk-endpoint {
+	    z-index: 3000 !important;
+    }
+	
 </style>
-    
+
 </head>
 
 <body>
@@ -62,13 +78,17 @@
 <a href="https://github.com/boisvert/open-piping/wiki">The project on github</a>
 
 <p>
-<div id="pipeContainer"></div>
 
-You can compose an expression by using the blocks above, or try one of the ready-made ones below:
+<div id="pipeContainer">
+<button id="createNewBlock" onClick="new blockEditor('test')">Create new block</button>
+
+</div>
+
+You can compose an expression by using the blocks above, or try one of the ready-made ones below:<br />
 <form>
-<input type="button" value="simple list" onClick="inject(0);" /> 
-<input type="button" value="booleans" onClick="inject(1);" /> 
-<input type="button" value="function call" onClick="inject(2);" /> 
+<input type="button" value="simple list" onClick="inject(0);" />
+<input type="button" value="booleans" onClick="inject(1);" />
+<input type="button" value="function call" onClick="inject(2);" />
 <input type="button" value="defun" onClick="inject(3);" /> 
 <input type="button" value="defun recursive (fatorial)" onClick="inject(4);" />
 <input type="button" value="defun higher order function (map)" onClick="inject(5);" />

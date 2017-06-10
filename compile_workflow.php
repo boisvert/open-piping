@@ -28,25 +28,23 @@ debugMsg("PHP interpreter");
 
 $exp = json_decode($e);
 
-get_json_data('functions.json');
+get_json_data('php_blocks.json');
 
 compile($exp);
 
 echo(Code::$text);
 
 function get_json_data($file) {
-    
     global $predefined_functions;
     global $replacements;
         
     $json = file_get_contents($file);
     $json = json_decode($json,true);
     
-    $predefined_functions = $json['php'];
+    $predefined_functions = $json['functions'];
     debugMsg($predefined_functions);
     $replacements->populate($json['replace']);
     debugMsg($replacements);
-
 } 
 
 function compile($exp) {

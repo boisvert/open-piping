@@ -10,7 +10,7 @@
 	"mt": {"args": 2, "group": "comparison"},
 	"equals": {"args": 2, "group": "comparison"},
 	"if": {"args":3},
-	"setq": {"args":1},
+	"setq": {"args":1, "output":-1},
 	"isNumber": {"args":1, "group":"type check"},
 	"isString": {"args":1, "group":"type check"},
 	"isArray": {"args":1, "group":"type check"},

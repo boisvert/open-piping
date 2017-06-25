@@ -15,6 +15,9 @@ var oldPos;
 // main space for plumbing
 var mainPipe;
 
+// blockEditor object
+var bE;
+
 // start:
 // - load the file of predefined functions
 // - launch initialisation
@@ -81,16 +84,13 @@ function initialise() {
             } else {
                 // if it is a new group, a block should be added that has a drop down,
                 // and the first block's name filled
-                groups[group]=[block];
+                groups[group]=[defGUI,block];
             }
-
-            // Can blocks of the same group have a varying number of arguments?
-
-        }
+		}
         else {
         // the block is stand-alone
             // position and add the block
-            addBlockType(block, numBlock, defGUI ); // was args, as defined above 2017-01-28
+            mainPipe.addBlockType(block, defGUI, numBlock ); // was args, as defined above 2017-01-28
             numBlock++;
         }
     }
@@ -104,7 +104,7 @@ function initialise() {
         // to work out the GUI we need to analyse blocks in the group
         
         // position and add the block
-        addBlockGroup(block_group, numBlock, group );
+        mainPipe.addBlockGroup(block_group, group, numBlock );
         numBlock++;
     }
 
@@ -112,24 +112,12 @@ function initialise() {
     // the endBlock identifies the result of the function
     mainPipe.endBlock();
 
-    // drag and drop blocks
-    $( ".blockType" ).draggable({
-		cursor: 'move',
-		opacity: '0.5',
-		zIndex: '2700',
-		containment: 'document',
-        start: function( event, ui) {
-            oldPos = $(this).position();
-        }
-    });
-
 	pipeCanvas.droppable({
 		tolerance: 'pointer',
 		drop: function(event,ui) {
 			dropping = ui.draggable;
 			if (dropping.hasClass('blockType')) {
                mainPipe.addBlock(dropping,ui.position);
-               dropping.css(oldPos);
 			}
 		}
     });
@@ -141,6 +129,30 @@ function initialise() {
             while (mainPipe.blockSelection.length>0) {mainPipe.removeBlock(mainPipe.blockSelection[0]);}
         }
     });
+
+}
+
+// block functions - add, select, deselect, remove, blocktype, endblock - are messy
+function pipeInstance(element) {
+	debugMsg("enabling plumbing with ", element.html());
+    this.canvas = element; // the document element to attach blocks etc. top
+    this.plumber = jsPlumb.getInstance(this.canvas); // the jsPlumb instance, see jsPlumb API for details
+    this.idNum = 0; // for generating the ID of blocks in use in this pipe
+	this.tokenList = {}; // for generating the list of tokens when 
+	this.blockSelection = []; // list of blocks selected for interaction
+	this.blockList = []; // all block objects on this pipe
+	this.blockTypeList = []; // all block types available to drag
+
+	that = this;
+	this.canvas.click(function(e) {
+        // If the click was not inside the active span
+		debugMsg("click on", $(e.target).html());
+        if(!$(e.target).hasClass('blockSelected')) {
+    		debugMsg("canvas clicked");
+            that.deselectAllBlocks();
+        }
+    });
+
 }
 
 // create block type - ie the source of a function to drag in and use
@@ -148,37 +160,33 @@ function initialise() {
 // inConn is the number of input connections accepted (ie of parameters for function)
 // blockHTML is a string giving the HTML to be used to display the block (label by default)
 // blockValue - in progress - is a function to use when the block is called ($.text() by default)
-function addBlockType(label, position, defGUI) {
-    // block is a single
-    debugMsg("adding block type",label,defGUI);
-    
-    var block = $('<div>').attr('id',label).addClass('blockType').html(label);
-
-    if (typeof (defGUI.blockCode) !== 'undefined') {
-        $(block).attr('blockCode',defGUI.blockCode);
-    }
-
-    if (typeof (defGUI.getExp) !== 'undefined') {
-        $(block).attr('getExp',defGUI.getExp);
-    }
-
-    var inConn = 2;
-    if (typeof (defGUI.args) !== 'undefined') {
-        inConn=defGUI.args;
-    }
-
-    $(block).attr('inConn',inConn);
-
-    if (position) {
-        block.css({top:55*position+20,left:10});
-    }
-
-    $('#pipeContainer').append(block);
+pipeInstance.prototype.addBlockType = function(label, defGUI, position) {
+    var bT = new blockType(label, defGUI);
+    bT.setPos(position);
+	this.blockTypeList[label] = bT;
+    this.canvas.append(bT.element);
 }
 
-function addBlockGroup(label, position, group) {
+pipeInstance.prototype.addBlockGroup = function (label, group, position) {
     // block is for a group with drop down option
+	debugMsg("adding group ", group);
 
+	// the first item in the group contains the GUI
+	// (that works for dropCode, inConn, outConn)
+	var defGUI = group[0];
+	// the rest is the list of grouped blocks
+	group = group.slice(1);
+    defGUI.getExp = "return block.find('form > select').val();";
+
+    defGUI.blockCode = "<form><select>";
+    for (g in group) {
+        defGUI.blockCode += "<option value="+group[g]+">"+group[g]+"</option>";
+    }
+    defGUI.blockCode += "</select></form>";
+
+	this.addBlockType(label,defGUI,position);
+
+/*
     debugMsg("adding block type",label,group);
     
     var block = $('<div>').attr('id',label).addClass('blockType').html(label);
@@ -203,43 +211,22 @@ function addBlockGroup(label, position, group) {
         block.css({top:55*position+20,left:10});
     }
 
-    $('#pipeContainer').append(block);
-}
-
-// block functions - add, select, deselect, remove, blocktype, endblock - are messy
-// project for a rainy day: to group these functions into an encapsulated object
-// for clarity and better reusability
-function pipeInstance(element) {
-	debugMsg("enabling plumbing with ", element.html());
-    this.canvas = element; // the document element to attach blocks etc. top
-    this.plumber = jsPlumb.getInstance(this.canvas); // the jsPlumb instance, see jsPlumb API for details
-    this.idNum = 0; // for generating the ID of blocks in use in this pipe
-	this.tokenList = {}; // for generating the list of tokens when 
-	this.blockSelection = []; // list of blocks selected for interaction
-	this.blockList = []; // all block objects on this pipe
-
-	that = this;
-	this.canvas.click(function(e) {
-        // If the click was not inside the active span
-		debugMsg("click on", $(e.target).html());
-        if(!$(e.target).hasClass('blockSelected')) {
-    		debugMsg("canvas clicked");
-            that.deselectAllBlocks();
-        }
-    });
-
+    this.canvas.append(block);
+*/
 }
 
 // addBlock: create a new block of the given type.
 // the attributes within blockType provide all the data to customise the block.
 // inConn is the number of input connections accepted (ie of parameters for function)
-
 pipeInstance.prototype.addBlock = function (blockType, pos) {
-    // this.plumber.recalculateOffsets(b);
-    // this.plumber.repaintEverything(); // is it needed?
 	debugMsg("Adding a block at position ", pos);
-	var b = new blockInstance(blockType, this, pos);
+    var realType = this.blockTypeList[blockType.attr('id')];
+	if (!realType) {
+		realType = mainPipe.blockTypeList[blockType.attr('id')];
+	}
+	var b = new blockInstance(realType, this, pos);
 	this.blockList[b.id] = b;
+	realType.moveBack();
 }
 
 pipeInstance.prototype.removeBlock = function(block) {
@@ -273,15 +260,8 @@ pipeInstance.prototype.addConnector = function(from,to) {
 pipeInstance.prototype.endBlock = function () {
     var blockID = 'end';
     var block = $('<div>').attr('id',blockID).addClass('block').html("End");
-/*
-	pc = $('#pipeContainer');
-	b = $(window).height()-(pc.offset().top+pc.height());
-	r = $(window).width()-(pc.offset().left+pc.width());
-	debugMsg('endBlock pos: '+b+' '+r);
-	debugMsg(pc.offset());
-	debugMsg($(window).height());
-	debugMsg(pc.height());
-*/
+	this.blockList[blockID] = block;
+
     block.css({bottom:10, right:10});
 
     this.canvas.append(block);
@@ -295,30 +275,47 @@ pipeInstance.prototype.endBlock = function () {
         ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
     };
 
-    this.plumber.addEndpoint(blockID, {
+    this.plumber.addEndpoint(block, {
         anchors:[0,0.5,-1,0],
         isTarget: true,
         maxConnections: 1
     }, common);
 
 	var that = this;
-    $(block).click(function() {
-         blockSelection = [];
+    $(block).click(function(e) {
+         that.blockSelection = [];
          that.displayExpression(blockID);
+		 e.stopPropagation();
     });
 }
 
-// Given a block, traverse the tree that ends with that block
-// And return the corresponding s-expression
+// output function to view the expression for a block
+pipeInstance.prototype.displayExpression = function (blockID) {
+    this.tokenList = {};
+    var exp = this.getExpression(blockID);
+    // alert(JSON.stringify(this.tokenList));
+    if (Object.keys(this.tokenList).length === 0) {
+        debugMsg("No tokens");
+        result = exp;
+    } else {
+        debugMsg("Some tokens");
+        var result = [];
+        for (var i in this.tokenList) {
+            result.push(this.tokenList[i]);
+        }
+        result.push(exp);
+    }
+    $('#s-exp').val(JSON.stringify(result));
+}
+
 pipeInstance.prototype.getExpression = function (blockID) {
-	debugMsg("finding expression from",blockID);
-	var block = this.blockList[blockID];
+    block = this.blockList[blockID];	
     var connections = this.plumber.getConnections({ target:blockID });
 	debugMsg(connections.length, "connections found");
     var op;
     if (connections.length>0) {
         if (blockID==='end') {
-            op = this.getExpression(connections[0].sourceId);        
+            op = this.getExpression(connections[0].sourceId);
         }
         else {
             var exp = block.getExpression();
@@ -344,29 +341,12 @@ pipeInstance.prototype.getExpression = function (blockID) {
         }
     }
     else {
-        op = block.getExpression();
+		if (blockID!=='end') {
+            op = block.getExpression();
+		}
     }
     debugMsg("Got expression", op);
     return op; 
-}
-
-// output function to view the expression for a block
-pipeInstance.prototype.displayExpression = function (blockID) {
-    this.tokenList = {};
-    var exp = this.getExpression(blockID);
-    // alert(JSON.stringify(this.tokenList));
-    if (Object.keys(this.tokenList).length === 0) {
-        debugMsg("No tokens");
-        result = exp;
-    } else {
-        debugMsg("Some tokens");
-        var result = [];
-        for (var i in this.tokenList) {
-            result.push(this.tokenList[i]);
-        }
-        result.push(exp);
-    }
-    $('#s-exp').val(JSON.stringify(result));
 }
 
 // Generate a unique ID for each block in this pipe
@@ -396,12 +376,48 @@ pipeInstance.prototype.deselectAllBlocks = function() {
 		this.deselectBlock(this.blockSelection[0]);
 }
 
+function blockType(label, defGUI) {
+
+    debugMsg("new block ",label,defGUI);
+
+	var block = $('<div>').attr('id',label).addClass('blockType').html(label);
+    this.element = block;
+    this.blockCode = defGUI.blockCode;
+    this.getExp = defGUI.getExp;
+    this.dropCode = defGUI.dropCode;
+    this.inConn = (defGUI.args==='undefined')?2:defGUI.args;
+    this.outConn = (defGUI.output==='undefined')?1:defGUI.output;
+
+	// drag block
+    block.draggable({
+		cursor: 'move',
+		opacity: '0.5',
+		zIndex: '2700',
+		containment: 'document'
+	});
+
+}
+
+blockType.prototype.setPos = function(position) {
+    if (position) {
+        this.pos = {top:55*position+20,left:10};
+	    this.moveBack();
+    } else
+		this.pos = this.element.position();
+}
+
+blockType.prototype.moveBack = function() {
+    if (this.pos) {
+        this.element.css(this.pos);
+    }
+}
+
 function blockInstance(type, pipe, pos) {
 
+	debugMsg("new block",type);
     this.type = type; // blockType element - contains a lot of data
 	this.pipe = undefined; // pipe (when the block is added)
-	this.id = ''; // ID of block (when the block is added)
-    this.expression = undefined;
+	this.id = undefined; // ID of block (when the block is added)
 
     this.element = $('<div>').addClass('block').attr('label',this.label());
 
@@ -415,8 +431,7 @@ blockInstance.prototype.setPipe = function(pipe,pos) {
 	this.pipe = pipe;
     this.id = pipe.nextID();
     this.element.attr('id',this.id);
-    this.expression = 
-	
+
     pipe.canvas.append(this.element);
 
 	this.setPosition(pos);
@@ -431,15 +446,15 @@ blockInstance.prototype.setPipe = function(pipe,pos) {
     };
 
     var endProps;
-    if (this.label() == "setq") {
-		debugMsg("setq, using -1 connection limit");
+    if (this.outConnections() == -1) {
+		debugMsg("using -1 connection limit");
     	endProps = {anchor:[1,0.5,1,0], isSource: true, maxConnections: -1};
     } else {
-        endProps = {anchor:[1,0.5,1,0], isSource: true}
+        endProps = {anchor:[1,0.5,1,0], isSource: true};
     }
 
 	debugMsg("Adding block output");
-    pipe.plumber.addEndpoint(this.id, endProps, common);
+    pipe.plumber.addEndpoint(this.element, endProps, common);
 
     // check if input connections are required for this block
 	var inConn = this.inConnections();
@@ -450,7 +465,7 @@ blockInstance.prototype.setPipe = function(pipe,pos) {
         var ct;
         for (ct=0; ct<inConn; ct++) {
             pos = 0.1+ct/3.5
-            pipe.plumber.addEndpoint(this.id, {
+            pipe.plumber.addEndpoint(this.element, {
                 anchors:[[pos, 0, 0, 1]],
                 isTarget: true,
                 maxConnections: 1
@@ -458,14 +473,23 @@ blockInstance.prototype.setPipe = function(pipe,pos) {
         }
     }
 
+	var dropCode = this.dropCode();
+	if (dropCode != undefined) {
+		debugMsg('running dropcode', dropCode);
+		var block = this.element;
+		eval(dropCode);
+    }
+
 	pipe.plumber.draggable(this.element, {containment: 'parent'});
 
 	var that = this;
-	this.element.click(function() {
+	this.element.click(function(e) {
 		that.pipe.deselectAllBlocks();
         that.select();
         that.pipe.displayExpression(that.id);
+		e.stopPropagation();
     });
+
 }
 
 blockInstance.prototype.setPosition = function(pos) {
@@ -475,39 +499,49 @@ blockInstance.prototype.setPosition = function(pos) {
 blockInstance.prototype.setHTML = function() {
     var inHTML = this.label();
 
-    if (typeof (this.type.attr("blockCode")) !== 'undefined') {
-        inHTML += '<br />'+this.type.attr("blockCode");
-    }
+    if (typeof (this.type.blockCode) !== 'undefined') {
+        inHTML += '<br />'+this.type.blockCode
+	}
 	
 	this.element.html(inHTML);
 }
 
 blockInstance.prototype.getExpression = function() {
 
-    var result;
-	var getExp = this.type.attr("getExp");
-    var label = this.label();
-	
+    var resultFn;
+
+	var getExp = this.type.getExp;
     if (typeof (getExp) !== 'undefined') {
-		debugMsg('found getExp string ',getExp);
+		debugMsg('found getExp string ', getExp);
 		var block = this.element;
-        eval("result = function () {"+getExp+"};"); // JavaScript is a strange animal sometimes...
+        eval("resultFn = function () {"+getExp+"};"); // JavaScript is a strange animal sometimes...
     }
     else {
-        result = function() {return label;};
+		var label = this.label();
+		resultFn = function() {return label;};
     }
 
-    return result();
+    return resultFn();
+
 }
 
 // get block label
 blockInstance.prototype.label = function() {
-    return this.type.attr("id");
+    return this.type.element.attr("id");
+}
+
+// get block dropCode 
+blockInstance.prototype.dropCode = function() {
+    return this.type.dropCode;
 }
 
 // get number of accepted input connections for the block
 blockInstance.prototype.inConnections = function() {
-	 return this.type.attr("inConn");
+	 return parseInt(this.type.inConn);
+}
+
+blockInstance.prototype.outConnections = function() {
+	 return this.type.outConn;
 }
 
 // selecting is initiated by the block
@@ -525,29 +559,43 @@ blockInstance.prototype.remove = function () {
     this.element.remove();
 }
 
+function editBlock() {
+   bE = new blockEditor('test');
+   $('#createNewBlock').attr('disabled','disabled');
+}
+
 function blockEditor(label) {
     this.editor = $('<div>').attr('id',label).attr('title','Edit block');
+	this.argIndex = 0;
 	var form = $('<form>').
 	           append('Block:').
-			   append('<input type="text" value="'+label+'" size=5 />').
-			   append(' Arguments:');
+			   append('<input type="text" size=5 />');
 
-	var argsinput = $('<input>').attr('id', label+'args').attr('type','text').attr('size',5);
-	form.append(argsinput);
+    this.editor.append(form);
 
-	// want a spinner instead of argsinput but - not showing
-	// var spinner = $('<input>').attr('id', label+'args').attr('size',5).spinner();
-	// form.append(spinner);
+    this.editor.dialog({width: 560, height:420});
 
-    this.editor.append(form).append('<br />');
-    
-	var encoreunediv = $('<div>');
-
-    this.editor.dialog();
 	debugMsg("making block editor");
-	this.blockPipe = new pipeInstance(this.editor);
+	this.pipe = new pipeInstance(this.editor);
+
+	var argType = {};
+	argType.args = 0;
+	argType.blockCode = "<form><input type='text' size=3/><form>";
+	argType.dropCode ="var inpt = block.find('form > input')[0]; inpt.value = bE.nextArgID();";
+	argType.getExp = "var inpt = block.find('form > input')[0]; return inpt.value;";
+	argType.output = -1; // number of output connections is illimited
+    this.pipe.addBlockType('Argument',argType,{top:100, left:100});
+	this.pipe.endBlock();
 
 	that = this;
+	this.editor.on('dialogclose', function(ev) {
+        $('#createNewBlock').removeAttr('disabled','disabled');
+		var ex = that.pipe.getExpression('end');
+		if (ex != undefined) {
+    		// alert(ex);
+		}
+    });
+
 	this.editor.droppable({
 		tolerance: 'pointer',
 		over: function(event, ui) {
@@ -562,28 +610,17 @@ function blockEditor(label) {
 				edPos = that.editor.offset();
 				t = ui.offset.top-edPos.top;
 				l = ui.offset.left-edPos.left;
-                that.blockPipe.addBlock(dropping,{top:t, left:l},that.editor);
-                dropping.css(oldPos);
+                that.pipe.addBlock(dropping,{top:t, left:l});
     			mainPipe.canvas.droppable('enable');
             }
         }
     });
 
+	return this;
 }
 
-/*
-// token generation
-// not good
-var token = {
-    tokenRoots: {},
-    getNext: function(root) {
-        if (!root) root = "token";
-        var next = 0;
-        if (token.tokenRoots[root])
-            next = ++token.tokenRoots[root]
-        else
-            token.tokenRoots[root] = next;
-    }
-};
-*/
+blockEditor.prototype.nextArgID = function() {
+	this.argIndex++;
+	return 'arg'+this.argIndex;
+}
 

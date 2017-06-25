@@ -383,11 +383,21 @@ function debugMsg() {
     var debug = true; // set to true to turn on debugging
     if (debug) {
         var m = '';
+		var seen = [];
         for (i in arguments) {
-            m += JSON.stringify(arguments[i]);
+            m += JSON.stringify(arguments[i], function(key, val) {
+				if (val != null && typeof val == "object") {
+					if (seen.indexOf(val) >= 0) {
+						return "_seen";
+					}
+				seen.push(val);
+			}
+			return val;
+			});
+;
         }
         console.log(m);
-    } 
+    }
 }
 
 /*

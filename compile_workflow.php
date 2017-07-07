@@ -15,7 +15,6 @@ debug_class('Replacement');
 $replacements = new Setof_Replacements();
 $ready_replacements = array();
 
-
 // set of variables
 // Should it be a set (no duplicates)? or a stack?
 $tokens = new Set();

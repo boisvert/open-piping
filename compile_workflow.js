@@ -14,7 +14,7 @@ A stack of defined vars (setq) is also maintained
 */
 
 // String with the resulting code
-// plus simple encapsulatedd functions
+// plus simple encapsulated functions
 var code = {
     text: "",
     clear: function() { code.text = ""; },

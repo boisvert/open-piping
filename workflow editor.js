@@ -1,26 +1,3 @@
-// Set of predefined functions
-// predefined functions both define the blocks available to interconnect
-// in a graphical interface and the code to use to compile the workflow 
-
-// set of functions available (used by compiler)
-var predefined_functions;
-// set of replacements - e.g. [plus 1 2] -> 1+2 - (used by compiler)
-var predefined_replacements;
-// GUI - for the draggable blocks
-var predefined_gui;
-
-// position of blockType for the new block being brought in
-var oldPos;
-
-// main space for plumbing
-var mainPipe;
-
-// blockEditor object
-var bE;
-
-// which pipe (main or blockeditor) has the focus
-var focusPipe;
-
 // config information
 var config = {
 	connectStyle:{
@@ -32,6 +9,31 @@ var config = {
         ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
     }
 }
+
+// Set of predefined functions
+// predefined functions both define the blocks available to interconnect
+// in a graphical interface and the code to use to compile the workflow 
+
+// set of custom (user-defined) functions
+var custom_functions = {};
+// set of functions available (used by compiler)
+var predefined_functions;
+// set of replacements - e.g. [plus 1 2] -> 1+2 - (used by compiler)
+var predefined_replacements;
+// GUI - for the draggable blocks
+var predefined_gui;
+
+// main space for plumbing
+var mainPipe;
+
+// blockEditor object
+var bE;
+
+// which pipe (main or blockeditor) has the focus
+var focusPipe; // set to mainPipe at initialisation
+
+var groups = []; // set up UI
+var blockSelection = []; // currently selected block(s)
 
 // start:
 // - load the file of predefined functions
@@ -68,10 +70,6 @@ jsPlumb.ready(function() {
         error: function(_, status, err) {debugMsg(status+'\n'+err);}
     });
 });
-
-var groups = []; // set up UI
-var dropIn = null; // where to drop a draggable block
-var blockSelection = []; // currently selected block(s)
 
 function initialise() {
     // initialise the GUI list of block types
@@ -152,7 +150,8 @@ function pipeInstance(element) {
     this.canvas = element; // the document element to attach blocks etc. top
     this.plumber = jsPlumb.getInstance(this.canvas); // the jsPlumb instance, see jsPlumb API for details
     this.idNum = 0; // for generating the ID of blocks in use in this pipe
-	this.tokenList = {}; // for generating the list of tokens when 
+	this.tokenList = {}; // for generating the list of tokens 
+	this.defunList = {}; // for generating the list of defuns
 	this.blockSelection = []; // list of blocks selected for interaction
 	this.blockList = {}; // all block objects on this pipe
 	this.blockTypeList = {}; // all block types available to drag
@@ -279,19 +278,35 @@ pipeInstance.prototype.addEndBlock = function () {
 // output function to view the expression for a block
 pipeInstance.prototype.displayExpression = function (blockID) {
     this.tokenList = {};
+	this.defunList = {};
     // debugMsg(this.blockList);
     var exp = this.getExpression(blockID);
+	result = [];
     if (Object.keys(this.tokenList).length === 0) {
         debugMsg("No tokens");
-        result = exp;
     } else {
         debugMsg("Some tokens");
         var result = [];
         for (var i in this.tokenList) {
             result.push(this.tokenList[i]);
         }
-        result.push(exp);
     }
+    if (Object.keys(this.defunList).length === 0) {
+        debugMsg("No defuns");
+    } else {
+        debugMsg("Some defuns");
+        for (var i in this.defunList) {
+            result.push(this.defunList[i]);
+        }
+    }
+	if (result.length == 0) {
+		debugMsg("Keep exp alone");
+		result = exp;
+	} else {
+		debugMsg("Push exp into list");
+		result.push(exp);
+	}
+	debugMsg(result);
     $('#s-exp').val(JSON.stringify(result));
 }
 
@@ -309,20 +324,24 @@ pipeInstance.prototype.getExpression = function (blockID) {
             var exp = block.getExpression();
             if (exp == "setq") {
                 if (!this.tokenList[blockID]) {
-                    op = [exp,blockID];
-                    for (var i =0; i<connections.length; i++) {
-                        // alert(blockID+' '+i+' '+JSON.stringify(result));
-                        op[i+2] = this.getExpression(connections[i].sourceId);
-                    }
+                    op = ["setq",blockID];
+                    op[2] = this.getExpression(connections[0].sourceId);
                     this.tokenList[blockID] = op;
-                    // alert(JSON.stringify(this.tokenList));
                 }
                 op = blockID;
             }
+			else if (custom_functions[exp] != undefined) {
+                if (!this.defunList[exp]) {
+                    this.defunList[exp] = custom_functions[exp];
+                }
+                op = [exp];
+                for (var i = 0; i<connections.length; i++) {
+                    op[i+1] = this.getExpression(connections[i].sourceId);
+                }
+			}
             else {
                 op = [exp];
-                for (var i =0; i<connections.length; i++) {
-                    // alert(blockID+' '+i+' '+JSON.stringify(result));
+                for (var i = 0; i<connections.length; i++) {
                     op[i+1] = this.getExpression(connections[i].sourceId);
                 }
             }
@@ -741,51 +760,9 @@ function blockEditor(label) {
 	return this;
 }
 
-/*
-blockEditor.prototype.deleteArgument = function(block) {
-	// var argName = block.find('form > input')[0].value;
-	var ok = true;
-	var i = this.argList.indexOf(block);
-	if (i>-1) {
-		ok = this.customType.removeArgument(i);
-		if (ok) {
-			this.argList.splice(i,1);
-			// this.argsNum--;
-		}
-	}
-	return ok;
-}
-
-blockEditor.prototype.findArgument = function(block) {
-	var result = undefined;
-	debugMsg("looking if this block ", block.id," in argList");
-	for (a in this.argList) {
-		debugMsg("is it ",a,this.argList[a].id);
-		if (this.argList[a].id===block.id) {
-			debugMsg("Yes");
-			result = a;
-			break;
-		} else debugMsg("no");
-	}
-	return result;
-}
-
-blockEditor.prototype.renameBlock = function(newName) {
-	var name = this.blockName;
-	debugMsg("renaming ",name," to ",newName);
-	if (this.customType.changeLabel(newName)) {
-		this.blockName = newName;
-	}
-}
-
-*/
-
 blockEditor.prototype.close = function() {
+	this.userBlock.addDefun();
 	$('#createNewBlock').removeAttr('disabled','disabled');
-	var ex = this.pipe.getExpression('end');
-	if (ex != undefined) {
-		// alert(ex);
-	}
 }
 
 blockEditor.prototype.drop = function(dropped, offset) {
@@ -798,18 +775,6 @@ blockEditor.prototype.drop = function(dropped, offset) {
 	}
 }
 
-/*
-blockEditor.prototype.nextArgID = function() {
-	this.argIndex++;
-	return 'arg'+this.argIndex;
-}
-
-blockEditor.prototype.nextBlockNum = function() {
-	this.blockNum++;
-	return 'newBlock'+this.blockNum;
-}
-*/
-
 function customBlock(editDialog) {
 	// this is block-specific
 	debugMsg("making block");
@@ -818,7 +783,6 @@ function customBlock(editDialog) {
 	this.argGen = new tokenGenerator('arg'); // makes argNames (arg1, arg2...)
 	this.argList = []; // list of arguments
 	this.customType = this.newType(mainPipe); // blockType
-
 	this.pipe = new pipeInstance(editDialog.editor);
     this.addArgType();
 	this.pipe.addEndBlock();
@@ -884,6 +848,22 @@ customBlock.prototype.deleteArgument = function(arg) {
 		}
 	}
 	return ok;
+}
+
+customBlock.prototype.addDefun = function() {
+	var def = this.defun();
+	if (def != undefined) {
+		custom_functions[this.name]=def;
+	}
+}
+
+customBlock.prototype.defun = function() {
+	res = this.pipe.getExpression('end');
+	if (res != undefined) {
+		res = ["defun", this.name, this.argList.map(function (b) {return b.getExpression()}), res];
+	}
+	debugMsg(res);
+	return res;
 }
 
 function tokenGenerator(tok) {

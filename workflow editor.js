@@ -265,7 +265,7 @@ pipeInstance.prototype.addEndBlock = function () {
         maxConnections: 1
     }, config.connectStyle);
 
-	this.plumber.repaintEverything();
+	//this.plumber.repaintEverything();
 
 	var that = this;
     $(block).click(function(e) {
@@ -463,13 +463,11 @@ blockType.prototype.moveBack = function() {
 }
 
 // sets the new label for a given block
-// if the new label is a duplicate, returns 'false' and doesn't set
-// otherwise, returns 'true' and sets.
 blockType.prototype.setLabel = function(label) {
-	if (label != '' && mainPipe.blockTypeList[label]===undefined) {
+	if (label != '') {
 		this.element.html(label);
 		mainPipe.blockTypeList[label] = this;
-		debugMsg("added ",this," to blockTypeList ",mainPipe.blockTypeList.length);
+		debugMsg("added ",label," to blockTypeList ",mainPipe.blockTypeList.length);
 		return true;
 	}
 	else {
@@ -523,33 +521,6 @@ blockType.prototype.removeArgument = function(n) {
 	}
 	return ok;
 }
-
-/*
-function confirmDeleteArgument () {
-	var alertIcon = $('span').class('ui-icon ui-icon-alert').css('float:left; margin:12px 12px 20px 0;');
-	var body = $('p').add(alertIcon).HTML('The argument is used by existing connectors. Remove anyway?');
-	var confirm = $('div').attr('title','Delete connected argument?').add(body);
-	
-	$( function() {
-		confirm.dialog({
-			resizable: false,
-			height: "auto",
-			width: 400,
-			modal: true,
-			buttons: {
-				"Remove the argument": function() {
-					$( this ).dialog( "close" );
-					return true;
-				},
-				Cancel: function() {
-					$( this ).dialog( "close" );
-					return false;
-				}
-			}
-		});
-	});
-}
-*/
 
 function blockInstance(type, pipe, pos) {
 	debugMsg("new block");
@@ -716,34 +687,50 @@ blockInstance.prototype.remove = function () {
 	this.type.removeUse(this);
 }
 
+// current block names (newBlock1, ...)
+var edGen = new tokenGenerator('newBlock');
+
 function editBlock() {
-   bE = new blockEditor('test');
-   $('#createNewBlock').attr('disabled','disabled');
+	bE = new blockEditor();
+    $('#createNewBlock').attr('disabled','disabled');
 }
 
 function blockEditor(label) {
 	debugMsg("making block editor");
 
-	this.blockNameGen = new tokenGenerator('newBlock'); // block names (newBlock1, ...)
-
     var inpt = $('<input type="text" size=7 />');
 	var form = $('<form>').append('Block:').append(inpt);
 
-    this.editor = $('<div>').attr('id',label).attr('title','Edit block');
+    this.editor = $('<div>').attr('title','Edit block');
     this.editor.append(form);
     this.editor.dialog({width: 560, height:420});
 
-	this.userBlock = new customBlock(this);
+	this.makeArgType();
 
-	that = this;
+	this.setUserBlock(new customBlock(this));
 
-	inpt.val(this.userBlock.name)
-		.on('input', function() {that.userBlock.rename(this.value);} );
+	this.userBlock.pipe.addEndBlock();
+	
+	return this;
+}
+
+blockEditor.prototype.setUserBlock = function(userBlock) {
+	this.userBlock = userBlock;
+
+	this.editor.find("input")
+		.off('input')
+		.on('input', function() {userBlock.rename(this.value);} )
+	    .val(userBlock.name);
 
 	this.editor.on('dialogclose', function() {
-        that.close();
+        userBlock.done();
     });
 
+	this.editor.on('dialogresize', function() {
+        userBlock.pipe.plumber.repaintEverything();
+    });
+
+	that = this;
 	this.editor.droppable({
 		tolerance: 'pointer',
 		over: function() {
@@ -757,12 +744,6 @@ function blockEditor(label) {
 		}
     });
 
-	return this;
-}
-
-blockEditor.prototype.close = function() {
-	this.userBlock.addDefun();
-	$('#createNewBlock').removeAttr('disabled','disabled');
 }
 
 blockEditor.prototype.drop = function(dropped, offset) {
@@ -775,31 +756,31 @@ blockEditor.prototype.drop = function(dropped, offset) {
 	}
 }
 
-function customBlock(editDialog) {
-	// this is block-specific
-	debugMsg("making block");
-	this.name = editDialog.blockNameGen.next();
-	this.num = editDialog.blockNameGen.num();
-	this.argGen = new tokenGenerator('arg'); // makes argNames (arg1, arg2...)
-	this.argList = []; // list of arguments
-	this.customType = this.newType(mainPipe); // blockType
-	this.pipe = new pipeInstance(editDialog.editor);
-    this.addArgType();
-	this.pipe.addEndBlock();
-	return this;
-}
-
-customBlock.prototype.addArgType = function() {
+blockEditor.prototype.makeArgType = function() {
 	var argType = {};
 	argType.args = 0;
 	argType.blockCode = "<form><input type='text' size=3/><form>";
 	argType.dropCode ="bE.userBlock.newArgument(block);";
 	argType.getExp = "var inpt = block.find('form > input')[0]; return inpt.value;";
 	argType.output = -1; // number of output connections is illimited
-    this.pipe.addBlockType(new blockType('Argument',argType), {top:10, left:470});
+    this.argType = new blockType('Argument',argType);
 }
 
-customBlock.prototype.rename = function(newName) { //was renameBlock
+function customBlock(editDialog) {
+	// this is block-specific
+	debugMsg("making block");
+	this.name = edGen.next();
+	this.num = edGen.num();
+	this.argGen = new tokenGenerator('arg'); // makes argNames (arg1, arg2...)
+	this.argList = []; // list of arguments
+	this.customType = this.newType(mainPipe); // blockType
+	this.pipe = new pipeInstance(editDialog.editor);
+    this.pipe.addBlockType(editDialog.argType, {top:10, left:470});
+	this.bE = editDialog;
+	return this;
+}
+
+customBlock.prototype.rename = function(newName) {
 	debugMsg("renaming ",this.name," to ",newName);
 	if (this.customType.changeLabel(newName)) {
 		this.name = newName;
@@ -850,9 +831,15 @@ customBlock.prototype.deleteArgument = function(arg) {
 	return ok;
 }
 
-customBlock.prototype.addDefun = function() {
+customBlock.prototype.done = function() {
+	this.saveDefun();
+	$('#createNewBlock').removeAttr('disabled','disabled');
+}
+
+customBlock.prototype.saveDefun = function() {
 	var def = this.defun();
 	if (def != undefined) {
+		debugMsg("new function: ",this.name, def);
 		custom_functions[this.name]=def;
 	}
 }

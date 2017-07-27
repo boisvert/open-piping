@@ -458,7 +458,7 @@ blockType.prototype.setPos = function(position) {
 blockType.prototype.moveBack = function() {
     if (this.pos) {
 		debugMsg("back to ", this.pos);
-        this.element.css(this.pos);
+        this.element.css('top', 'auto').css('left', 'auto').css(this.pos);
     }
 }
 
@@ -710,7 +710,7 @@ function blockEditor(label) {
 	this.setUserBlock(new customBlock(this));
 
 	this.userBlock.pipe.addEndBlock();
-	
+
 	return this;
 }
 
@@ -773,9 +773,9 @@ function customBlock(editDialog) {
 	this.num = edGen.num();
 	this.argGen = new tokenGenerator('arg'); // makes argNames (arg1, arg2...)
 	this.argList = []; // list of arguments
-	this.customType = this.newType(mainPipe); // blockType
+	this.customType = this.newType(); // blockType
 	this.pipe = new pipeInstance(editDialog.editor);
-    this.pipe.addBlockType(editDialog.argType, {top:10, left:470});
+    this.pipe.addBlockType(editDialog.argType, {top:10, right:10}); // was left:470
 	this.bE = editDialog;
 	return this;
 }
@@ -811,10 +811,11 @@ customBlock.prototype.findArgument = function(testArg) {
 	return result;
 }
 
-customBlock.prototype.newType = function(pipe) {
+customBlock.prototype.newType = function() {
 	var cT = new blockType(this.name,{args:this.argList.length});
 	debugMsg("adding type");
-    pipe.addBlockType(cT,{top:40+55*(this.num-1), left:1150});
+	cT.addTo(mainPipe,{top:40+55*(this.num-1), right:10});
+	this.icons();
 	return cT;
 }
 
@@ -851,6 +852,44 @@ customBlock.prototype.defun = function() {
 	}
 	debugMsg(res);
 	return res;
+}
+
+customBlock.prototype.del = function() {
+	this.edit.remove();
+}
+
+customBlock.prototype.icons = function() {
+
+	var height = 60+55*(this.num-1);
+	this.edit = $('<div>');
+	var editIcon = $('<img>').
+	           attr('src','icons/edit.jpg').
+			   attr('width',24).
+			   attr('height',24).
+			   css({top:height, right:24, position:'absolute'});
+	edit.append(editIcon);
+    mainPipe.canvas.append(edit);
+	var copy = $('<img>').attr('src','icons/copy.jpg').attr('width',24).attr('height',24).css({top:height, right:48, position:'absolute'});
+	var del = $('<img>').attr('src','icons/delete.jpg').attr('width',24).attr('height',24).css({top:height, right:0, position:'absolute'});
+	var delay;
+
+	that = this;
+	del.on('click', that.del);
+
+	edit.on('mouseover', function() {
+		clearTimeout(delay);
+		edit.append(copy);		
+		edit.append(del);
+	});
+	edit.on('mouseout', function() {
+		delay = setTimeout(mo,1000);
+	});
+	
+	var mo = function() {
+		copy.detach();
+		del.detach();		
+	}
+
 }
 
 function tokenGenerator(tok) {

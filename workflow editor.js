@@ -27,7 +27,7 @@ var predefined_gui;
 var mainPipe;
 
 // blockEditor object
-var bE;
+var currentBE;
 
 // which pipe (main or blockeditor) has the focus
 var focusPipe; // set to mainPipe at initialisation
@@ -161,9 +161,9 @@ function pipeInstance(element) {
         // If the click was not inside the active span
 		debugMsg("click");
         if(!$(e.target).hasClass('blockSelected')) {
+			e.stopPropagation();			
     		debugMsg("canvas clicked");
             that.deselectAllBlocks();
-			e.stopPropagation();
         }
     });
 }
@@ -216,9 +216,9 @@ pipeInstance.prototype.addBlock = function (blockType, pos) {
 pipeInstance.prototype.removeBlock = function(block) {
 	var ok = true;
 	if (focusPipe != mainPipe) {
-		if (bE.userBlock.findArgument(block)) {
+		if (currentBE.userBlock.findArgument(block)) {
 			debugMsg("the block is an argument");
-			ok = bE.userBlock.deleteArgument(block);
+			ok = currentBE.userBlock.deleteArgument(block);
 		}
 	}
 	if (ok) {
@@ -269,9 +269,9 @@ pipeInstance.prototype.addEndBlock = function () {
 
 	var that = this;
     $(block).click(function(e) {
-         that.blockSelection = [];
-         that.displayExpression(blockID);
-		 e.stopPropagation();
+		e.stopPropagation();
+        that.blockSelection = [];
+        that.displayExpression(blockID);
     });
 }
 
@@ -553,10 +553,10 @@ blockInstance.prototype.setPipe = function(pipe) {
 
 	var that = this;
 	this.element.click(function(e) {
+		e.stopPropagation();
 		that.pipe.deselectAllBlocks();
         that.select();
         that.pipe.displayExpression(that.id);
-		e.stopPropagation();
     });
 
 	var dropCode = this.dropCode();
@@ -631,6 +631,13 @@ blockInstance.prototype.setPosition = function(pos) {
     this.element.css(pos);
 }
 
+blockInstance.prototype.getPosition = function() {
+	// function should exist, but not working?
+    t = this.element.css('top');
+    l = this.element.css('left');
+	return {'top':t, 'left':l}
+}
+
 blockInstance.prototype.setHTML = function() {
     var inHTML = this.type.label;
 
@@ -691,11 +698,11 @@ blockInstance.prototype.remove = function () {
 var edGen = new tokenGenerator('newBlock');
 
 function editBlock() {
-	bE = new blockEditor();
+	currentBE = new blockEditor();
     $('#createNewBlock').attr('disabled','disabled');
 }
 
-function blockEditor(label) {
+function blockEditor() {
 	debugMsg("making block editor");
 
     var inpt = $('<input type="text" size=7 />');
@@ -760,7 +767,7 @@ blockEditor.prototype.makeArgType = function() {
 	var argType = {};
 	argType.args = 0;
 	argType.blockCode = "<form><input type='text' size=3/><form>";
-	argType.dropCode ="bE.userBlock.newArgument(block);";
+	argType.dropCode ="currentBE.userBlock.newArgument(block);";
 	argType.getExp = "var inpt = block.find('form > input')[0]; return inpt.value;";
 	argType.output = -1; // number of output connections is illimited
     this.argType = new blockType('Argument',argType);
@@ -777,6 +784,7 @@ function customBlock(editDialog) {
 	this.pipe = new pipeInstance(editDialog.editor);
     this.pipe.addBlockType(editDialog.argType, {top:10, right:10}); // was left:470
 	this.bE = editDialog;
+	this.edit = undefined;
 	return this;
 }
 
@@ -837,6 +845,13 @@ customBlock.prototype.done = function() {
 	$('#createNewBlock').removeAttr('disabled','disabled');
 }
 
+customBlock.prototype.delete = function() {
+	//this.saveDefun();
+	// need to unsave...
+	$('#createNewBlock').removeAttr('disabled','disabled');
+	this.customType.element.remove();
+}
+
 customBlock.prototype.saveDefun = function() {
 	var def = this.defun();
 	if (def != undefined) {
@@ -854,27 +869,39 @@ customBlock.prototype.defun = function() {
 	return res;
 }
 
-customBlock.prototype.del = function() {
+/* not called correctly from delete click event
+customBlock.prototype.remove = function() {
 	this.edit.remove();
 }
+*/
 
 customBlock.prototype.icons = function() {
 
 	var height = 60+55*(this.num-1);
-	this.edit = $('<div>');
+	var edit = $('<div>');
 	var editIcon = $('<img>').
 	           attr('src','icons/edit.jpg').
 			   attr('width',24).
 			   attr('height',24).
+			   attr('alt','edit').
 			   css({top:height, right:24, position:'absolute'});
 	edit.append(editIcon);
     mainPipe.canvas.append(edit);
-	var copy = $('<img>').attr('src','icons/copy.jpg').attr('width',24).attr('height',24).css({top:height, right:48, position:'absolute'});
-	var del = $('<img>').attr('src','icons/delete.jpg').attr('width',24).attr('height',24).css({top:height, right:0, position:'absolute'});
+	var copy = $('<img>').attr('src','icons/copy.jpg').attr('width',24).attr('height',24).attr('alt','copy').css({top:height, right:48, position:'absolute'});
+	var del = $('<img>').attr('src','icons/delete.jpg').attr('width',24).attr('height',24).attr('alt','delete').css({top:height, right:0, position:'absolute'});
 	var delay;
 
-	that = this;
-	del.on('click', that.del);
+	var that = this;
+	del.on('click', function(e) {
+		e.stopPropagation();
+		edit.remove();
+		//debugMsg(that);
+		that.bE.userBlock.delete();
+		that.bE.editor.dialog('close');
+		that.pipe = undefined;
+		//that.remove();
+		// more needed!!
+	});
 
 	edit.on('mouseover', function() {
 		clearTimeout(delay);
@@ -884,10 +911,45 @@ customBlock.prototype.icons = function() {
 	edit.on('mouseout', function() {
 		delay = setTimeout(mo,1000);
 	});
+	edit.on('click', function(e) {
+		e.stopPropagation();
+		debugMsg('edit block');
+		if (currentBE != that.bE) {
+			debugMsg('change edited block');
+			currentBE.editor.dialog('close');
+			currentBE = that.bE;
+		}
+		if (currentBE.editor.is(":hidden")) {
+			debugMsg('show editor');
+			currentBE.editor.dialog('open');
+		}
+	});
 	
+	copy.on('click', function(e) { // was that.remove() - didn't work
+		e.stopPropagation();
+		// make a copy
+		debugMsg('copy block');
+		// var oldBlock = that;
+		currentBE.editor.dialog('close');
+		editBlock();
+		var newName = that.name+'_copy'
+		currentBE.userBlock.rename(newName);
+		currentBE.editor.find("input").val(currentBE.userBlock.name);
+		for (var bID in that.pipe.blockList) {
+			if (bID!='end') {
+				var oB = that.pipe.blockList[bID];
+				debugMsg('old block', bID);
+				var oType = oB.type.element;
+				var oPos = oB.getPosition();
+				debugMsg(oPos);
+				currentBE.userBlock.pipe.addBlock(oType,oPos);
+			}
+		}
+	});
+
 	var mo = function() {
 		copy.detach();
-		del.detach();		
+		del.detach();
 	}
 
 }
@@ -906,4 +968,5 @@ tokenGenerator.prototype.next = function() {
 tokenGenerator.prototype.num = function() {
 	return this.tokIndex;	
 }
+
 

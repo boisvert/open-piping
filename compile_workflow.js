@@ -37,6 +37,50 @@ var includedFunctions = {
     }
 }
 
+// list of tokens (variables) in use, to parse them
+// with encapsulated functions for handling the list
+var tokens = {
+    list: [],
+
+    clear: function() {
+        tokens.list=[];
+        return tokens;
+    },
+
+    contain: function(tok) {
+        return tokens.list.indexOf(tok)>=0;
+    },
+
+    add: function (tok) {
+        tokens.list.unshift(tok);
+        return tokens;
+    },
+
+    addAll: function (toks) {
+        debugMsg(toks); 
+        toks.map(tokens.add)
+    },
+
+    remove: function (tok) {
+        if (tokens.contain(tok)) {
+            return false;
+        } else {
+            tokens.list.splice(list.indexOf(tok),1)
+            return tokens;
+        }
+    },
+
+    removeAll: function (toks) {
+        toks.map(tokens.remove);
+    },
+
+    shift: function (n) {
+        if (!n) n=1;
+        do {tokens.list.shift();} while (n-->0);
+        return tokens;
+    }
+};
+
 // list of substitutions already parsed
 var readyReplacements = {
     list: [],
@@ -58,43 +102,6 @@ var readyReplacements = {
             return false;        
     }
 }
-
-// list of tokens (variables) in use, to parse them
-// with encapsulated functions for handling the list
-var tokens = {
-    list: [],
-    clear: function() {
-        tokens.list=[];
-        return tokens;
-    },
-    contain: function(tok) {
-        return tokens.list.indexOf(tok)>-1;
-    },
-    add: function (tok) {
-        tokens.list.unshift(tok);
-        return tokens;
-    },
-    addAll: function (toks) {
-        debugMsg(toks); 
-        toks.map(tokens.add)
-    },
-    remove: function (tok) {
-        if (tokens.contain(tok)) {
-            return false;
-        } else {
-            tokens.list.splice(list.indexOf(tok),1)
-            return tokens;
-        }
-    },
-    removeAll: function (toks) {
-        toks.map(tokens.remove);
-    },
-    shift: function (n) {
-        if (!n) n=1;
-        do {tokens.list.shift();} while (n-->0);
-        return tokens;
-    }
-};
 
 function compile(Exp) {
    code.clear();
@@ -221,7 +228,7 @@ function encodeEach(E) {
         var Res = encodeEach(E);
         //if (First != "") {
 			Res.unshift(First);
-		//}
+		/*}*/
     }
    return Res;
 }

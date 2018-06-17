@@ -525,11 +525,12 @@ blockType.prototype = {
 			}
 			debugMsg("removing ", ct, " connectors");
 			if (ct>0) {
-				ok = confirm('There are '+ct+'connectors into this block. Remove the argument?');
+				ok = confirm('This argument is being used by '+ct+' connectors. Are you sure you want to remove it?');
 			}
 			if (ok) {
 				this.inConn--;
 				this.uses.map(function(block) {
+					debugMsg("removing input",n,"from block",block.id);
 					block.removeInput(n);
 				});
 			}
@@ -590,7 +591,7 @@ blockInstance.prototype = {
 	setOutput: function() {
 		debugMsg("Adding block output");
 		var e = (new blockEndpoint()).setSource().setPos('right');
-		debugMsg(e.getAnchors())
+		debugMsg(e.getAnchor())
 		if (this.outConnections() == -1) {
 			e.setMulti();
 		}
@@ -616,33 +617,29 @@ blockInstance.prototype = {
 	addInput: function(num) {
 		if (num===undefined) num = this.type.inConn;
 		var e = (new blockEndpoint()).setPos('top',num).addTo(this);
+		debugMsg("added endpoint to block",this.id,e.ep.getParameters());
 		this.inPoints.queue(e);
 	},
 
 	// *** using new endPoint object
 	removeInput: function(num) {
-		debugMsg("Removing input num ",num+1," of block ",this.id);
+		debugMsg("Removing input num ",num," of block ",this.id);
 		var iP = this.inPoints.get(num);
 		iP.remove();
 		for (this.inPoints.remove(iP); num<this.inPoints.size(); num++) {
 			debugMsg("shifting ",num);
-			this.inPoints.get(num).setPos('top',num);
+			iP = this.inPoints.get(num);
+			debugMsg("endPoint to shift details",iP.ep.getParameters());
+			iP.setPos('top',num).updateProps();
 			debugMsg("done");
 		}
 		debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
 	},
 
-	// *** should be via an endPoint object, but how?
 	numOfConnectors: function(n) {
-		var input = this.inPoints.get(n).anchor;
-		var cs = this.pipe.plumber.getConnections({target:this.id});
-		cs.filter(function(conn) {
-			var target = conn.endpoints[1].anchor;
-			// debugMsg("Comparing: ",target,input);
-			return (target==input);
-		});
-		debugMsg("Connections to remove: ",cs.length);
-		return cs.length;
+		var c = input.isConnected()?1:0;
+		debugMsg("Connections to remove: ",c);
+		return c;
 	},
 
 	setPosition: function(pos) {
@@ -710,6 +707,10 @@ blockInstance.prototype = {
 	remove: function () {
 		this.element.remove();
 		this.type.removeUse(this);
+	},
+	
+	repaint: function() {
+		this.pipe.plumber.repaint(this.element);
 	}
 }
 
@@ -771,25 +772,25 @@ blockEndpoint.prototype = {
 	},
 
 	setPos: function(side,n) {
-		debugMsg("endPoint pos",n);
 		var p;
 		if (n==null) p=0.5
 		else p = 0.1+n/3.5;
+		debugMsg("endPoint pos",n,p);
 		var a = [];
 		switch (side) {
 			case 'left': a = [0,p,-1,0]; break;
 			case 'top': a = [p, 0, 0, 1]; break;
 			case 'right': a = [1,p,1,0];
 		}
-		// debugMsg(a);
-		return this.setAnchors(a);
+		//debugMsg('anchors',a);
+		return this.setAnchor(a);
 	},
-	setAnchors: function(p) {
+	setAnchor: function(p) {
 		this.properties.anchors = p;
-		// debugMsg(p);
+		debugMsg('anchors',p);
 		return this;
 	},
-	getAnchors: function() {
+	getAnchor: function() {
 		return this.properties.anchors;
 	},
 
@@ -839,11 +840,24 @@ blockEndpoint.prototype = {
 	addTo: function(b) {
 		debugMsg("adding endpoint with props", this.properties);
 		this.block = b;
-		this.ep = b.pipe.plumber.addEndpoint(b.element, this.properties, config.connectStyle);
-		// debugMsg("Endpoint added ",this.ep.isFull());
+		e = b.pipe.plumber.addEndpoint(b.element, this.properties, config.connectStyle);
+		debugMsg("Endpoint added ",e.anchor);
+		this.ep = e;
 		return this;
-	}
+	},
 
+	updateProps: function() {
+		debugMsg("props changed to",this.ep.anchor, this.properties);
+		//setParameters not working as documented
+		//this.ep.setParameters(this.properties);
+		this.ep.anchor.x = this.getAnchor()[0];
+		this.block.repaint();
+	},
+
+	remove: function() {
+		this.ep.detachAll();
+		this.block.pipe.plumber.deleteEndpoint(this.ep);
+	}
 }
 
 /*

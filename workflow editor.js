@@ -267,8 +267,18 @@ pipeInstance.prototype = {
 		this.defunList.clear();
 		// debugMsg(this.blockList);
 		var exp = this.getExpression(blockID);
-		var result;
+		debugMsg("Exp before defuns",exp);
 		var elements = new bag();
+		if (this.defunList.empty()) {
+			debugMsg("No defuns");
+		} else {
+			debugMsg("Some defuns",this.defunList);
+			for (var id in this.defunList.list) {
+				exp = this.defunList.get(id).concat([exp]);
+			}
+			debugMsg(exp);
+		}
+		/*
 		if (this.tokenList.empty()) {
 			debugMsg("No tokens");
 		} else {
@@ -277,24 +287,18 @@ pipeInstance.prototype = {
 				elements.queue(["setq", id, this.tokenList.get(id)]);
 			}
 		}
-		if (this.defunList.empty()) {
-			debugMsg("No defuns");
-		} else {
-			debugMsg("Some defuns");
-			for (var id in this.defunList.list) {
-				elements.queue(this.defunList.get(id));
-			}
-		}
-		if (elements.empty()) {
+		*/
+/*		if (elements.empty()) {
 			debugMsg("Keep exp alone");
 			result = exp;
 		} else {
-			debugMsg("Push exp into list");
+			debugMsg("Push exp",exp,"into list",elements.list);
 			elements.queue(exp);
 			result = elements.list;
 		}
-		debugMsg(result);
-		$('#s-exp').val(JSON.stringify(result));
+		*/
+		debugMsg(exp);
+		$('#s-exp').val(JSON.stringify(exp));
 	},
 
 	getExpression: function (blockID) {
@@ -337,8 +341,10 @@ pipeInstance.prototype = {
 						// or to null if there is none
 						var v = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
 						this.tokenList.add(blockID,v);
+						op = ["setq", blockID, v]
+					} else {
+						op = blockID;						
 					}
-					op = blockID;
 				}
 				else {
 					op = [exp];
@@ -1242,15 +1248,16 @@ bag.prototype = {
 	contains: function(e) {
 		return this.list.indexOf(e)>=0;
 	},
-	
+
 	queue: function (e) {
 		this.list.push(e);
 		return this;
 	},
 
 	queueAll: function (es) {
-		this.list.push(e);
-		return es.map(this.queue);
+		debugMsg("queuing",es,"at the end of",this.list)
+		es.forEach(e => this.queue(e));
+		return this;
 	},
 
 	stack: function (e) {
@@ -1260,13 +1267,14 @@ bag.prototype = {
 
 	stackAll: function (es) {
 		debugMsg("stacking ",es);
-		return es.map(this.stack);
+		es.forEach(this.stack);
+		return this;
 	},
 
 	get: function(n) {
 		return this.list[n];
 	},
-	
+
 	remove: function (e) {
 		if (this.contains(e)) {
 			this.list.splice(this.list.indexOf(e),1)

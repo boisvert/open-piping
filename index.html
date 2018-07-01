@@ -3,6 +3,17 @@
 
 <head>
 
+<!-- Dependencies are as follows
+   * jquery 3.2.1
+   * jquery UI 1.12.1 - js and css
+   * jsplumb 2.1.8
+
+   Later versions are probably compatible, but this code is not compatible with
+   jsPlumb 2.2.x and above as it stands.
+   
+   The commented links are to use dependencies from a shared repository. Alternatively, host a copy of them.
+-->
+
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script-->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script-->
 <script src="../libraries/jquery.min.js"></script>
@@ -17,8 +28,11 @@
     
     <title>Edit and interpret a workflow</title>
 
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
+  <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
+
+  <link rel="stylesheet" href="../libraries/jquery-ui.min.css">
 	
+  
 <style>
 
     #createNewBlock {
@@ -97,13 +111,16 @@ Github project
 
 You can compose an expression by using the blocks above, or try one of the ready-made ones below:<br />
 <form>
-<input type="button" value="simple list" onClick="inject(0);" />
-<input type="button" value="booleans" onClick="inject(1);" />
-<input type="button" value="function call" onClick="inject(2);" />
-<input type="button" value="defun" onClick="inject(3);" /> 
-<input type="button" value="defun recursive (fatorial)" onClick="inject(4);" />
-<input type="button" value="defun higher order function (map)" onClick="inject(5);" />
-<input type="button" value="numeric" onClick="inject(6);" /> 
+<select onChange="inject(this.selectedIndex-1)">
+  <option value="choose">Select...</option>
+  <option value="0">Number</option>
+  <option value="1">Simple list</option>
+  <option value="2">Booleans</option>
+  <option value="3">Function substitution</option>
+  <option value="4">Defun</option>
+  <option value="5">Defun recursive (fatorial)</option>
+  <option value="6">Higher order function (map)</option>
+</select>
 <br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />
@@ -124,17 +141,20 @@ Language:
 
 // show sample of code
 function inject(num) {
-   var samples = [
-      '[1, 2, 3, "a", "b", "c"]',
-      '["or",["isNumber", 3], ["isNumber", "a"]]',
-      '["plus", 1, 2]',
-      '[\n  ["defun", "square", ["x"], ["times", "x", "x"]],\n  ["square", 2]\n]',
-      '[\n  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],\n  ["fac", 10]\n]',
-      '[\n  ["defun", "map", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["map", "f", ["rest", "arr"] ] ] ]\n],\n["map", "\\\\isNumber", [1,2,3,"a","b","c"] ] ]',
-      '1'
-   ];
-   document.getElementById('s-exp').value=samples[num];
+   if (num>=0) {
+	   var samples = [
+		  '1',
+		  '[1, 2, 3, "a", "b", "c"]',
+		  '["or",["isNumber", 3], ["isNumber", "a"]]',
+		  '["plus", 1, 2]',
+		  '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
+		  '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
+		  '[\n  "defun", "map", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["map", "f", ["rest", "arr"] ] ]\n],\n  ["map", "\\\\isNumber", [1,2,3,"a","b","c"] ] \n]',
+	   ];
+	   document.getElementById('s-exp').value=samples[num];
+   }
 }
+
 
 // compile event
 function getCode(lang) {
@@ -155,7 +175,8 @@ function getCode(lang) {
 // run result
 function runres() {
    var c = $('#result').val();
-   alert(eval(c));
+   eval(c);
+   alert(main());
 }
 
 </script>

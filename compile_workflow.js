@@ -1,5 +1,5 @@
 /*
-Set of predefined functions
+Set of predefined functions 
 predefined functions both define the gui blocks
 and this compilation, so the functions are loaded in the editor
 
@@ -15,13 +15,21 @@ A stack of defined vars (setq) is also maintained
 
 // String with the resulting code
 // plus simple encapsulated functions
-var code = {
-    text: "",
-    clear: function() { code.text = ""; },
-    line: function(lin) { code.text += lin + "\n\n"; }
-};
+
+function codeString() {
+    this.text = "";
+}
+
+codeString.prototype = {
+	nl: "\n\n",
+    clear: function() { this.text = ""; },
+    line: function(lin) { this.text += lin + this.nl; }
+}
+
+var globalCode = new codeString();
 
 // list of functions in use (to not repeat them)
+// this is the "d-list" of defined functions in LISP interpreters
 var includedFunctions = {
     list: [],
     clear: function() { 
@@ -103,23 +111,29 @@ var readyReplacements = {
     }
 }
 
+
+/*
+The "process" needs rethinking
+Some wrapper object that limits the scope of needed functions
+secures the execution and provides support e.g. display, timing, execution journal 
+*/
 function compile(Exp) {
-   code.clear();
-   code.line("// Automatically generated code");
    includedFunctions.clear();
    tokens.clear();
    readyReplacements.clear();
-   var call = encode(Exp);
-   code.line("process("+call+");");
-   return code.text;
+   globalCode.clear();
+   globalCode.line("// Automatically generated code");
+   var call = encode(Exp,globalCode);
+   globalCode.line("function main() { return "+call+"; }");
+   return globalCode.text;
 }
 
-function encode(Exp) {
+function encode(Exp,vars) {
     var res;
-    
+
     if (isArray(Exp)) {
     // cases 1 to 6 - Exp is an array
-        res = encodeArray(Exp);
+        res = encodeArray(Exp,vars);
     }
     else if (isString(Exp)) {
     // case 7: expression is a known variable
@@ -141,9 +155,9 @@ function encode(Exp) {
 
 // "call_fn": {"args": "f, arr", "body":"var fn=window[f]; return fn.apply(this,arr);"},
 
-function encodeArray(Exp) {
-    
-    var res;
+function encodeArray(Exp, vars) {
+
+    var res = null;
     // case 1: expression is an empty array
     if (Exp.length==0)
         res = '[]';
@@ -152,27 +166,29 @@ function encodeArray(Exp) {
     {
         var H = Exp[0]; // take the head
         var choice = caseOfHead(H);
-    
+
         if (choice==2)
         //  case 2: Exp is a data array
-            res = '['+encodeEach(Exp)+']';
+            res = '['+encodeEach(Exp,vars)+']';
         else
         {
             Exp.shift(); // keep all but the head
 
         // case 3: expression is a function definition
             if (choice==3) {
-                defun(Exp);
+                defun(Exp[0],Exp[1],Exp[2]);
+				res = encode(Exp[3],vars);
             }
         // case 4: expression is a variable setting
             else if (choice==4) {
                 var tok = Exp[0];
                 tokens.add(tok);
-                code.line("var "+tok+" = "+encode(Exp[1])+";");
+				res = tok;
+                vars.line("var "+tok+" = "+encode(Exp[1])+";");
             }
         // case 4.5: (yeah, well...) expression is a higher order function (x->y)->z
             else if (choice==4.5) {
-				Arguments = encodeEach(Exp);
+				Arguments = encodeEach(Exp,vars);
 				H = Arguments[0]; // new head
 				enforce(H, isString); // must be a string: it's a function call (!)
  				Arguments.shift(); // rest are arguments
@@ -191,7 +207,7 @@ function encodeArray(Exp) {
             else if (choice==5) {
                 var s = getSubstitutor(H);
                 // should there be validation on number and type of arguments?
-                Arguments = encodeEach(Exp);
+                Arguments = encodeEach(Exp,vars);
                 res = s(Arguments);
             }
         // case 6: expression is a function call
@@ -199,7 +215,7 @@ function encodeArray(Exp) {
                 // getOperator returns the string defining the function
                 var op = getOperator(H);
                 // should there be validation on number and type of arguments?
-                Arguments = encodeEach(Exp);
+                Arguments = encodeEach(Exp,vars);
                 res = op(Arguments); //H+"("+Arguments.join(",")+")";
             } // case 6
         } // cases 3-6
@@ -217,18 +233,21 @@ function caseOfHead(H) {
    return 2; // anything else - data array
 }
 
-function encodeEach(E) {
-    debugMsg("encoding each of "+E);
+function encodeEach(E,vars) {
     enforce(E, isArray);
+    debugMsg("encoding each of",E, E.length);
     var Res = [];
     if (E.length>0) {
         debugMsg("encoding "+E[0]);
-        var First = encode(E[0]);
+        var First = encode(E[0],vars);
         E.shift();
-        var Res = encodeEach(E);
-        //if (First != "") {
+        var Res = encodeEach(E,vars);
+        if (First === null) {
+			debugMsg("tokens - not added to exec");
+		}
+		else {
 			Res.unshift(First);
-		/*}*/
+		}
     }
    return Res;
 }
@@ -236,20 +255,22 @@ function encodeEach(E) {
 // defun adds necessary code for the function definition and updates the list of functions available
 // and the list of functions in use
 // the syntax is javascript: funtion foo(arguments) {return body;}
-function defun(Exp) {
+function defun(name,args,body) {
     // adds a function definition to the "predefined functions" JSON list
-    var name = Exp[0];
-    var args = Exp[1];
     var f = {};
     f["args"] = args.join(", ");
     predefined_functions[name] = f;
     includedFunctions.add(name);
     tokens.addAll(args); // tokens list is filled with the function arguments
+	var vars = new codeString();
+	vars.line("function "+ name + "("+ f["args"] + ") {");
     debugMsg(tokens);
-    var body = "return "+encode(Exp[2])+";";
-    f["body"] = body;
+    vars.line("return "+encode(body,vars)+";");
+	vars.line("}");
+	debugMsg("defun",vars.text);
+    f["body"] = vars.text+" "+body;
     tokens.removeAll(args);
-    code.line("var "+ name + " = function (" + f["args"] + ") {" + body +"}");
+    globalCode.line(vars.text);
 }
 
 /*
@@ -308,7 +329,7 @@ function getSubstitutor(X) {
         // add prerequisites to the code
         if (rX.requires) {
             var pre = rX.requires.map(getOperator);
-            code.line(pre.join(""));
+            globalCode.line(pre.join(""));
         }
 
         readyReplacements.set(X,s);
@@ -324,18 +345,18 @@ function getOperator(X) {
         includedFunctions.add(X);
 
         // concatenate function definition
-        code.line("function "+ X + "(" + fX.args + ") {" + fX.body +"}");
+        globalCode.line("function "+ X + "(" + fX.args + ") {" + fX.body +"}");
 
         // find pre-requisites
         if (fX.requires) {
             fX.requires.map(getOperator);
-            // code.line(pre.join(""));
         }
     }
     
     return function (Args) {return X+"("+Args.join(",")+")";};
 }
 
+/*
 function process(Exp) {
    // calls the compiled instructions, respecting the structure, and returns a string to display.
    
@@ -356,7 +377,8 @@ function process(Exp) {
     // done
     return res;
 
-}
+}*/
+
 
 // start with which takes a list of tokens and a string to check.
 // It returns the index of the token with which the string starts
@@ -484,19 +506,22 @@ function map(f,arr) {
   ["map", "\\isNumber", [1,2,3,"a","b","c"] ]
 ]
 
-// almost works in js (12 April 2017)
+// works in js (June 2017)
 // result:
+
 // Automatically generated code
 
-var map = function (f, arr) {return (arr.length==0)?map(f,arr.slice(1)).unshift(f.apply(this,arr[0])):undefined;}
+function isEmpty(a) {return $.isArray(a) && a.length==0;}
 
-process([,map("isNumber",[1,2,3,"a","b","c"])]);
+function cons(elt,list) {list.unshift(elt);return list;}
 
-==================
+function map(f, arr) {
+   return isEmpty(arr)?[]:cons(f.apply(this,[arr[0]]),map(f,arr.slice(1)));
+}
 
-an alternative notation?
+function isNumber(n) {return $.isNumeric(n);}
 
-]}
+function main() { return map(isNumber,[1,2,3,"a","b","c"]); }
 
 */
 

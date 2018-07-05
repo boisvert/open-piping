@@ -51,38 +51,17 @@ function initialise() {
 		defGUI = predefined_gui[block];
 
 		if (typeof  (defGUI.group) !== 'undefined') {
-		// the block belongs to a group
+			// the block is a group
 			debugMsg("found group of ", block.id);
-			var group = defGUI.group;
-			if (groups.contains(group)) {
-				// if it is not new (pre-existing block)
-				// then drop-down should be populated with data about new block
-				// in which case numBlock shouldn't be incremented.
-				groups.get(group).push(block);
-			} else {
-				// if it is a new group, a block should be added that has a drop down,
-				// for that the first block's name filled
-				groups.add(group,[defGUI,block]);
-			}
+
+			// position and add the block
+			mainPipe.addBlockGroup(block, defGUI, numBlock );
 		}
 		else {
-		// the block is stand-alone
+			// the block is stand-alone
 			// position and add the block
 			mainPipe.addBlockType(new blockType(block, defGUI), numBlock ); // was args, as defined above 2017-01-28
-			numBlock++;
 		}
-	}
-	debugMsg(groups.list);
-
-	for (block_group in groups.list) {
-		group = groups.get(block_group);
-		debugMsg(group);
-
-		// work out the GUI for the block
-		// to work out the GUI we need to analyse blocks in the group
-		
-		// position and add the block
-		mainPipe.addBlockGroup(block_group, group, numBlock );
 		numBlock++;
 	}
 
@@ -120,6 +99,7 @@ function pipeInstance(element) {
 	this.blockSelection = new bag(); // list of blocks selected for interaction
 	this.blockList = new collection(); // all block objects on this pipe
 	this.blockTypeList = new collection(); // all block types available to drag
+	this.useDefaultArguments = true; // used to swap arguments when debugging custom blocks
 
 	/*
 	this.plumber.bind("connection", function(info) {
@@ -154,22 +134,21 @@ pipeInstance.prototype = {
 		this.blockTypeList.remove(label);
 	},
 
-	addBlockGroup: function (label, groupData, position) {
+	addBlockGroup: function (label, defGUI, position) {
+		
+		/* eg label "logic"
+			  defgui {"args": 2, "group": { "or": {}, "and": {} } }
+		*/
+
 		// block is for a group with drop down option
-		debugMsg("adding group ", groupData);
-
-		// the first item in the group contains the GUI
-		// (that works for dropCode, inConn, outConn)
-		var defGUI = groupData[0];
-		// the rest is the list of grouped blocks
-		group = groupData.slice(1);
+		debugMsg("adding group ", label, defGUI);
 		defGUI.getExp = "return block.find('form > select').val();";
-
 		defGUI.blockCode = "<form><select>";
-		for (g in group) {
-			defGUI.blockCode += "<option value="+group[g]+">"+group[g]+"</option>";
+		for (g in defGUI.group) {
+			defGUI.blockCode += "<option value="+g+">"+g+"</option>";
 		}
 		defGUI.blockCode += "</select></form>";
+		delete defGUI.group;
 
 		this.addBlockType(new blockType(label, defGUI),position);
 
@@ -278,25 +257,6 @@ pipeInstance.prototype = {
 			}
 			debugMsg(exp);
 		}
-		/*
-		if (this.tokenList.empty()) {
-			debugMsg("No tokens");
-		} else {
-			debugMsg("Some tokens");
-			for (var id in this.tokenList.list) {
-				elements.queue(["setq", id, this.tokenList.get(id)]);
-			}
-		}
-		*/
-/*		if (elements.empty()) {
-			debugMsg("Keep exp alone");
-			result = exp;
-		} else {
-			debugMsg("Push exp",exp,"into list",elements.list);
-			elements.queue(exp);
-			result = elements.list;
-		}
-		*/
 		debugMsg(exp);
 		$('#s-exp').val(JSON.stringify(exp));
 	},
@@ -325,8 +285,11 @@ pipeInstance.prototype = {
 			else
 				op = null;
 		}
+		else if (this.useDefaultArguments&&block.type.label==='Argument') {
+			debugMsg("Substituting argument name for default value");
+			op = 0;
+		}
 		else {
-
 			// inputs is the list of Input endPoints for the block
 			var inputs = block.inPoints;
 			debugMsg(inputs.size(), "input points found");
@@ -665,7 +628,7 @@ blockInstance.prototype = {
 		if (typeof (this.type.blockCode) !== 'undefined') {
 			inHTML += '<br />'+this.type.blockCode
 		}
-		
+
 		this.element.html(inHTML);
 	},
 
@@ -1119,8 +1082,7 @@ customBlock.prototype = {
 	},
 
 	delete: function() {
-		//this.saveDefun();
-		// need to unsave...
+		// need to 'unsave...'
 		$('#createNewBlock').removeAttr('disabled','disabled');
 		this.customType.element.remove();
 	},
@@ -1134,7 +1096,9 @@ customBlock.prototype = {
 	},
 
 	defun: function() {
+		this.pipe.useDefaultArguments = false;
 		res = this.pipe.getExpression('end');
+		this.pipe.useDefaultArguments = true;
 		if (res != undefined) {
 			res = ["defun", this.name, this.argList.map(function (b) {return b.getExpression()}), res];
 		}
@@ -1436,8 +1400,6 @@ var currentBE;
 
 // which pipe (main or blockeditor) has the focus
 var focusPipe; // set to mainPipe at initialisation
-
-var groups = new collection(); // set up UI
 
 // set of custom (user-defined) functions
 var custom_functions = new collection();

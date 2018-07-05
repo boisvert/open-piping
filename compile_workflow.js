@@ -124,7 +124,7 @@ function compile(Exp) {
    globalCode.clear();
    globalCode.line("// Automatically generated code");
    var call = encode(Exp,globalCode);
-   globalCode.line("function main() { return "+call+"; }");
+   globalCode.line("function pipe() { return "+call+"; }");
    return globalCode.text;
 }
 

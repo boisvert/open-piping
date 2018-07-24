@@ -23,72 +23,13 @@
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
 <script src="../libraries/jsPlumb.2.1.8.min.js"></script>
 
-<script src="workflow editor.js"></script>
 <script src="compile_workflow.js"></script>
     
-    <title>Edit and interpret a workflow</title>
+<title>Edit and interpret a workflow</title>
 
-  <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
+<!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
 
-  <link rel="stylesheet" href="../libraries/jquery-ui.min.css">
-
-<style>
-
-    #createNewBlock {
-        position: absolute;
-		right: 10px; top: 10px;
-    }
-
-    #pipeContainer {
-        position: relative;
-        padding: 20px;
-        width:90%; height: 500px;
-        border: 1px solid gray;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .block {
-        position: absolute;
-        min-height:50px; min-width: 80px;
-        border: 1px solid blue;
-        flex: 1;
-		font-family: Calibri, Arial, "Sans serif";
-		font-size: 16px;
-	    font-weight: bold;
-	    padding-top: 5px; padding-left: 5px
-    }
-
-    .blockType {
-        position: absolute;
-        height:45px; width: 80px;
-        border: 1px solid red;
-		font-family: Calibri, Arial, "Sans serif";
-		font-size: 16px;
-	}
-
-    .block:hover {
-        border: 2px solid blue;
-    }
-    .blockType:hover{
-        border: 2px solid blue;
-    }
-    .selectedBlock{
-        border: 2px solid blue;
-    }
-	
-	.editBlock {
-	    position: absolute;
-		right: 10px; top: 35px;
-	    border: 2px solid black;
-		height: 400px; width: 300px;
-	}
-
-	.jtk-endpoint {
-	    z-index: 3000 !important;
-    }
-	
-</style>
+<link rel="stylesheet" href="../libraries/jquery-ui.min.css">
 
 </head>
 
@@ -96,22 +37,29 @@
 
 <h1>Open piping: lowering the barriers to data science</h1>
 
-<h2>Program a workflow</h2>
+<h2>Test page. Interpret a symbolic expression into a function call and function set</h2>
 
 Project:
-  <a href="exp-tests.html">testing</a> | Github:
+  <a href="index.html">programming</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
 <p>
-
-<div id="pipeContainer">
-<button id="createNewBlock" onClick="editBlock();">Create new block</button>
-
-</div>
-
-Compose an expression by using the blocks above.<br />
+  <a href="https://github.com/boisvert/open-piping/issues">issues</a>
+<p>
+Try one of the ready-made tests below:<br />
 <form>
+<select onChange="inject(this.selectedIndex-1)">
+  <option value="choose">Select...</option>
+  <option value="0">Number</option>
+  <option value="1">Simple list</option>
+  <option value="2">Booleans</option>
+  <option value="3">Function substitution</option>
+  <option value="4">Defun</option>
+  <option value="5">Defun recursive (fatorial)</option>
+  <option value="6">Higher order function (map)</option>
+</select>
+<br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />
 Language:
@@ -128,6 +76,43 @@ Language:
 </form>
 
 <script>
+
+var predefined_functions = {},
+    predefined_replacements = {};
+
+$(loadDefinitions);
+
+function loadDefinitions() {
+	$.ajax({
+		url: "js_blocks.json",
+		beforeSend: function(xhr){
+			if (xhr.overrideMimeType) {
+				xhr.overrideMimeType("application/json");
+			}
+		},
+		success: function(json) {
+			predefined_functions = json.functions;
+			predefined_replacements = json.replace;
+		},
+		error: function(_, status, err) {debugMsg(status+'\n'+err);}
+	});
+}
+
+// show sample of code
+function inject(num) {
+   if (num>=0) {
+	   var samples = [
+		  '1',
+		  '[1, 2, 3, "a", "b", "c"]',
+		  '["or",["isNumber", 3], ["isNumber", "a"]]',
+		  '["plus", 1, 2]',
+		  '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
+		  '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
+		  '[\n  "defun", "map", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["map", "f", ["rest", "arr"] ] ]\n],\n  ["map", "\\\\isNumber", [1,2,3,"a","b","c"] ] \n]',
+	   ];
+	   document.getElementById('s-exp').value=samples[num];
+   }
+}
 
 // compile event
 function getCode(lang) {

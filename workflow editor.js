@@ -258,7 +258,7 @@ pipeInstance.prototype = {
 			debugMsg(exp);
 		}
 		debugMsg(exp);
-		$('#s-exp').val(JSON.stringify(exp));
+		changeSExp(exp);
 	},
 
 	getExpression: function (blockID) {

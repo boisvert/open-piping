@@ -107,41 +107,48 @@ Project:
 
 <div id="pipeContainer">
 <button id="createNewBlock" onClick="editBlock();">Create new block</button>
-
 </div>
 
 Compose an expression by using the blocks above.<br />
 <form>
-<textarea id="s-exp" cols="80" rows="10"></textarea>
+<textarea id="s-exp" cols="80" rows="10" onChange="getCode();"></textarea>
 <br />
 Language:
-<select id="chooseLang">
+<select id="chooseLang" onChange="getCode();">
 <option value="JS" selected>JS</option>
 <option value="PHP">PHP</option>
 </select>
-   <input type="button" value="Get code" onClick="getCode($('#chooseLang').val());" />
-<br />
+   <input type="button" value="Show result" onClick="runres();" /> <br />
+
 <textarea id="result" cols="80" rows="10">
 </textarea>
-<input type="button" value="Show result" onClick="runres();" /> <br />
 
 </form>
 
 <script>
 
-// compile event
-function getCode(lang) {
-    if(lang==='JS') {
-        var Exp = JSON.parse(document.getElementById('s-exp').value);
-        $('#result').val(compile(Exp));
+// change text
+function changeSExp(exp) {
+	$('#s-exp').val(JSON.stringify(exp));
+	debugMsg("updating s-expression");
+	getCode();
+}
+
+// compile
+function getCode() {
+	var lang = $('#chooseLang').val();
+    var exp = $('#s-exp').val();
+    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+}
+
+function chooseCompiler(Exp,lang,callBack) {
+	debugMsg("compiling in",lang);
+    if (lang==='JS') {
+		callBack(compile(JSON.parse(Exp)));
     }
     else if(lang==='PHP') {
-        var Exp = encodeURIComponent(document.getElementById('s-exp').value);
-        url = 'compile_workflow.php';
-        $.post(url, 'exp='+Exp)
-         .done(function( data ) {
-            $('#result').val(data);
-        });
+		Exp = encodeURIComponent(Exp);
+        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
     }
 }
 

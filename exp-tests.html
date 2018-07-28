@@ -45,12 +45,10 @@ Project:
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
 <p>
-  <a href="https://github.com/boisvert/open-piping/issues">issues</a>
-<p>
-Try one of the ready-made tests below:<br />
+
 <form>
 <select onChange="inject(this.selectedIndex-1)">
-  <option value="choose">Select...</option>
+  <option value="choose">Try one of the ready-made tests:</option>
   <option value="0">Number</option>
   <option value="1">Simple list</option>
   <option value="2">Booleans</option>
@@ -63,15 +61,14 @@ Try one of the ready-made tests below:<br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />
 Language:
-<select id="chooseLang">
+<select id="chooseLang" onChange = "getCode();">
 <option value="JS" selected>JS</option>
 <option value="PHP">PHP</option>
 </select>
-   <input type="button" value="Get code" onClick="getCode($('#chooseLang').val());" />
-<br />
+<input type="button" value="Show result" onClick="runres();" /> <br />
+
 <textarea id="result" cols="80" rows="10">
 </textarea>
-<input type="button" value="Show result" onClick="runres();" /> <br />
 
 </form>
 
@@ -110,23 +107,28 @@ function inject(num) {
 		  '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
 		  '[\n  "defun", "map", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["map", "f", ["rest", "arr"] ] ]\n],\n  ["map", "\\\\isNumber", [1,2,3,"a","b","c"] ] \n]',
 	   ];
-	   document.getElementById('s-exp').value=samples[num];
+	   $('#s-exp').val(samples[num]);
+	   getCode();
    }
 }
 
 // compile event
-function getCode(lang) {
-    if(lang==='JS') {
-        var Exp = JSON.parse(document.getElementById('s-exp').value);
-        $('#result').val(compile(Exp));
+
+// compile
+function getCode() {
+	var lang = $('#chooseLang').val();
+    var exp = $('#s-exp').val();
+    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+}
+
+function chooseCompiler(Exp,lang,callBack) {
+	debugMsg("compiling in",lang);
+    if (lang==='JS') {
+		callBack(compile(JSON.parse(Exp)));
     }
     else if(lang==='PHP') {
-        var Exp = encodeURIComponent(document.getElementById('s-exp').value);
-        url = 'compile_workflow.php';
-        $.post(url, 'exp='+Exp)
-         .done(function( data ) {
-            $('#result').val(data);
-        });
+		Exp = encodeURIComponent(Exp);
+        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
     }
 }
 

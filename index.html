@@ -34,6 +34,13 @@
 
 <style>
 
+	#codeDetails {
+		width: 240px;
+		height: 170px;
+		padding: 0.4em;
+		position: relative;
+	}
+
     #createNewBlock {
         position: absolute;
 		right: 10px; top: 10px;
@@ -110,22 +117,51 @@ Project:
 </div>
 
 Compose an expression by using the blocks above.<br />
-<form>
-<textarea id="s-exp" cols="80" rows="10" onChange="getCode();"></textarea>
-<br />
+<button id="toggleDetails">Show details</button>
 Language:
 <select id="chooseLang" onChange="getCode();">
 <option value="JS" selected>JS</option>
 <option value="PHP">PHP</option>
 </select>
-   <input type="button" value="Show result" onClick="runres();" /> <br />
+<input type="button" value="Show result" onClick="runres();" /> <br />
+<form>
+<div id="codeDetails">
+<textarea id="s-exp" cols="80" rows="10" onChange="getCode();"></textarea>
+<br />
+<textarea id="result" cols="80" rows="10"></textarea>
+</div>
+<br />
 
-<textarea id="result" cols="80" rows="10">
-</textarea>
 
 </form>
 
 <script>
+
+$( function() {
+    // run the currently selected effect
+
+    function toggleDetails() {
+		var tg = $( "#toggleDetails" ).attr("disabled", "disabled").text();
+		if (tg == "Show details")
+			$( "#codeDetails" ).show( 'slow' , showCallback )
+		else
+			$( "#codeDetails" ).hide( 'slow' , hideCallback );
+    };
+
+    //callback function to bring a hidden box back
+    function showCallback() {
+		$( "#toggleDetails" ).text( "Hide details" ).removeAttr("disabled");
+    };
+
+	function hideCallback() {
+		$( "#toggleDetails" ).text( "Show details" ).removeAttr("disabled");
+    };
+  
+    // Set effect from select menu value
+    $( "#toggleDetails" ).on( "click", toggleDetails);
+ 
+    $( "#codeDetails" ).hide();
+} );
 
 // change text
 function changeSExp(exp) {

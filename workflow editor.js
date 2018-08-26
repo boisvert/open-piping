@@ -297,6 +297,13 @@ pipeInstance.prototype = {
 			// exp is the expression contained in the current block.
 			var exp = block.getExpression();
 
+			if (custom_functions.contains(exp)) {
+				if (!this.defunList.contains(exp)) {
+					this.defunList.add(exp,custom_functions.get(exp));
+				}
+				if (inputs.size()==0) exp = [exp];
+			}
+
 			if (inputs.size()>0) {
 				if (exp == "setq") {
 					if (!this.tokenList.contains(blockID)) {
@@ -311,11 +318,6 @@ pipeInstance.prototype = {
 				}
 				else {
 					op = [exp];
-					if (custom_functions.contains(exp)) {
-						if (!this.defunList.contains(exp)) {
-							this.defunList.add(exp,custom_functions.get(exp));
-						}
-					}
 					for (var i = 0; i<inputs.size(); i++) {
 						// iterate through inputs
 						// find if theres a connection for each input, use if yes, null if not
@@ -325,11 +327,6 @@ pipeInstance.prototype = {
 						var e = source?this.getExpression(source):null;
 						op.push(e);
 					}
-					/*
-					for (var i = 0; i<connections.length; i++) {
-						op.push(this.getExpression(connections[i].sourceId));
-					}
-					*/
 				}
 			}
 

@@ -140,14 +140,56 @@ pipeInstance.prototype = {
 			  defgui {"args": 2, "group": { "or": {}, "and": {} } }
 		*/
 
-		// block is for a group with drop down option
 		debugMsg("adding group ", label, defGUI);
-		defGUI.getExp = "return block.find('form > select').val();";
-		defGUI.blockCode = "<form><select>";
+
+		// block is for a group with drop down option
+		var arr = {}; // arr - array to collect expression for each item
+		var allHaveExp = true; // flag whether all items have a getExp
+		var bc = "<form><select>";
 		for (g in defGUI.group) {
-			defGUI.blockCode += "<option value="+g+">"+g+"</option>";
+			bc += "<option value="+g+">"+g+"</option>";
+			if (defGUI.group[g].getExp)
+				arr[g] = defGUI.group[g].getExp;
+			else
+				allHaveExp = false;
 		}
-		defGUI.blockCode += "</select></form>";
+		bc += "</select></form>";
+
+		if (defGUI.blockCode)
+			defGUI.blockCode = bc + defGUI.blockCode;
+		else
+			defGUI.blockCode = bc;
+		
+		// working out getExp - the code to work out the correct block expression
+		var newGetExp = "";
+		if (Object.keys(arr).length == 0) {
+			if (defGUI.getExp)
+				newGetExp = defGUI.getExp
+			else
+				newGetExp = "return block.find('form > select').val();"
+		} else {
+			newGetExp = "var op = block.find('form > select').val(); ";
+		    newGetExp += "var arr = "+JSON.stringify(arr)+"; ";
+			if (allHaveExp) {
+				newGetExp += "eval('function f() {'+arr[op]+';}');";
+				newGetExp += "return f();"
+			}
+			else {
+				if (defGUI.getExp) {
+					newGetExp += "var fb = arr[op]?arr[op]:"+defGUI.getExp;
+					newGetExp += "eval('function f() {'+fb+';}');";
+					newGetExp += "return f();";
+				} else {
+					newGetExp += "if (arr[op]) {";
+					newGetExp += "eval('function f() {'+arr[op]+';}');";
+					newGetExp += "return f();";
+					newGetExp += "} else";
+					newGetExp += "return op;";
+				}
+			}
+		}
+		defGUI.getExp = newGetExp;
+
 		delete defGUI.group;
 
 		this.addBlockType(new blockType(label, defGUI),position);
@@ -630,12 +672,10 @@ blockInstance.prototype = {
 	},
 
 	getExpression: function() {
-		var res;
-		var getExp = this.type.getExp;
-		if (typeof (getExp) !== 'undefined') {
-			debugMsg('found getExp string ', getExp);
+		if (typeof (this.type.getExp) !== 'undefined') {
+			debugMsg('found getExp string ', this.type.getExp);
 			var block = this.element;
-			eval("function f() {"+getExp+"}");
+			eval("function f() {"+this.type.getExp+"}");
 			res = f();
 		}
 		else {

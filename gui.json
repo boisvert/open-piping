@@ -1,18 +1,27 @@
 {
-    "Number value": {
+    "Constant": {
+		"label": "data",
 		"args": 0,
 		"blockCode": "<form><input type='text' /><form>",
-		"getExp":"var inpt = block.find('form > input')[0]; return Number(inpt.value);"
-	},
-    "String value": {
-		"args": 0,
-		"blockCode": "<form><input type='text' /><form>",
-		"getExp": "var inpt = block.find('form > input')[0]; return inpt.value;"
+		"group": {
+			"Num": {
+				"getExp":"var inpt = block.find('form > input')[0]; return Number(inpt.value);"
+			},
+			"String": {
+				"getExp":"var inpt = block.find('form > input')[0]; return inpt.value;"
+			}
+		}
 	},
     "JSON value": {
+		"label": "data",
 		"args": 0, 
 		"blockCode": "<form><input type='text' /><form>", 
 		"getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
+	},
+    "setq": {
+		"label": "data",
+		"args":1,
+		"output":-1
 	},
     "arithmetic": {
         "args": 2,
@@ -23,7 +32,12 @@
             "divide": {}    
         }
     },
+    "if": {
+		"label": "boolean",
+		"args":3
+	},
     "comparison": {
+		"label": "boolean",
         "args": 2,
         "group": {
             "lt": {},
@@ -31,18 +45,19 @@
             "equals": {}
         }
     },
-    "if": {"args":3},
-    "setq": {"args":1, "output":-1},
     "type check": {
+		"label": "boolean",
         "args":1,
         "group": {
             "isNumber":{},
             "isString": {},
             "isArray": {},
-            "isNull": {}
+            "isNull": {},
+			"isEmpty": {}
         }
     },
     "logic": {
+		"label": "boolean",
         "args": 2,
         "group": {
             "or": {},

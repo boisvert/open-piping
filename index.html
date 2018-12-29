@@ -42,19 +42,26 @@
 	}
 
     #createNewBlock {
-        position: absolute;
-		right: 10px; top: 10px;
+        width: 90px;
+		font-family: Calibri, Arial, "Sans serif";
+        right: -25px; /* top: 10px; */
     }
 
+	#maincontainer {
+		 height: 540px;
+	}
+	
     #pipeContainer {
-        position: relative;
-        padding: 20px;
-        width:90%; height: 500px;
+        margin-left:122px;
         border: 1px solid gray;
-        display: flex;
-        flex-direction: column;
+        height: 540px;
     }
-
+	
+	#accordion {
+        float: left;
+		width: 120px;
+	}
+	
     .block {
         position: absolute;
         min-height:50px; min-width: 80px;
@@ -67,7 +74,7 @@
     }
 
     .blockType {
-        position: absolute;
+        position: relative;
         height:45px; width: 80px;
         border: 1px solid red;
 		font-family: Calibri, Arial, "Sans serif";
@@ -94,7 +101,7 @@
 	.jtk-endpoint {
 	    z-index: 3000 !important;
     }
-	
+
 </style>
 
 </head>
@@ -112,8 +119,18 @@ Project:
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
 <p>
 
+<div id="maincontainer">
+<div id="accordion">
+	<h3>Blocks</h3>
+	<div id="sect1"> </div>
+	<h3>Custom</h3>
+	<div id="sect2" style="padding: 1em 1em;">
+		<button id="createNewBlock" onClick="editBlock();">New block</button>
+	</div>
+</div>
+
 <div id="pipeContainer">
-<button id="createNewBlock" onClick="editBlock();">Create new block</button>
+</div>
 </div>
 
 Compose an expression by using the blocks above.<br />
@@ -124,16 +141,11 @@ Language:
 <option value="PHP">PHP</option>
 </select>
 <input type="button" value="Show result" onClick="runres();" /> <br />
-<form>
-<div id="codeDetails">
-<textarea id="s-exp" cols="80" rows="10" onChange="getCode();"></textarea>
-<br />
-<textarea id="result" cols="80" rows="10"></textarea>
-</div>
-<br />
 
-
-</form>
+<form> <div id="codeDetails">
+<textarea id="s-exp" cols="80" rows="10" onChange="getCode();"></textarea> <br />
+<textarea id="result" cols="80" rows="10"></textarea> <br />
+</div> </form>
 
 <script>
 
@@ -161,6 +173,8 @@ $( function() {
     $( "#toggleDetails" ).on( "click", toggleDetails);
  
     $( "#codeDetails" ).hide();
+	
+	$( "#accordion" ).accordion();
 } );
 
 // change text

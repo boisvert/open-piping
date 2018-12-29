@@ -39,9 +39,8 @@ jsPlumb.ready(function() {
 function initialise() {
 	// initialise the GUI list of block types
 	var numBlock = 0;
-	var args;
 
-	pipeCanvas = $('#pipeContainer');
+	var pipeCanvas = $('#pipeContainer');
 
 	mainPipe = new pipeInstance(pipeCanvas);
 	focusPipe = mainPipe; // main is in focus by default
@@ -60,22 +59,25 @@ function initialise() {
 		else {
 			// the block is stand-alone
 			// position and add the block
-			mainPipe.addBlockType(new blockType(block, defGUI), numBlock ); // was args, as defined above 2017-01-28
+			new blockType(block, defGUI).addTo(numBlock);
 		}
 		numBlock++;
 	}
-
+	
 	// add the 'end' block
 	// the endBlock identifies the result of the function
 	mainPipe.addEndBlock();
 
 	pipeCanvas.droppable({
 		tolerance: 'pointer',
+		over: function() {
+			debugMsg("ready to drop");
+		},
+		out: function() {
+			debugMsg("off the drop");
+		},
 		drop: function(event,ui) {
-			dropped = ui.draggable;
-			if (dropped.hasClass('blockType')) {
-			   mainPipe.addBlock(dropped,ui.position);
-			}
+			mainPipe.addBlock(ui.draggable,ui.position);
 		}
 	});
 
@@ -85,6 +87,16 @@ function initialise() {
 			focusPipe.deleteSelectedBlocks();
 		}
 	});
+
+	// add argType block type to custom functions
+	const argType = {
+		args: 0,
+		blockCode : "<form><input type='text' size=3/><form>",
+		dropCode: "currentBE.userBlock.newArgument(block);",
+		getExp: "var inpt = block.find('form > input')[0]; return inpt.value;",
+		output: -1 // number of output connections is illimited
+	}
+	new blockType('Argument',argType).addTo({top:10}, "sect2");
 
 }
 
@@ -122,11 +134,7 @@ function pipeInstance(element) {
 		}
 	});
 }
-
 pipeInstance.prototype = {
-	addBlockType: function(blockType, position) {
-		blockType.addTo(this,position);
-	},
 
 	removeBlockType: function(label) {
 		var bT = this.blockTypeList.get(label);
@@ -136,8 +144,9 @@ pipeInstance.prototype = {
 
 	addBlockGroup: function (label, defGUI, position) {
 		
-		/* eg label "logic"
-			  defgui {"args": 2, "group": { "or": {}, "and": {} } }
+		/* arguments eg
+			label "logic"
+			defgui {"args": 2, "group": { "or": {}, "and": {} } }
 		*/
 
 		debugMsg("adding group ", label, defGUI);
@@ -192,7 +201,7 @@ pipeInstance.prototype = {
 
 		delete defGUI.group;
 
-		this.addBlockType(new blockType(label, defGUI),position);
+		new blockType(label, defGUI).addTo(position);
 
 	},
 
@@ -202,10 +211,13 @@ pipeInstance.prototype = {
 	*/
 	addBlock: function (blockType, pos) {
 		debugMsg("Adding a block at position ", pos, " of type ", blockType.html() );
-		var realType = this.blockTypeList.get(blockType.html());
-		if (!realType) {
+		const typeName = blockType.html().split("<")[0];
+		var realType = mainPipe.blockTypeList.get(typeName);
+				//was:  this.blockTypeList.get(blockType.html());
+	/*	if (!realType) {
 			realType = mainPipe.blockTypeList.get(blockType.html());
 		}
+	*/
 		realType.moveBack();
 		var b = new blockInstance(realType, this, pos);
 		this.blockList.add(b.id, b);
@@ -413,14 +425,13 @@ pipeInstance.prototype = {
 	}
 }
 
-/* block type - div to drag in and use
-   position is a css expression of the blockType's position
-   inConn is the number of input connections accepted (ie of parameters for function)
-   blockHTML is a string giving the HTML to be used to display the block (label by default)
-   blockValue - is a function to use when the block is called ($.text() by default)
-*/
-
 function blockType(label, defGUI) {
+	/* block type - div to drag in and use
+	   position is a css expression of the blockType's position
+	   inConn is the number of input connections accepted (ie of parameters for function)
+	   blockHTML is a string giving the HTML to be used to display the block (label by default)
+	   blockValue - is a function to use when the block is called ($.text() by default)
+	*/
 
 	debugMsg("new block ",label,defGUI);
 
@@ -434,24 +445,30 @@ function blockType(label, defGUI) {
 	this.outConn = (defGUI.output==='undefined')?1:defGUI.output;
 	this.uses = new bag();
 }
-
 blockType.prototype = {
-	addTo: function(pipe,position) {
+	addTo: function(position,section) {
+		if (!section) section = 'sect1'
 		var elt = $('<div>').addClass('blockType');
 		this.element = elt;
 
 		this.setLabel(this.label);
 
-		pipe.canvas.append(elt);
+		$('#accordion').find("#"+section).append(elt);
 		this.setPos(position);
 
 		// drag block
 		elt.draggable({
 			cursor: 'move',
+			revert: 'invalid',
 			opacity: '0.5',
 			zIndex: '2700',
-			containment: 'document'
+			helper: 'clone',
+			containment: 'document' //,
+			// start: function (event,ui) {
+			//		  ui.helper.detach().appendTo($('#maincontainer')).offset(ui.offset);
+			//	   }
 		});
+
 	},
 
 	addUse: function(block) {
@@ -469,7 +486,7 @@ blockType.prototype = {
 		// position is either a number - to place type on a column on the left
 		// or a css object of the form {top:y; left:x}
 		if ($.isNumeric(position))
-			position = {top:55*position+10,left:10};
+			position = {top:10*position-10,left:-25};
 
 		if ($.isNumeric(position.top) || $.isNumeric(position.bottom))
 			this.pos = position;
@@ -503,8 +520,8 @@ blockType.prototype = {
 			this.element.html(newLabel);
 			mainPipe.blockTypeList.add(newLabel,this);
 			mainPipe.blockTypeList.remove(this.label);
-			debugMsg("changed ",this.label," in blockTypeList ",mainPipe.blockTypeList.size());
 			this.label = newLabel;
+			debugMsg("changed ",newLabel," in blockTypeList ",mainPipe.blockTypeList.size());
 			debugMsg("renaming the uses ", this.uses.size());
 			this.uses.map(function(block) {
 				block.setHTML();
@@ -561,7 +578,6 @@ function blockInstance(type, pipe, pos) {
 	this.setPosition(pos);
 	this.setPipe(pipe);
 }
-
 blockInstance.prototype = {
 	setID: function(id) {
 		this.element.attr('id',id);
@@ -644,8 +660,9 @@ blockInstance.prototype = {
 		debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
 	},
 
-	numOfConnectors: function(n) {
-		var c = input.isConnected()?1:0;
+	numOfConnectors: function(num) {
+		const input = this.inPoints.get(num);
+		const c = input.isConnected()?1:0;
 		debugMsg("Connections to remove: ",c);
 		return c;
 	},
@@ -720,9 +737,9 @@ blockInstance.prototype = {
 	}
 }
 
-// endPoint object 
-// in progress
 function blockEndpoint() {
+	// endPoint object 
+	// in progress
 	this.block = {};
 	this.properties = {};
 	this.ep = {};
@@ -733,7 +750,6 @@ function blockEndpoint() {
 
 	return this;
 }
-
 blockEndpoint.prototype = {
 
 	setTarget: function() {
@@ -807,9 +823,9 @@ blockEndpoint.prototype = {
 	}
 	*/
 	
-	//isConnected returns true if the endPoint is a connected-target-
-	//it doesn't apply to source
 	isConnected: function() {
+		//isConnected returns true if the endPoint is a connected-target-
+		//it doesn't apply to source
 		if (this.isTarget())
 			return this.ep.isFull();
 		else
@@ -864,118 +880,120 @@ blockEndpoint.prototype = {
 		this.ep.detachAll();
 		this.block.pipe.plumber.deleteEndpoint(this.ep);
 	}
-}
+	
+	/*
 
-/*
-	// ****** all this code should be using the endPoint target object
+		// ****** endPoint object affected all this older code
 
-	// How to use - call to make an endPoint
-	// a set of endpoints in each block?
+		// How to use - call to make an endPoint
+		// a set of endpoints in each block?
 
-	// line 199
-	// should also clean up the endpoint objects?
+		// line 199
+		// should also clean up the endpoint objects?
 
-	// line 240 - single target of end block
-	this.plumber.addEndpoint(block, {
-		anchors:[0,0.5,-1,0],
-		isTarget: true,
-		maxConnections: 1
-	}, config.connectStyle);
-
-	// Could be:
-	(new blockEndPoint()).setTarget().setPos('left').addTo(this);
-
-	// line 551 - source endPoint
-	// should be via an endPoint object
-	setOutput: function() {
-		debugMsg("Adding block output");
-		var endProps;
-		if (this.outConnections() == -1) {
-			debugMsg("using -1 connection limit");
-			endProps = {anchor:[1,0.5,1,0], isSource: true, maxConnections: -1};
-		} else {
-			endProps = {anchor:[1,0.5,1,0], isSource: true};
-		}
-		this.pipe.plumber.addEndpoint(this.element, endProps, config.connectStyle);
-	},
-
-	// Changed to:
-	setOutput: function() {
-		debugMsg("Adding block output");
-		var e = (new endPoint()).setSource().setPos('right');
-		if (this.outConnections() == -1) {
-			e.setMulti();
-		}
-		e.addTo(this.element);
-	},
-
-	// line 575
-	// should be via an endPoint object
-	addInput: function(num) {
-		if (num===undefined) num = this.type.inConn;
-		var pos = 0.1+num/3.5;
-		var e = this.pipe.plumber.addEndpoint(this.element, {
-			anchor:[pos, 0, 0, 1],
+		// line 240 - single target of end block
+		this.plumber.addEndpoint(block, {
+			anchors:[0,0.5,-1,0],
 			isTarget: true,
 			maxConnections: 1
 		}, config.connectStyle);
-		this.inPoints.queue(e);
-	},
 
-	// could be
-	addInput: function(num) {
-		if (num===undefined) num = this.type.inConn;
-		var e = (new endPoint()).setPos('top',num).addTo(this.element);
-		this.inPoints.queue(e);
-	},
+		// Could be:
+		(new blockEndPoint()).setTarget().setPos('left').addTo(this);
 
-	// line 583
-	// should be via an endPoint object
-	removeInput: function(num) {
-		debugMsg("Removing input num ",num+1," of block ",this.id);
-		var iP = this.inPoints.get(num);
-		this.pipe.plumber.deleteEndpoint(iP);
-		this.inPoints.remove(iP);
-		for (var pos; num<this.inPoints.size(); num++) {
-			pos = 0.1+num/3.5;
-			debugMsg("shifting ",num," to ", pos);
-			this.inPoints.get(num).setAnchor([pos, 0, 0, 1]);
-			debugMsg("done");
+		// line 551 - source endPoint
+		// should be via an endPoint object
+		setOutput: function() {
+			debugMsg("Adding block output");
+			var endProps;
+			if (this.outConnections() == -1) {
+				debugMsg("using -1 connection limit");
+				endProps = {anchor:[1,0.5,1,0], isSource: true, maxConnections: -1};
+			} else {
+				endProps = {anchor:[1,0.5,1,0], isSource: true};
+			}
+			this.pipe.plumber.addEndpoint(this.element, endProps, config.connectStyle);
+		},
+
+		// Changed to:
+		setOutput: function() {
+			debugMsg("Adding block output");
+			var e = (new endPoint()).setSource().setPos('right');
+			if (this.outConnections() == -1) {
+				e.setMulti();
+			}
+			e.addTo(this.element);
+		},
+
+		// line 575
+		// should be via an endPoint object
+		addInput: function(num) {
+			if (num===undefined) num = this.type.inConn;
+			var pos = 0.1+num/3.5;
+			var e = this.pipe.plumber.addEndpoint(this.element, {
+				anchor:[pos, 0, 0, 1],
+				isTarget: true,
+				maxConnections: 1
+			}, config.connectStyle);
+			this.inPoints.queue(e);
+		},
+
+		// could be
+		addInput: function(num) {
+			if (num===undefined) num = this.type.inConn;
+			var e = (new endPoint()).setPos('top',num).addTo(this.element);
+			this.inPoints.queue(e);
+		},
+
+		// line 583
+		// should be via an endPoint object
+		removeInput: function(num) {
+			debugMsg("Removing input num ",num+1," of block ",this.id);
+			var iP = this.inPoints.get(num);
+			this.pipe.plumber.deleteEndpoint(iP);
+			this.inPoints.remove(iP);
+			for (var pos; num<this.inPoints.size(); num++) {
+				pos = 0.1+num/3.5;
+				debugMsg("shifting ",num," to ", pos);
+				this.inPoints.get(num).setAnchor([pos, 0, 0, 1]);
+				debugMsg("done");
+			}
+			debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
+		},
+
+		// could be
+		// review setPos to allow *move* and create a remove method
+		removeInput: function(num) {
+			debugMsg("Removing input num ",num+1," of block ",this.id);
+			var iP = this.inPoints.get(num);
+			iP.remove();
+			for (this.inPoints.remove(iP); num<this.inPoints.size(); num++) {
+				debugMsg("shifting ",num);
+				this.inPoints.get(num).setPos('top',num);
+				debugMsg("done");
+			}
+			debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
+		},
+
+		// line 596
+		// should be via an endPoint object
+		numOfConnectors: function(n) {
+			var input = this.inPoints.get(n).anchor;
+			var cs = this.pipe.plumber.getConnections({target:this.id});
+			cs.filter(function(conn) {
+				var target = conn.endpoints[1].anchor;
+				// debugMsg("Comparing: ",target,input);
+				return (target==input);
+			});
+			debugMsg("Connections to remove: ",cs.length);
+			return cs.length;
 		}
-		debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
-	},
 
-	// could be
-	// review setPos to allow *move* and create a remove method
-	removeInput: function(num) {
-		debugMsg("Removing input num ",num+1," of block ",this.id);
-		var iP = this.inPoints.get(num);
-		iP.remove();
-		for (this.inPoints.remove(iP); num<this.inPoints.size(); num++) {
-			debugMsg("shifting ",num);
-			this.inPoints.get(num).setPos('top',num);
-			debugMsg("done");
-		}
-		debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
-	},
-
-	// line 596
-	// should be via an endPoint object
-	numOfConnectors: function(n) {
-		var input = this.inPoints.get(n).anchor;
-		var cs = this.pipe.plumber.getConnections({target:this.id});
-		cs.filter(function(conn) {
-			var target = conn.endpoints[1].anchor;
-			// debugMsg("Comparing: ",target,input);
-			return (target==input);
-		});
-		debugMsg("Connections to remove: ",cs.length);
-		return cs.length;
-	}
-
-	// could be??? needs work!!
+		// could be??? needs work!!
+		
+	*/
 	
-*/
+}
 
 function editBlock() {
 	currentBE = new blockEditor();
@@ -985,6 +1003,7 @@ function editBlock() {
 function blockEditor() {
 	debugMsg("making block editor");
 
+	// Create dialog fro editor
 	var inpt = $('<input type="text" size=7 />');
 	var form = $('<form>').append('Block:').append(inpt);
 
@@ -992,15 +1011,13 @@ function blockEditor() {
 	this.editor.append(form);
 	this.editor.dialog({width: 560, height:420});
 
-	this.makeArgType();
-
+	// create and establish the draggable 'user block'
 	this.setUserBlock(new customBlock(this));
 
 	this.userBlock.pipe.addEndBlock();
 
 	return this;
 }
-
 blockEditor.prototype = {
 	setUserBlock: function(userBlock) {
 		this.userBlock = userBlock;
@@ -1040,16 +1057,8 @@ blockEditor.prototype = {
 			this.userBlock.pipe.addBlock(dropped,{top:t, left:l});
 			mainPipe.canvas.droppable('enable');
 		}
-	},
-	makeArgType: function() {
-		var argType = {};
-		argType.args = 0;
-		argType.blockCode = "<form><input type='text' size=3/><form>";
-		argType.dropCode ="currentBE.userBlock.newArgument(block);";
-		argType.getExp = "var inpt = block.find('form > input')[0]; return inpt.value;";
-		argType.output = -1; // number of output connections is illimited
-		this.argType = new blockType('Argument',argType);
 	}
+
 }
 
 function customBlock(editDialog) {
@@ -1060,19 +1069,19 @@ function customBlock(editDialog) {
 	this.argGen = new tokenGenerator('arg'); // makes argNames (arg1, arg2...)
 	this.argList = new bag(); //[]; // list of arguments
 	this.customType = this.newType(); // blockType
+	this.icons();
 	this.pipe = new pipeInstance(editDialog.editor);
-	this.pipe.addBlockType(editDialog.argType, {top:10, right:10}); // was left:470
 	this.bE = editDialog;
 	this.edit = undefined;
 	return this;
 }
-
 customBlock.prototype = {
 
 	rename: function(newName) {
 		debugMsg("renaming ",this.name," to ",newName);
 		if (this.customType.changeLabel(newName)) {
 			this.name = newName;
+			this.icons();
 		}
 	},
 
@@ -1095,8 +1104,7 @@ customBlock.prototype = {
 	newType: function() {
 		var cT = new blockType(this.name,{args:this.argList.size()});
 		debugMsg("adding type");
-		cT.addTo(mainPipe,{top:40+55*(this.num-1), right:10});
-		this.icons();
+		cT.addTo({top:10*(this.num)},"sect2");
 		return cT;
 	},
 
@@ -1134,10 +1142,10 @@ customBlock.prototype = {
 
 	defun: function() {
 		this.pipe.useDefaultArguments = false;
-		res = this.pipe.getExpression('end');
+		var res = this.pipe.getExpression('end');
 		this.pipe.useDefaultArguments = true;
 		if (res != undefined) {
-			res = ["defun", this.name, this.argList.map(function (b) {return b.getExpression()}), res];
+			res = ["defun", this.name, this.argList.map(a => a.getExpression()), res];
 		}
 		debugMsg(res);
 		return res;
@@ -1147,16 +1155,26 @@ customBlock.prototype = {
 
 		var height = 60+55*(this.num-1);
 		var edit = $('<div>');
-		var editIcon = $('<img>').
-				   attr('src','icons/edit.jpg').
-				   attr('width',24).
-				   attr('height',24).
-				   attr('alt','edit').
-				   css({top:height, right:24, position:'absolute'});
+		var editIcon = $('<img>')
+					.attr('src','icons/edit.jpg')
+					.attr('width',24)
+					.attr('height',24)
+					.attr('alt','edit')
+					.css({left:24, position:'relative'}) 
 		edit.append(editIcon);
-		mainPipe.canvas.append(edit);
-		var copy = $('<img>').attr('src','icons/copy.jpg').attr('width',24).attr('height',24).attr('alt','copy').css({top:height, right:48, position:'absolute'});
-		var del = $('<img>').attr('src','icons/delete.jpg').attr('width',24).attr('height',24).attr('alt','delete').css({top:height, right:0, position:'absolute'});
+		this.customType.element.append(edit);
+		var copy = $('<img>')
+				.attr('src','icons/copy.jpg')
+				.attr('width',24)
+				.attr('height',24)
+				.attr('alt','copy')
+				.css({left:-24, position:'relative'})
+		var del = $('<img>')
+				.attr('src','icons/delete.jpg')
+				.attr('width',24)
+				.attr('height',24)
+				.attr('alt','delete')
+				//.css({left:48, position:'relative'});
 		var delay;
 
 		var that = this;
@@ -1192,7 +1210,7 @@ customBlock.prototype = {
 				currentBE.editor.dialog('open');
 			}
 		});
-		
+
 		copy.on('click', function(e) { // was that.remove() - didn't work
 			e.stopPropagation();
 			// make a copy
@@ -1230,12 +1248,11 @@ customBlock.prototype = {
 	*/
 }
 
-// bag = array of data (as in [a,b,c])
-// with encapsulated functions for handling
 function bag() {
+	// bag = array of data (as in [a,b,c])
+	// with encapsulated functions for handling
 	this.list = [];
 }
-
 bag.prototype = {
 	clear: function() {
 		this.list=[];
@@ -1324,13 +1341,12 @@ bag.prototype = {
 
 };
 
-// collection = object collecting data
-// as in {name1: value1, name2: value2, name3: value3}
-// with encapsulated functions for handling
 function collection() {
+	// collection = object collecting data
+	// as in {name1: value1, name2: value2, name3: value3}
+	// with encapsulated functions for handling
 	this.list = {};
 }
-
 collection.prototype = {
 	clear: function() {
 		this.list={};
@@ -1384,13 +1400,12 @@ collection.prototype = {
 
 };
 
-// tokenGenerator - makes strings token+number
 function tokenGenerator(tok,index) {
+	// tokenGenerator - makes strings token+number
 	this.tokIndex = $.isNumeric(index)?parseInt(index):1;
 	this.tokString = tok;
 	return this;
 }
-
 tokenGenerator.prototype = {
 	next: function() {
 		var res = this.tokString+this.tokIndex;
@@ -1405,8 +1420,8 @@ tokenGenerator.prototype = {
 	}
 }
 
-// config information
 var config = {
+	// config information
 	connectStyle:{
 		endpoint:"Dot",
 		paintStyle:{ fillStyle:"lightgrey" },
@@ -1424,8 +1439,10 @@ var config = {
 
 // set of functions available (used by compiler)
 var predefined_functions;
+
 // set of replacements - e.g. [plus 1 2] -> 1+2 - (used by compiler)
 var predefined_replacements;
+
 // GUI - for the draggable blocks
 var predefined_gui;
 

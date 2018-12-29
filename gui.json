@@ -24,6 +24,7 @@
 		"output":-1
 	},
     "arithmetic": {
+		"label": "math",
         "args": 2,
         "group": {
 			"plus": {},

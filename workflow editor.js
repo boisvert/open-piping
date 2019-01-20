@@ -77,7 +77,10 @@ function initialise() {
 			debugMsg("off the drop");
 		},
 		drop: function(event,ui) {
-			mainPipe.addBlock(ui.draggable,ui.position);
+			const blockType = ui.draggable
+			if (blockType.html()!='Argument') {
+				mainPipe.addBlock(blockType,ui.position);
+			}
 		}
 	});
 

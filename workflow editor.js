@@ -44,7 +44,9 @@ function initialise() {
 
 	mainPipe = new pipeInstance(pipeCanvas);
 	focusPipe = mainPipe; // main is in focus by default
-	
+
+	blockTypeList = new BlockTypeList(mainPipe); // all block types to drag (small b!)
+
 	for (block in predefined_gui) {
 
 		defGUI = predefined_gui[block];
@@ -54,7 +56,7 @@ function initialise() {
 			debugMsg("found group of ", block.id);
 
 			// position and add the block
-			mainPipe.addBlockGroup(block, defGUI, numBlock );
+			blockTypeList.addBlockGroup(block, defGUI, numBlock );
 		}
 		else {
 			// the block is stand-alone
@@ -100,8 +102,134 @@ function initialise() {
 		output: -1 // number of output connections is illimited
 	}
 	new blockType('Argument',argType).addTo({top:10}, "sect2");
+	
+	$( "#accordion" ).accordion("refresh");
 
 }
+
+function BlockTypeList(elt) {
+	this.list =  new collection() // blockType objects
+	this.display = elt // canvas
+}
+
+BlockTypeList.prototype = {
+
+	addBlockGroup: function (label, defGUI, position) {	
+		/* arguments eg
+			label "logic"
+			defgui {"args": 2, "group": { "or": {}, "and": {} } }
+		*/
+
+		debugMsg("adding group ", label, defGUI);
+
+		// block is for a group with drop down option
+		const arr = {}; // arr - array to collect expression for each item
+		var allHaveExp = true; // flag whether all items have a getExp
+		var bc = "<form><select>";
+		for (g in defGUI.group) {
+			bc += "<option value="+g+">"+g+"</option>";
+			if (defGUI.group[g].getExp)
+				arr[g] = defGUI.group[g].getExp;
+			else
+				allHaveExp = false;
+		}
+		bc += "</select></form>";
+
+		if (defGUI.blockCode)
+			defGUI.blockCode = bc + defGUI.blockCode
+		else
+			defGUI.blockCode = bc
+
+		// working out getExp - the code to work out the correct block expression
+		var newGetExp = "";
+		if (Object.keys(arr).length == 0) {
+			if (defGUI.getExp)
+				newGetExp = defGUI.getExp
+			else
+				newGetExp = "return block.find('form > select').val();"
+		} else {
+			newGetExp = "var op = block.find('form > select').val(); ";
+		    newGetExp += "var arr = "+JSON.stringify(arr)+"; ";
+			if (allHaveExp) {
+				newGetExp += "eval('function f() {'+arr[op]+';}');";
+				newGetExp += "return f();"
+			}
+			else if (defGUI.getExp) {
+				newGetExp += "var fb = arr[op]?arr[op]:"+defGUI.getExp;
+				newGetExp += "eval('function f() {'+fb+';}');";
+				newGetExp += "return f();";
+			} else {
+				newGetExp += "if (arr[op]) {";
+				newGetExp += "eval('function f() {'+arr[op]+';}');";
+				newGetExp += "return f();";
+				newGetExp += "} else";
+				newGetExp += "return op;";
+			}
+		}
+		defGUI.getExp = newGetExp;
+
+		delete defGUI.group;
+
+		new blockType(label, defGUI).addTo(position);
+
+	},
+
+	removeBlockType: function(label) {
+		const bT = this.get(label);
+		this.display.remove(bT.element);
+		this.remove(label);
+	},
+
+	remove: function (lbl) {
+		if (this.list.remove(lbl))
+			return this
+		else
+			return false;
+	},
+	
+	get: function(label) {
+		debugMsg("Getting from blockTypeList",this,label);
+		return this.list.get(label);
+	},
+
+	clear: function() {
+		this.list.clear();
+		return this;
+	},
+
+	empty: function() {
+		return (this.list.empty());
+	},
+
+	contains: function(lbl) {
+		return this.list.contains(lbl);
+	},
+
+	add: function (lbl,e) {
+		debugMsg("adding",lbl,"to",this.list)
+		if (this.list.add(lbl,e)) return false
+		return this
+	},
+
+	set: function (lbl,e) {
+		this.list.set(lbl,e);
+		return this;
+	},
+
+	removeAll: function (lbls) {
+		return lbls.map(this.remove);
+	},
+
+	size: function() {
+		return this.list.length;
+	},
+
+	map: function(f) {
+		return this.list.map(f);
+	}
+	
+}
+
 
 // block functions - add, select, deselect, remove, blocktype, endblock - are messy
 function pipeInstance(element) {
@@ -113,7 +241,7 @@ function pipeInstance(element) {
 	this.defunList = new collection(); // for generating the list of defuns
 	this.blockSelection = new bag(); // list of blocks selected for interaction
 	this.blockList = new collection(); // all block objects on this pipe
-	this.blockTypeList = new collection(); // all block types available to drag
+	//this.typeList = new BlockTypeList(); // moved to global object
 	this.useDefaultArguments = true; // used to swap arguments when debugging custom blocks
 
 	/*
@@ -137,93 +265,27 @@ function pipeInstance(element) {
 		}
 	});
 }
+
 pipeInstance.prototype = {
-
-	removeBlockType: function(label) {
-		var bT = this.blockTypeList.get(label);
-		this.canvas.remove(bT.element);
-		this.blockTypeList.remove(label);
-	},
-
-	addBlockGroup: function (label, defGUI, position) {
-		
-		/* arguments eg
-			label "logic"
-			defgui {"args": 2, "group": { "or": {}, "and": {} } }
-		*/
-
-		debugMsg("adding group ", label, defGUI);
-
-		// block is for a group with drop down option
-		var arr = {}; // arr - array to collect expression for each item
-		var allHaveExp = true; // flag whether all items have a getExp
-		var bc = "<form><select>";
-		for (g in defGUI.group) {
-			bc += "<option value="+g+">"+g+"</option>";
-			if (defGUI.group[g].getExp)
-				arr[g] = defGUI.group[g].getExp;
-			else
-				allHaveExp = false;
-		}
-		bc += "</select></form>";
-
-		if (defGUI.blockCode)
-			defGUI.blockCode = bc + defGUI.blockCode;
-		else
-			defGUI.blockCode = bc;
-		
-		// working out getExp - the code to work out the correct block expression
-		var newGetExp = "";
-		if (Object.keys(arr).length == 0) {
-			if (defGUI.getExp)
-				newGetExp = defGUI.getExp
-			else
-				newGetExp = "return block.find('form > select').val();"
-		} else {
-			newGetExp = "var op = block.find('form > select').val(); ";
-		    newGetExp += "var arr = "+JSON.stringify(arr)+"; ";
-			if (allHaveExp) {
-				newGetExp += "eval('function f() {'+arr[op]+';}');";
-				newGetExp += "return f();"
-			}
-			else {
-				if (defGUI.getExp) {
-					newGetExp += "var fb = arr[op]?arr[op]:"+defGUI.getExp;
-					newGetExp += "eval('function f() {'+fb+';}');";
-					newGetExp += "return f();";
-				} else {
-					newGetExp += "if (arr[op]) {";
-					newGetExp += "eval('function f() {'+arr[op]+';}');";
-					newGetExp += "return f();";
-					newGetExp += "} else";
-					newGetExp += "return op;";
-				}
-			}
-		}
-		defGUI.getExp = newGetExp;
-
-		delete defGUI.group;
-
-		new blockType(label, defGUI).addTo(position);
-
-	},
 
 	/* addBlock: create a new block of the given type.
 	   the attributes within blockType provide all the data to customise the block.
 	   inConn is the number of input connections accepted (ie of parameters for function)
 	*/
-	addBlock: function (blockType, pos) {
-		debugMsg("Adding a block at position ", pos, " of type ", blockType.html() );
-		const typeName = blockType.html().split("<")[0];
-		var realType = mainPipe.blockTypeList.get(typeName);
+	addBlock: function (elt, pos) {
+		debugMsg("Adding a block at position ", pos, " element ", elt.html() )
+		const typeName = elt.html().split("<")[0]
+		debugMsg("block type is", typeName, "list", blockTypeList.list )
+		var realType = blockTypeList.get(typeName)
+		debugMsg("real type is",realType)
 				//was:  this.blockTypeList.get(blockType.html());
 	/*	if (!realType) {
 			realType = mainPipe.blockTypeList.get(blockType.html());
 		}
 	*/
-		realType.moveBack();
-		var b = new blockInstance(realType, this, pos);
-		this.blockList.add(b.id, b);
+		//realType.moveBack()
+		const b = new blockInstance(realType, this, pos)
+		this.blockList.add(b.id, b)
 	},
 
 	removeBlock: function(block) {
@@ -428,6 +490,8 @@ pipeInstance.prototype = {
 	}
 }
 
+/* blockTypeList so far so good *******************/
+
 function blockType(label, defGUI) {
 	/* block type - div to drag in and use
 	   position is a css expression of the blockType's position
@@ -448,6 +512,7 @@ function blockType(label, defGUI) {
 	this.outConn = (defGUI.output==='undefined')?1:defGUI.output;
 	this.uses = new bag();
 }
+
 blockType.prototype = {
 	addTo: function(position,section) {
 		if (!section) section = 'sect1'
@@ -509,8 +574,9 @@ blockType.prototype = {
 	setLabel: function(label) {
 		if (label != '') {
 			this.element.html(label);
-			mainPipe.blockTypeList.add(label, this);
-			debugMsg("added ",label," to blockTypeList ",mainPipe.blockTypeList.size());
+			/************* to blockTypeList x 2 ***********/
+			blockTypeList.add(label, this);
+			debugMsg("added ",label," to blockTypeList size ",blockTypeList.size());
 			return true;
 		}
 		else {
@@ -518,13 +584,14 @@ blockType.prototype = {
 		}
 	},
 
-	changeLabel: function(newLabel) {
-		if (newLabel != '' && (!mainPipe.blockTypeList.contains(newLabel))) {
+	changeLabel: function(newLabel) {		
+		/************* to blockTypeList x 4 ***********/
+		if (newLabel != '' && (!blockTypeList.contains(newLabel))) {
 			this.element.html(newLabel);
-			mainPipe.blockTypeList.add(newLabel,this);
-			mainPipe.blockTypeList.remove(this.label);
+			blockTypeList.add(newLabel,this);
+			blockTypeList.remove(this.label);
 			this.label = newLabel;
-			debugMsg("changed ",newLabel," in blockTypeList ",mainPipe.blockTypeList.size());
+			debugMsg("changed ",newLabel," in blockTypeList ",blockTypeList.size());
 			debugMsg("renaming the uses ", this.uses.size());
 			this.uses.map(function(block) {
 				block.setHTML();
@@ -682,7 +749,7 @@ blockInstance.prototype = {
 	},
 
 	setHTML: function() {
-		var inHTML = this.type.label;
+		var inHTML = this.type.label
 
 		if (typeof (this.type.blockCode) !== 'undefined') {
 			inHTML += '<br />'+this.type.blockCode
@@ -1350,6 +1417,7 @@ function collection() {
 	// with encapsulated functions for handling
 	this.list = {};
 }
+
 collection.prototype = {
 	clear: function() {
 		this.list={};
@@ -1365,7 +1433,7 @@ collection.prototype = {
 	},
 
 	add: function (lbl,e) {
-		if (this.contains[lbl])
+		if (this.contains(lbl))
 			return false;
 		this.list[lbl] = e;
 		return this;
@@ -1409,6 +1477,7 @@ function tokenGenerator(tok,index) {
 	this.tokString = tok;
 	return this;
 }
+
 tokenGenerator.prototype = {
 	next: function() {
 		var res = this.tokString+this.tokIndex;
@@ -1423,7 +1492,7 @@ tokenGenerator.prototype = {
 	}
 }
 
-var config = {
+const config = {
 	// config information
 	connectStyle:{
 		endpoint:"Dot",
@@ -1452,6 +1521,9 @@ var predefined_gui;
 // main space for plumbing
 var mainPipe;
 
+// list of Block Types to drag
+var blockTypeList;
+
 // blockEditor object
 var currentBE;
 
@@ -1459,8 +1531,8 @@ var currentBE;
 var focusPipe; // set to mainPipe at initialisation
 
 // set of custom (user-defined) functions
-var custom_functions = new collection();
+const custom_functions = new collection();
 
 // current block names (newBlock1, ...)
-var edGen = new tokenGenerator('newBlock');
+const edGen = new tokenGenerator('newBlock');
 

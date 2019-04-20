@@ -16,7 +16,7 @@
 
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script-->
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script-->
-<script src="../libraries/jquery.min.js"></script>
+<script src="../libraries/jquery-3.4.0.min.js"></script>
 <script src="../libraries/jquery-ui.min.js"></script>
 
 <!-- jsPlumb version: the code is incompatible version versions 2.2.x - endPoints not showing -->
@@ -54,14 +54,15 @@
     #pipeContainer {
         margin-left:122px;
         border: 1px solid gray;
-        height: 540px;
+        height: 100%;
     }
 	
 	#accordion {
         float: left;
 		width: 120px;
+		height: 100%;
 	}
-	
+
     .block {
         position: absolute;
         min-height:50px; min-width: 80px;
@@ -112,8 +113,7 @@
 
 <h2>Program a workflow</h2>
 
-Project:
-  <a href="exp-tests.html">testing</a> | Github:
+Project: programming | <a href="exp-tests.html">testing</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
@@ -122,15 +122,13 @@ Project:
 <div id="maincontainer">
 <div id="accordion">
 	<h3>Blocks</h3>
-	<div id="sect1"> </div>
+	<div id="sect1" style="height: 428px;"> </div>
 	<h3>Custom</h3>
-	<div id="sect2" style="padding: 1em 1em;">
+	<div id="sect2" style="padding: 1em 1em; height: 428px;">
 		<button id="createNewBlock" onClick="editBlock();">New block</button>
 	</div>
 </div>
-
-<div id="pipeContainer">
-</div>
+<div id="pipeContainer"></div>
 </div>
 
 Compose an expression by using the blocks above.<br />

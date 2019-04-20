@@ -18,12 +18,31 @@ A stack of defined vars (setq) is also maintained
 
 function codeString() {
     this.text = "";
+	this.level = 0;
 }
 
 codeString.prototype = {
 	nl: "\n\n",
-    clear: function() { this.text = ""; },
-    line: function(lin) { this.text += lin + this.nl; }
+    clear: function() {
+		this.text = "";
+		this.level = 0;
+	},
+    line: function(lin) {
+		lin = " ".repeat(this.level)+lin;
+		this.text += lin + this.nl;
+	},
+	nest: function() {
+		this.level += 3;
+	},
+	denest: function() {
+		if (this.level>=3) this.level-=3;
+	}
+
+}
+
+String.prototype.repeat = String.prototype.repeat || function(n){
+  n= n || 1;
+  return Array(n+1).join(this);
 }
 
 var globalCode = new codeString();

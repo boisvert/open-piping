@@ -20,6 +20,6 @@
 		"first": {"args": "a", "js": "@a[0]"},
 		"rest": {"args": "a", "js": "@a.slice(1)"},
 		"isArray": {"args": "a", "js": "$.isArray(@a);"},
-		"isNull": {"args": "x", "js": "@x===null;"}
+		"isNull": {"args": "x", "js": "@x===null;"} 
     }
 }

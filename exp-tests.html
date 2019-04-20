@@ -37,14 +37,15 @@
 
 <h1>Open piping: lowering the barriers to data science</h1>
 
-<h2>Test page. Interpret a symbolic expression into a function call and function set</h2>
+<h2>Test page</h2>
 
-Project:
-  <a href="index.html">programming</a> | Github:
+Project: <a href="index.html">programming</a> | testing | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
 <p>
+
+On this page you can try any symbolic expression, which will be interpreted into a function call and function set, then executed. You can choose a ready-made test from the drop-down list, or type your own in the form below.
 
 <form>
 <select onChange="inject(this.selectedIndex-1)">
@@ -57,6 +58,7 @@ Project:
   <option value="5">Defun recursive (fatorial)</option>
   <option value="6">Higher order function (map)</option>
 </select>
+<input type="button" value="Interpret it" onClick="getCode();" />
 <br />
 <textarea id="s-exp" cols="80" rows="10"></textarea>
 <br />

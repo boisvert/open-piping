@@ -130,7 +130,6 @@ var readyReplacements = {
     }
 }
 
-
 /*
 The "process" needs rethinking
 Some wrapper object that limits the scope of needed functions
@@ -174,6 +173,18 @@ function encode(Exp,vars) {
 
 // "call_fn": {"args": "f, arr", "body":"var fn=window[f]; return fn.apply(this,arr);"},
 
+
+/*
+
+[block,x]
+	si x est une fonction	
+      -- ajouter x aux fonctions en usage
+	si x est un remplacement
+	  -- ajouter x = (arg1, ...) => (...) -- exemple plus = (a,b) => (a+b);
+	retourner x
+*/
+
+
 function encodeArray(Exp, vars) {
 
     var res = null;
@@ -205,9 +216,26 @@ function encodeArray(Exp, vars) {
 				res = tok;
                 vars.line("var "+tok+" = "+encode(Exp[1])+";");
             }
+		// case 4.2: expression is a block (function or replacement) reference
+			else if (choice==4.2){
+				H = Exp[0]; // block name
+				debugMsg(Exp, "is block", H);
+				enforce(H, isString); // must be a string: it's a function call (!)
+				if ((H in predefined_functions) || tokens.contain(H)) {
+					getOperator(H); 
+					res = H;
+				}
+				//	H is a replacement... TBC
+				else if (H in predefined_replacements) {
+					// need to adapt getOperator to create (a) => op(a)
+					res = "work in progress";
+				}
+				else
+				    throw "Bloooock requires a block name";				
+			}
         // case 4.5: (yeah, well...) expression is a higher order function (x->y)->z
             else if (choice==4.5) {
-				Arguments = encodeEach(Exp,vars);
+				const Arguments = encodeEach(Exp,vars);
 				H = Arguments[0]; // new head
 				enforce(H, isString); // must be a string: it's a function call (!)
  				Arguments.shift(); // rest are arguments
@@ -246,6 +274,7 @@ function encodeArray(Exp, vars) {
 function caseOfHead(H) {
    if (H=="defun") return 3; //function definition
    if (H=="setq") return 4; // variable
+   if (H=="block") return 4.2; // variable
    if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
    if (H in predefined_replacements) return 5; // JSON replacement
    if (H in predefined_functions) return 6; // JSON function

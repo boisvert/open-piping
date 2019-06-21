@@ -1,6 +1,6 @@
 {
-    "Constant": {
-		"label": "data",
+    "constant": {
+		"label": "Data",
 		"args": 0,
 		"blockCode": "<form><input type='text' /><form>",
 		"group": {
@@ -9,60 +9,107 @@
 			},
 			"String": {
 				"getExp":"var inpt = block.find('form > input')[0]; return inpt.value;"
+			},
+			"JSON": {
+				"getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
 			}
 		}
 	},
-    "JSON value": {
-		"label": "data",
-		"args": 0, 
-		"blockCode": "<form><input type='text' /><form>", 
-		"getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
-	},
-    "setq": {
-		"label": "data",
+    "set variable": {
+		"label": "Data",
 		"args":1,
-		"output":-1
+		"output":-1,
+		"getExp":"return 'setq';"
 	},
     "arithmetic": {
-		"label": "math",
+		"label": "Math",
         "args": 2,
         "group": {
-			"plus": {},
-            "minus": {},
-            "times": {},
-            "divide": {}    
+			"+": {"getExp":"return 'plus';"},
+            "-": {"getExp":"return 'minus';"},
+            "*": {"getExp":"return 'times';"},
+            "\/": {"getExp":"return 'divide';"},
+			"\\": {"getExp":"return 'intdiv';"},
+            "mod": {"getExp":"return 'mod';"},
+            "^": {"getExp":"return 'power';"}
         }
     },
+    "function": {
+		"label": "Math",
+        "args": 1,
+        "group": {
+			"sqrt": {},
+            "sin": {},
+            "cos": {},
+            "tan": {},
+            "exp": {},
+            "log": {}
+        }
+    },
+
     "if": {
-		"label": "boolean",
+		"label": "Conditional",
 		"args":3
 	},
     "comparison": {
-		"label": "boolean",
+		"label": "Conditional",
         "args": 2,
         "group": {
-            "lt": {},
-            "mt": {},
-            "equals": {}
+            "<": {"getExp":"return 'lt';"},
+            "<=": {"getExp":"return 'lte';"},
+            ">": {"getExp":"return 'mt';"},
+            ">=": {"getExp":"return 'mte';"},
+            "=": {"getExp":"return 'equals';"}
         }
     },
     "type check": {
-		"label": "boolean",
+		"label": "Conditional",
         "args":1,
         "group": {
             "isNumber":{},
             "isString": {},
             "isArray": {},
-            "isNull": {},
-			"isEmpty": {}
+            "isNull": {}
         }
     },
-    "logic": {
-		"label": "boolean",
+    "and, or": {
+		"label": "Conditional",
         "args": 2,
         "group": {
             "or": {},
             "and": {}
         }
-    }
+    },
+	"not": {
+		"label": "Conditional",
+		"args": 1
+	},
+	"parts of array": {
+		"label": "Arrays",
+		"args": 1,
+		"group": {
+			"first": {},
+			"rest": {}
+		}
+	},
+	"array size": {
+		"label": "Arrays",
+		"args": 1,
+		"group": {
+			"length": {},
+			"isEmpty": {}
+		}
+	},
+	"cons": {
+		"label": "Arrays",
+		"args": 2
+	},
+	"use block": {
+		"label": "Blocks",
+		"args": 1
+	},
+	"apply": {
+		"label": "Blocks",
+		"args": 2
+	}
 }

@@ -38,34 +38,15 @@ jsPlumb.ready(function() {
 
 function initialise() {
 	// initialise the GUI list of block types
-	var numBlock = 0;
 
-	var pipeCanvas = $('#pipeContainer');
+	const pipeCanvas = $('#pipeContainer');
 
 	mainPipe = new pipeInstance(pipeCanvas);
 	focusPipe = mainPipe; // main is in focus by default
 
-	blockTypeList = new BlockTypeList(mainPipe); // all block types to drag (small b!)
+	blockTypeList = new BlockTypeList(); // all block types to drag (small b!)
+	blockTypeList.initBlocks();
 
-	for (block in predefined_gui) {
-
-		defGUI = predefined_gui[block];
-
-		if (typeof  (defGUI.group) !== 'undefined') {
-			// the block is a group
-			debugMsg("found group of ", block.id);
-
-			// position and add the block
-			blockTypeList.addBlockGroup(block, defGUI, numBlock );
-		}
-		else {
-			// the block is stand-alone
-			// position and add the block
-			new blockType(block, defGUI).addTo(numBlock);
-		}
-		numBlock++;
-	}
-	
 	// add the 'end' block
 	// the endBlock identifies the result of the function
 	mainPipe.addEndBlock();
@@ -101,21 +82,49 @@ function initialise() {
 		getExp: "var inpt = block.find('form > input')[0]; return inpt.value;",
 		output: -1 // number of output connections is illimited
 	}
-	new blockType('Argument',argType).addTo({top:10}, "sect2");
+	new blockType('Argument',argType).addTo({top:2, left:"-10px"}, "custom");
 	
-	$( "#accordion" ).accordion("refresh");
+	// $( "#accordion" ).accordion("refresh");
 
 }
 
-function BlockTypeList(elt) {
+function BlockTypeList() {
 	this.list =  new collection() // blockType objects
-	this.display = elt // canvas
+	this.display = $(accordion); // elt // canvas
 }
 
 BlockTypeList.prototype = {
+	
+	initBlocks: function() {
+		
+		var numBlock = 0;
+
+		for (block in predefined_gui) {
+
+			const defGUI = predefined_gui[block];
+
+			const section = (defGUI.hasOwnProperty("label"))?defGUI.label:"default";
+
+			if (defGUI.hasOwnProperty("group")) {
+				// the block is a group
+				debugMsg("found group of ", block);
+
+				// position and add the block
+				this.addBlockGroup(block, defGUI, numBlock );
+			}
+			else {
+				// the block is stand-alone
+				// position and add the block
+				this.addBlockType(block, defGUI, numBlock);
+			}
+			//numBlock++;
+
+		}
+
+	},
 
 	addBlockGroup: function (label, defGUI, position) {	
-		/* arguments eg
+		/* eg
 			label "logic"
 			defgui {"args": 2, "group": { "or": {}, "and": {} } }
 		*/
@@ -127,7 +136,9 @@ BlockTypeList.prototype = {
 		var allHaveExp = true; // flag whether all items have a getExp
 		var bc = "<form><select>";
 		for (g in defGUI.group) {
-			bc += "<option value="+g+">"+g+"</option>";
+			// 
+			const ghtml = document.createElement('div').appendChild(document.createTextNode(g)).parentNode.innerHTML; // vulnerable see SO html encoding
+			bc += '<option value="'+ghtml+'">'+ghtml+'</option>';
 			if (defGUI.group[g].getExp)
 				arr[g] = defGUI.group[g].getExp;
 			else
@@ -136,9 +147,9 @@ BlockTypeList.prototype = {
 		bc += "</select></form>";
 
 		if (defGUI.blockCode)
-			defGUI.blockCode = bc + defGUI.blockCode
+			defGUI.blockCode = bc + defGUI.blockCode;
 		else
-			defGUI.blockCode = bc
+			defGUI.blockCode = bc;
 
 		// working out getExp - the code to work out the correct block expression
 		var newGetExp = "";
@@ -147,7 +158,8 @@ BlockTypeList.prototype = {
 				newGetExp = defGUI.getExp
 			else
 				newGetExp = "return block.find('form > select').val();"
-		} else {
+		}
+		else {
 			newGetExp = "var op = block.find('form > select').val(); ";
 		    newGetExp += "var arr = "+JSON.stringify(arr)+"; ";
 			if (allHaveExp) {
@@ -170,8 +182,13 @@ BlockTypeList.prototype = {
 
 		delete defGUI.group;
 
-		new blockType(label, defGUI).addTo(position);
+		this.addBlockType(label, defGUI, position);
 
+	},
+	
+	addBlockType: function(label, defGUI, position) {
+		const section = (defGUI.hasOwnProperty("label"))?defGUI.label:"Other";
+		new blockType(label, defGUI).addTo(position,section);
 	},
 
 	removeBlockType: function(label) {
@@ -265,7 +282,6 @@ function pipeInstance(element) {
 		}
 	});
 }
-
 pipeInstance.prototype = {
 
 	/* addBlock: create a new block of the given type.
@@ -275,7 +291,7 @@ pipeInstance.prototype = {
 	addBlock: function (elt, pos) {
 		debugMsg("Adding a block at position ", pos, " element ", elt.html() )
 		const typeName = elt.html().split("<")[0]
-		debugMsg("block type is", typeName, "list", blockTypeList.list )
+		debugMsg("block type is", typeName, "list", blockTypeList.size() )
 		var realType = blockTypeList.get(typeName)
 		debugMsg("real type is",realType)
 				//was:  this.blockTypeList.get(blockType.html());
@@ -384,12 +400,12 @@ pipeInstance.prototype = {
 
 		debugMsg("seeking expression for ",blockID);
 
-		var block = this.blockList.get(blockID);
+		const block = this.blockList.get(blockID);
 		//debugMsg("block is",block);
 
 		// Connections is the list of connections that target this block
 		// jsPlumb doesn't offer a method for filtering this by endPoint.
-		var connections = this.plumber.getConnections({ target:blockID });
+		const connections = this.plumber.getConnections({ target:blockID });
 		debugMsg(connections.length, "connections found");
 		
 		//op contains the result
@@ -408,9 +424,18 @@ pipeInstance.prototype = {
 			debugMsg("Substituting argument name for default value");
 			op = 0;
 		}
+		else if (block.type.label=='use block') {
+			debugMsg("use block");
+			// find if theres a connection for t input, use if yes, null if not
+			debugMsg("checking input");
+			const source = block.inPoints.get(0).findConnectedSource(connections);
+			var e = source?this.blockList.get(source).getExpression():null;
+			debugMsg("found the name of the block: ",e);
+			op = ["block", e];
+		}
 		else {
 			// inputs is the list of Input endPoints for the block
-			var inputs = block.inPoints;
+			const inputs = block.inPoints;
 			debugMsg(inputs.size(), "input points found");
 
 			// exp is the expression contained in the current block.
@@ -428,7 +453,7 @@ pipeInstance.prototype = {
 					if (!this.tokenList.contains(blockID)) {
 						// set the token value according to the expression connected source
 						// or to null if there is none
-						var v = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
+						const v = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
 						this.tokenList.add(blockID,v);
 						op = ["setq", blockID, v]
 					} else {
@@ -441,9 +466,8 @@ pipeInstance.prototype = {
 						// iterate through inputs
 						// find if theres a connection for each input, use if yes, null if not
 						debugMsg("checking input",i);
-						var curr_in = inputs.get(i);
-						var source = curr_in.findConnectedSource(connections);
-						var e = source?this.getExpression(source):null;
+						const source = inputs.get(i).findConnectedSource(connections);
+						const e = source?this.getExpression(source):null;
 						op.push(e);
 					}
 				}
@@ -505,23 +529,32 @@ function blockType(label, defGUI) {
 	this.element = undefined;
 	this.pos = undefined;
 	this.label = label;
-	this.blockCode = defGUI.blockCode;
+	this.blockCode = (defGUI.blockCode)?(defGUI.blockCode):"";
 	this.getExp = defGUI.getExp;
 	this.dropCode = defGUI.dropCode;
 	this.inConn = (defGUI.args==='undefined')?2:defGUI.args;
 	this.outConn = (defGUI.output==='undefined')?1:defGUI.output;
 	this.uses = new bag();
 }
-
 blockType.prototype = {
 	addTo: function(position,section) {
-		if (!section) section = 'sect1'
-		var elt = $('<div>').addClass('blockType');
+		if (!section) section = 'Other';
+		debugMsg("adding into section ",section);
+
+		var sectionElt = $("#"+section);
+		if (!sectionElt.length) {
+			debugMsg("section not found, adding");
+			$('#accordion').append("<h3>"+section+"</h3>");			
+			sectionElt = $('<div>').attr("id",section);
+			//sectionElt.css("height: 428px;");
+			$('#accordion').append(sectionElt);
+		}
+
+		const elt = $('<div>').addClass('blockType');
 		this.element = elt;
-
 		this.setLabel(this.label);
-
-		$('#accordion').find("#"+section).append(elt);
+		
+		sectionElt.append(elt);
 		this.setPos(position);
 
 		// drag block
@@ -551,16 +584,19 @@ blockType.prototype = {
 	},
 
 	setPos: function(position) {
+		/*
 		// position is either a number - to place type on a column on the left
 		// or a css object of the form {top:y; left:x}
 		if ($.isNumeric(position))
-			position = {top:10*position-10,left:-25};
-
-		if ($.isNumeric(position.top) || $.isNumeric(position.bottom))
+			debugMsg("not setting");
+			// position = {left:-25};
+			// position = {top:10*position-10,left:-25};
+		*/
+		if ($.isNumeric(position.top) || $.isNumeric(position.bottom) || $.isNumeric(position.left) || $.isNumeric(position.right)) {
 			this.pos = position;
-
-		this.moveBack();
-		debugMsg("new pos ",this.pos);
+			this.moveBack();
+			debugMsg("new pos ",this.pos);
+		}
 	},
 
 	moveBack: function() {
@@ -751,7 +787,7 @@ blockInstance.prototype = {
 	setHTML: function() {
 		var inHTML = this.type.label
 
-		if (typeof (this.type.blockCode) !== 'undefined') {
+		if (this.type.hasOwnProperty("blockCode")) {
 			inHTML += '<br />'+this.type.blockCode
 		}
 
@@ -759,7 +795,7 @@ blockInstance.prototype = {
 	},
 
 	getExpression: function() {
-		if (typeof (this.type.getExp) !== 'undefined') {
+		if (this.type.hasOwnProperty("getExp")) {
 			debugMsg('found getExp string ', this.type.getExp);
 			var block = this.element;
 			eval("function f() {"+this.type.getExp+"}");
@@ -1174,7 +1210,8 @@ customBlock.prototype = {
 	newType: function() {
 		var cT = new blockType(this.name,{args:this.argList.size()});
 		debugMsg("adding type");
-		cT.addTo({top:10*(this.num)},"sect2");
+		cT.addTo({left:"10px"},"custom");
+		//cT.addTo({top:10*(this.num)},"custom");
 		return cT;
 	},
 
@@ -1480,7 +1517,7 @@ function tokenGenerator(tok,index) {
 
 tokenGenerator.prototype = {
 	next: function() {
-		var res = this.tokString+this.tokIndex;
+		const res = this.tokString+this.tokIndex;
 		this.tokIndex++;
 		return res;
 	},

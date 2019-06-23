@@ -216,7 +216,7 @@ function encodeArray(Exp, vars) {
 				res = tok;
                 vars.line("var "+tok+" = "+encode(Exp[1])+";");
             }
-		// case 4.2: expression is a block (function or replacement) reference
+		// case 4.2: (yeah, well...) expression is a block (function or replacement) reference
 			else if (choice==4.2){
 				H = Exp[0]; // block name
 				debugMsg(Exp, "is block", H);
@@ -227,28 +227,35 @@ function encodeArray(Exp, vars) {
 				}
 				//	H is a replacement... TBC
 				else if (H in predefined_replacements) {
-					// need to adapt getOperator to create (a) => op(a)
-					res = "work in progress";
+					// replacement: adapt getOperator to create an anon. function (a) => op(a)
+					debugMsg(H,"is predefined, ");
+					res = getSubstitutor(H);
+					var s = predefined_replacements[H].args;
+					const args = predefined_replacements[H].args.split(',');
+					res = "("+ s + ")=>"+res(args);
 				}
 				else
-				    throw "Bloooock requires a block name";				
+				    throw "Block requires a block name";				
 			}
-        // case 4.5: (yeah, well...) expression is a higher order function (x->y)->z
+        // case 4.5: expression is a higher order function (x->y)->z
             else if (choice==4.5) {
 				const Arguments = encodeEach(Exp,vars);
 				H = Arguments[0]; // new head
+				debugMsg("apply",H);
 				enforce(H, isString); // must be a string: it's a function call (!)
  				Arguments.shift(); // rest are arguments
-				if ((H in predefined_functions) || tokens.contain(H)) {
-					// if H is a token - when token resolved, we need to find and process the prerequisite functions
+				 if (H.indexOf(")=>(")>-1) { //	H is a replacement (anon function)
+					res = "("+H+").apply(this,"+Arguments+")";
+				}
+				else if ((H in predefined_functions) || tokens.contain(H))
+				{
+					// NOT FINISHED if H is a token, we resolve it,
+					// but also we need to find and process the prerequisite functions
 					res = H+".apply(this,"+Arguments+")";
 				}
-				//	H is a replacement... TBC
-				else if (H in predefined_replacements) {
-					res = "work in progress";
+				else {
+				    throw "Apply requires a block";				
 				}
-				else
-				    throw "Apply requires a predefined function";	
 			}
         // case 5: predefined_replacements
             else if (choice==5) {
@@ -367,11 +374,11 @@ function getSubstitutor(X) {
         // the function uses indexes and results_parts which are in its environment
         // (thank you closure!)
         s = function(bits) {
-                res = '';
+                var res = '(';
                 for (var i=0; i<indexes.length; i++) {                
                     res += result_parts[i]+bits[indexes[i]];
                 }
-                res += result_parts[i];
+                res += result_parts[i] + ')';
                 return res;
             };
         // add prerequisites to the code
@@ -476,6 +483,25 @@ function debugMsg() {
         console.log(m.join(" "));
     }
 }
+
+jsPlumb.ready(function() {
+	// load js
+	debugMsg("load js interpretation data");
+	$.ajax({
+		url: "js_blocks.json",
+		beforeSend: function(xhr){
+			if (xhr.overrideMimeType) {
+				xhr.overrideMimeType("application/json");
+			}
+		},
+		success: function(json) {
+			debugMsg("found js data",json);
+			predefined_functions = json.functions;
+			predefined_replacements = json.replace;
+		},
+		error: function(_, status, err) {debugMsg(status+'\n'+err);}
+	});
+});
 
 /*
 

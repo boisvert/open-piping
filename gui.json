@@ -46,7 +46,6 @@
             "log": {}
         }
     },
-
     "if": {
 		"label": "Conditional",
 		"args":3
@@ -99,6 +98,10 @@
 			"length": {},
 			"isEmpty": {}
 		}
+	},
+	"map": {
+		"label": "Blocks",
+		"args": 2
 	},
 	"cons": {
 		"label": "Arrays",

@@ -6,6 +6,7 @@
 
 jsPlumb.ready(function() {
 	// load block GUI
+	debugMsg("begin initialisation");
 	$.ajax({
 		url: "gui.json",
 		beforeSend: function(xhr){
@@ -14,23 +15,9 @@ jsPlumb.ready(function() {
 			}
 		},
 		success: function(json) {
+			debugMsg("found gui",json);
 			predefined_gui = json;
 			initialise();
-		},
-		error: function(_, status, err) {debugMsg(status+'\n'+err);}
-	});
-	// load js
-	// This should be handled by the interpreter
-	$.ajax({
-		url: "js_blocks.json",
-		beforeSend: function(xhr){
-			if (xhr.overrideMimeType) {
-				xhr.overrideMimeType("application/json");
-			}
-		},
-		success: function(json) {
-			predefined_functions = json.functions;
-			predefined_replacements = json.replace;
 		},
 		error: function(_, status, err) {debugMsg(status+'\n'+err);}
 	});
@@ -76,15 +63,21 @@ function initialise() {
 
 	// add argType block type to custom functions
 	const argType = {
+		label: "Custom",
 		args: 0,
 		blockCode : "<form><input type='text' size=3/><form>",
 		dropCode: "currentBE.userBlock.newArgument(block);",
 		getExp: "var inpt = block.find('form > input')[0]; return inpt.value;",
 		output: -1 // number of output connections is illimited
 	}
-	new blockType('Argument',argType).addTo({top:2, left:"-10px"}, "custom");
-	
-	// $( "#accordion" ).accordion("refresh");
+
+	// last section, custom blocks
+
+	const custom = blockTypeList.addSection("Custom");
+	custom.append('<button id="createNewBlock" onClick="editBlock();">New block</button>');
+	new blockType('Argument',argType).addTo({top:2, left:"-30px"}, custom); //
+
+	$( "#accordion" ).accordion("refresh");
 
 }
 
@@ -121,6 +114,21 @@ BlockTypeList.prototype = {
 
 		}
 
+	},
+
+	addSection: function(section) {
+		if (!section) section = 'Other';
+		debugMsg("getting or making section ",section);
+
+		var sectionElt = $("#"+section);
+		if (!sectionElt.length) {
+			debugMsg("section not found, adding");
+			this.display.append("<h3>"+section+"</h3>");			
+			sectionElt = $('<div>').attr("id",section);
+			this.display.append(sectionElt);
+		}
+
+		return sectionElt;
 	},
 
 	addBlockGroup: function (label, defGUI, position) {	
@@ -187,7 +195,7 @@ BlockTypeList.prototype = {
 	},
 	
 	addBlockType: function(label, defGUI, position) {
-		const section = (defGUI.hasOwnProperty("label"))?defGUI.label:"Other";
+		const section = this.addSection(defGUI.label);
 		new blockType(label, defGUI).addTo(position,section);
 	},
 
@@ -538,6 +546,7 @@ function blockType(label, defGUI) {
 }
 blockType.prototype = {
 	addTo: function(position,section) {
+		/*
 		if (!section) section = 'Other';
 		debugMsg("adding into section ",section);
 
@@ -549,12 +558,12 @@ blockType.prototype = {
 			//sectionElt.css("height: 428px;");
 			$('#accordion').append(sectionElt);
 		}
-
+		*/
 		const elt = $('<div>').addClass('blockType');
 		this.element = elt;
 		this.setLabel(this.label);
 		
-		sectionElt.append(elt);
+		section.append(elt);
 		this.setPos(position);
 
 		// drag block
@@ -795,7 +804,7 @@ blockInstance.prototype = {
 	},
 
 	getExpression: function() {
-		if (this.type.hasOwnProperty("getExp")) {
+		if (this.type.getExp) {
 			debugMsg('found getExp string ', this.type.getExp);
 			var block = this.element;
 			eval("function f() {"+this.type.getExp+"}");
@@ -1195,7 +1204,7 @@ customBlock.prototype = {
 		var inpt = block.element.find('form > input')[0];
 		var argName = this.argGen.next(); 
 		inpt.value = argName;
-		this.argList.queue(block); // push(block);
+		this.argList.queue(block);
 		// this.argsNum++;
 		this.customType.addArgument();
 		debugMsg("new argument ",block.id,argName);
@@ -1210,8 +1219,7 @@ customBlock.prototype = {
 	newType: function() {
 		var cT = new blockType(this.name,{args:this.argList.size()});
 		debugMsg("adding type");
-		cT.addTo({left:"10px"},"custom");
-		//cT.addTo({top:10*(this.num)},"custom");
+		cT.addTo({left:"10px"},$("#Custom"));
 		return cT;
 	},
 

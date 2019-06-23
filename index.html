@@ -44,7 +44,8 @@
     #createNewBlock {
         width: 90px;
 		font-family: Calibri, Arial, "Sans serif";
-        left: -20px; /* top: 10px; */
+		position: relative;
+        left: -25px; /* top: 10px; */
     }
 
 	#maincontainer {
@@ -88,10 +89,6 @@
 		font-size: 16px;
 	}
 
-    #custom .blockType {
-		left: -10px;
-	}
-
     .block:hover {
         border: 2px solid blue;
     }
@@ -133,10 +130,10 @@ Project: programming | <a href="exp-tests.html">testing</a> | Github:
 
 <div id="maincontainer">
 <div id="accordion">
-	<h3>Custom</h3>
-	<div id="custom" style="padding: 1em 1em; height: 428px;">
-		<button id="createNewBlock" onClick="editBlock();">New block</button>
-	</div>
+	<!-- h3>Custom</h3>
+	<div id="Custom" style="padding: 1em 1em; height: 428px;">
+		<!--button id="createNewBlock" onClick="editBlock();">New block</button>
+	</div-->
 </div>
 <div id="pipeContainer"></div>
 </div>

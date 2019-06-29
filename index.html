@@ -1,7 +1,8 @@
 <!doctype html>
-<meta charset="utf-8" />
 
 <head>
+
+<meta charset="utf-8" lang="en"/>
 
 <!-- Dependencies are as follows
    * jquery 3.2.1
@@ -25,27 +26,92 @@
 
 <script src="workflow editor.js"></script>
 <script src="compile_workflow.js"></script>
-    
-    <title>Edit and interpret a workflow</title>
+
+<script type="text/javascript">
+
+$( function() {
+	debugMsg("initialising layout");
+	const tgd = $( "#toggleDetails" );
+
+    tgd.on( "click", toggleDetails);
+ 
+    $( "#codeDetails" ).hide();
+
+    // run the 
+    function toggleDetails() {
+		debugMsg("toggling details panel")
+		tgd.attr("disabled", "disabled");
+		if (tgd.attr("value") == "Show details")
+			$( "#codeDetails" ).show( 'slow' , curriedCallback("Hide details") )
+		else
+			$( "#codeDetails" ).hide( 'slow' , curriedCallback("Show details") );
+    };
+
+    //callback function to bring a hidden box back
+	function curriedCallback(t) {
+		return function () { tgd.attr("value",t); return tgd.removeAttr("disabled")};
+    };
+
+} );
+
+// change text
+function changeSExp(exp) {
+	$('#s-exp').val(JSON.stringify(exp,null,3));
+	debugMsg("updating s-expression");
+	getCode();
+}
+
+// compile
+function getCode() {
+	var lang = $('#chooseLang').val();
+    var exp = $('#s-exp').val();
+    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+}
+
+function chooseCompiler(Exp,lang,callBack) {
+	debugMsg("compiling in",lang);
+    if (lang==='JS') {
+		callBack(compile(JSON.parse(Exp)));
+    }
+    else if(lang==='PHP') {
+		Exp = encodeURIComponent(Exp);
+        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
+    }
+}
+
+// run result
+function runres() {
+   var c = $('#result').val();
+   eval(c);
+
+   const t0 = performance.now();
+   const result = pipe();
+   const t = performance.now()-t0;
+
+   debugMsg("done - ",result,"in ",t + " milliseconds.");
+
+   $("#theResult").html(result);
+   $("#timing").text("Time: "+t+"ms");
+}
+
+var debugMode = false; // set to true to turn on debugging
+
+</script>
+
+<title>Edit and interpret a workflow</title>
 
   <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
 
-  <link rel="stylesheet" href="../libraries/jquery-ui.min.css">
+<link rel="stylesheet" href="../libraries/jquery-ui.min.css">
 
 <style>
-
-	#codeDetails {
-		width: 240px;
-		height: 170px;
-		padding: 0.4em;
-		position: relative;
-	}
 
     #createNewBlock {
         width: 90px;
 		font-family: Calibri, Arial, "Sans serif";
 		position: relative;
         left: -25px; /* top: 10px; */
+		margin: 0px;
     }
 
 	#maincontainer {
@@ -64,8 +130,14 @@
 		height: 100%;
 	}
 
-	#accordion .div {
-		height:100%;
+	#accordion .ui-accordion-content {
+		max-height: 100%;
+		overflow-y: auto;
+		overflow-x: hidden;
+	}
+
+	#accordion .ui-accordion-header {
+		padding: .3em .3em .3em .3em;
 	}
 
     .block {
@@ -112,6 +184,13 @@
 	    z-index: 3000 !important;
     }
 
+    #theResult {
+        /* margin-left:512px; */
+        border: 1px solid gray;
+		height: 300px;
+		width: 100%;
+    }
+
 </style>
 
 </head>
@@ -121,6 +200,7 @@
 <h1>Open piping: lowering the barriers to data science</h1>
 
 <h2>Program a workflow</h2>
+Click to display console messages: <input type="checkbox" onChange="debugMode = this.checked"> <br />
 
 Project: programming | <a href="exp-tests.html">testing</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
@@ -129,91 +209,29 @@ Project: programming | <a href="exp-tests.html">testing</a> | Github:
 <p>
 
 <div id="maincontainer">
-<div id="accordion">
-	<!-- h3>Custom</h3>
-	<div id="Custom" style="padding: 1em 1em; height: 428px;">
-		<!--button id="createNewBlock" onClick="editBlock();">New block</button>
-	</div-->
+	<div id="accordion"></div>
+	<div id="pipeContainer"></div>
 </div>
-<div id="pipeContainer"></div>
-</div>
-
 Compose an expression by using the blocks above.<br />
-<button id="toggleDetails">Show details</button>
+
 Language:
 <select id="chooseLang" onChange="getCode();">
-<option value="JS" selected>JS</option>
-<option value="PHP">PHP</option>
+	<option value="JS" selected>JS</option>
+	<option value="PHP">PHP</option>
 </select>
-<input type="button" value="Show result" onClick="runres();" /> <br />
+<input type="button" value="Show details" id="toggleDetails" />
+<input type="button" value="Update result" onClick="runres();" />
+<span id="timing"></span>
+<br />
 
-<form> <div id="codeDetails">
-<textarea id="s-exp" cols="80" rows="10" onChange="getCode();"></textarea> <br />
-<textarea id="result" cols="80" rows="10"></textarea> <br />
-</div> </form>
+<div id="codeDetails">
+	<textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
+	<textarea id="result" cols="60" rows="10"></textarea>
+</div> <br />
 
-<script>
+<div id="theResult"></div>
 
-$( function() {
-    // run the currently selected effect
+</div>
 
-    function toggleDetails() {
-		var tg = $( "#toggleDetails" ).attr("disabled", "disabled").text();
-		if (tg == "Show details")
-			$( "#codeDetails" ).show( 'slow' , showCallback )
-		else
-			$( "#codeDetails" ).hide( 'slow' , hideCallback );
-    };
-
-    //callback function to bring a hidden box back
-    function showCallback() {
-		$( "#toggleDetails" ).text( "Hide details" ).removeAttr("disabled");
-    };
-
-	function hideCallback() {
-		$( "#toggleDetails" ).text( "Show details" ).removeAttr("disabled");
-    };
-  
-    // Set effect from select menu value
-    $( "#toggleDetails" ).on( "click", toggleDetails);
- 
-    $( "#codeDetails" ).hide();
-	
-	$( "#accordion" ).accordion();
-} );
-
-// change text
-function changeSExp(exp) {
-	$('#s-exp').val(JSON.stringify(exp));
-	debugMsg("updating s-expression");
-	getCode();
-}
-
-// compile
-function getCode() {
-	var lang = $('#chooseLang').val();
-    var exp = $('#s-exp').val();
-    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
-}
-
-function chooseCompiler(Exp,lang,callBack) {
-	debugMsg("compiling in",lang);
-    if (lang==='JS') {
-		callBack(compile(JSON.parse(Exp)));
-    }
-    else if(lang==='PHP') {
-		Exp = encodeURIComponent(Exp);
-        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
-    }
-}
-
-// run result
-function runres() {
-   var c = $('#result').val();
-   eval(c);
-   alert(pipe());
-}
-
-</script>
 </body>
 </html>

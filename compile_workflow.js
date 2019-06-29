@@ -350,7 +350,7 @@ function getSubstitutor(X) {
     }
     else {
         rX = predefined_replacements[X];
-        
+
         // parse rX.args and get strings to replace in the substitution
         args = rX.args.split(',').map($.trim);
         
@@ -452,7 +452,7 @@ function startsWithWhich(toks, str) {
 // there is a type checking library that would be more appropriate
 function enforce(X,check) {
     if (!check(X))
-        throw JSON.stringify(X)+" fails the check "+check;
+        throw JSON.stringify(X,null,3)+" fails the check "+check;
 }
 
 function isString(s) {
@@ -464,21 +464,23 @@ function isArray(a) {
 }
 
 function debugMsg() {
-    var debug = true; // set to true to turn on debugging
-    if (debug) {
-        var m = [];
-		var seen = [];
+    if (debugMode) { // set debugMode to true to turn on debugging
+        const m = [];
+		const seen = [];
         for (i in arguments) {
-            m.push(JSON.stringify(arguments[i], function(key, val) {
-				if (val != null && typeof val == "object") {
+			const a = arguments[i];
+			if (a != null && typeof a == "object")
+            m.push(JSON.stringify(a, function(key, val) {
+				//if (val != null && typeof val == "object") {
 					if (seen.indexOf(val) >= 0) {
 						return "_seen";
 					}
 					seen.push(val);
-				}
+				//}
 				return val;
 			}
-			));
+			),3);
+			else m.push(a);
         }
         console.log(m.join(" "));
     }

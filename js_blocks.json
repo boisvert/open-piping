@@ -4,10 +4,26 @@
 		"isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},
 		"pythagoras": {"args": "a,b", "body": "return Math.sqrt(a*a+b*b);"},
 		"isEmpty": {"args": "a", "body": "return $.isArray(a) && a.length==0;"},
-		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"}
+		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"},
+		"min": {"args": "a", "body": "return a.reduce((item,sofar)=>(item<sofar?item:sofar),a[0]);"},
+		"max": {"args": "a", "body": "return a.reduce((item,sofar)=>(item>sofar?item:sofar),a[0]);"},
+		"sum": {"args": "a", "body": "return a.reduce((item,sofar)=>(item+sofar),0);"},
+        "median": {"args": "values", "body": "values.sort((a,b)=>(a<b));const half = Math.floor(values.length / 2); return (values.length % 2)?values[half]:(values[half - 1] + values[half]) / 2;"},
+		"stdevp": {
+			"args": "a",
+		    "body": "const avg = average(a); return Math.sqrt(sum(a.map((e)=>((e-avg)*(e-avg)))))/a.length;",
+			"requires": ["sum", "average"]
+		},
+		"average": {"args": "a", "body": "return sum(a)/a.length;", "requires": ["sum"]}
 	},
+
 	"replace": {
+		"join": {"args": "a,b", "js": "@a.join(@b)"},
+		"split": {"args": "a,b", "js": "@a.split(@b)"},
+		"concat": {"args": "a,b", "js": "@a+@b"},
 		"map": {"args": "a,b", "js": "@a.map(@b)"},
+		"reduce": {"args": "a,b,c", "js": "@a.reduce(@b,@c)"},
+		"filter": {"args": "a,b", "js": "@a.filter(@b)"},
 		"if": {"args": "a,b,c", "js": "@a?@b:@c"},
 		"plus": {"args": "a,b", "js": "@a+@b"},
 		"minus": {"args": "a,b", "js": "@a-@b"},
@@ -32,7 +48,8 @@
 		"not": {"args": "a", "js": "!@a"},
 		"first": {"args": "a", "js": "@a[0]"},
 		"rest": {"args": "a", "js": "@a.slice(1)"},
-		"length": {"args": "a", "js": "@a.length"},
+		"size": {"args": "a", "js": "@a.length"},
+		"sort": {"args": "a,b", "js": "@a.sort(b)"},
 		"isArray": {"args": "a", "js": "$.isArray(@a);"},
 		"isNull": {"args": "x", "js": "@x===null;"} 
     }

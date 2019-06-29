@@ -77,7 +77,7 @@ function initialise() {
 	custom.append('<button id="createNewBlock" onClick="editBlock();">New block</button>');
 	new blockType('Argument',argType).addTo({top:2, left:"-30px"}, custom); //
 
-	$( "#accordion" ).accordion("refresh");
+	$( "#accordion" ).accordion() //{heightStyle: "fill"});
 
 }
 

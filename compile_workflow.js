@@ -16,6 +16,29 @@ A stack of defined vars (setq) is also maintained
 // String with the resulting code
 // plus simple encapsulated functions
 
+var predefined_functions = {},
+    predefined_replacements = {};
+
+//$(loadDefinitions);
+
+/*
+function loadDefinitions() {
+	$.ajax({
+		url: "js_blocks.json",
+		beforeSend: function(xhr){
+			if (xhr.overrideMimeType) {
+				xhr.overrideMimeType("application/json");
+			}
+		},
+		success: function(json) {
+			predefined_functions = json.functions;
+			predefined_replacements = json.replace;
+		},
+		error: function(_, status, err) {debugMsg(status+'\n'+err);}
+	});
+}
+*/
+
 function codeString() {
     this.text = "";
 	this.level = 0;
@@ -109,7 +132,7 @@ var tokens = {
 };
 
 // list of substitutions already parsed
-var readyReplacements = {
+const readyReplacements = {
     list: [],
     clear: function() { 
         readyReplacements.list=[];
@@ -141,7 +164,7 @@ function compile(Exp) {
    readyReplacements.clear();
    globalCode.clear();
    globalCode.line("// Automatically generated code");
-   var call = encode(Exp,globalCode);
+   const call = encode(Exp,globalCode);
    globalCode.line("function pipe() { return "+call+"; }");
    return globalCode.text;
 }

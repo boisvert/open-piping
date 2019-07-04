@@ -14,7 +14,12 @@
 		    "body": "const avg = average(a); return Math.sqrt(sum(a.map((e)=>((e-avg)*(e-avg)))))/a.length;",
 			"requires": ["sum", "average"]
 		},
-		"average": {"args": "a", "body": "return sum(a)/a.length;", "requires": ["sum"]}
+		"average": {"args": "a", "body": "return sum(a)/a.length;", "requires": ["sum"]},
+		"getfile": {
+			"args": "file,action",
+			"body":
+				"$.ajax({url: file, beforeSend: function(xhr) {if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain')}, success: action})"
+		}
 	},
 
 	"replace": {
@@ -50,7 +55,9 @@
 		"rest": {"args": "a", "js": "@a.slice(1)"},
 		"size": {"args": "a", "js": "@a.length"},
 		"sort": {"args": "a,b", "js": "@a.sort(b)"},
-		"isArray": {"args": "a", "js": "$.isArray(@a);"},
-		"isNull": {"args": "x", "js": "@x===null;"} 
+		"isArray": {"args": "a", "js": "$.isArray(@a)"},
+		"isNull": {"args": "x", "js": "@x===null"},
+		"alert": {"args": "txt", "js": "alert(txt)"},
+		"inject": {"args": "txt", "js": "$('#theResult').append(@txt)"}
     }
 }

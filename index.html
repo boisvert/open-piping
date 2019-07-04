@@ -24,10 +24,10 @@
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
 <script src="../libraries/jsPlumb.2.1.8.min.js"></script>
 
-<script src="workflow editor.js"></script>
+<script src="workflow_editor.js"></script>
 <script src="compile_workflow.js"></script>
 
-<script type="text/javascript">
+<script>
 
 $( function() {
 	debugMsg("initialising layout");
@@ -84,17 +84,18 @@ function runres() {
    var c = $('#result').val();
    eval(c);
 
+   $("#theResult").html("");
    const t0 = performance.now();
    const result = pipe();
    const t = performance.now()-t0;
 
    debugMsg("done - ",result,"in ",t + " milliseconds.");
 
-   $("#theResult").html(result);
+   $("#theResult").append(result);
    $("#timing").text("Time: "+t+"ms");
 }
 
-var debugMode = false; // set to true to turn on debugging
+var debugMode = true; // set to true to turn on debugging
 
 </script>
 
@@ -117,7 +118,7 @@ var debugMode = false; // set to true to turn on debugging
 	#maincontainer {
 		 height: 560px;
 	}
-	
+
     #pipeContainer {
         margin-left:122px;
         border: 1px solid gray;
@@ -137,7 +138,7 @@ var debugMode = false; // set to true to turn on debugging
 	}
 
 	#accordion .ui-accordion-header {
-		padding: .3em .3em .3em .3em;
+		padding: .2em .2em .2em .2em;
 	}
 
     .block {
@@ -154,7 +155,7 @@ var debugMode = false; // set to true to turn on debugging
     .blockType {
         position: relative;
 		left: -30px;
-		margin: 8px;
+		margin: 7px;
         height:45px; width: 80px;
         border: 1px solid red;
 		font-family: Calibri, Arial, "Sans serif";
@@ -185,7 +186,6 @@ var debugMode = false; // set to true to turn on debugging
     }
 
     #theResult {
-        /* margin-left:512px; */
         border: 1px solid gray;
 		height: 300px;
 		width: 100%;
@@ -200,9 +200,8 @@ var debugMode = false; // set to true to turn on debugging
 <h1>Open piping: lowering the barriers to data science</h1>
 
 <h2>Program a workflow</h2>
-Click to display console messages: <input type="checkbox" onChange="debugMode = this.checked"> <br />
 
-Project: programming | <a href="exp-tests.html">testing</a> | Github:
+wokflow | <a href="exp-tests.html">tests</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
@@ -220,7 +219,8 @@ Language:
 	<option value="PHP">PHP</option>
 </select>
 <input type="button" value="Show details" id="toggleDetails" />
-<input type="button" value="Update result" onClick="runres();" />
+Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
+<input type="button" value="Run" onClick="runres();" />
 <span id="timing"></span>
 <br />
 
@@ -230,8 +230,6 @@ Language:
 </div> <br />
 
 <div id="theResult"></div>
-
-</div>
 
 </body>
 </html>

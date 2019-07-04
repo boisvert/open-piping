@@ -16,11 +16,26 @@
 			}
 		}
 	},
+	"load file": {
+		"label": "Data",
+		"args":2,
+		"output":1,
+		"getExp": "return 'getfile';"
+	},
     "set variable": {
 		"label": "Data",
 		"args":1,
 		"output":-1,
 		"getExp":"return 'setq';"
+	},
+    "alert": {
+		"label": "Display",
+		"args":1
+	},
+    "inject HTML": {
+		"label": "Display",
+		"args":1,
+		"getExp":"return 'inject';"
 	},
     "arithmetic": {
 		"label": "Math",
@@ -58,7 +73,6 @@
             "stdevp": {}
         }
     },
-
     "if": {
 		"label": "Conditional",
 		"args":3

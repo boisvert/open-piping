@@ -24,6 +24,17 @@
 <script src="../libraries/jsPlumb.2.1.8.min.js"></script>
 
 <script src="compile_workflow.js"></script>
+
+<style>
+	
+    #theResult {
+        border: 1px solid gray;
+		height: 300px;
+		width: 100%;
+    }
+
+</style>
+
     
 <title>Edit and interpret a workflow</title>
 
@@ -39,7 +50,7 @@
 
 <h2>Test page</h2>
 
-Project: <a href="index.html">programming</a> | testing | Github:
+<a href="index.html">workflow</a> | tests | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
@@ -58,44 +69,27 @@ On this page you can try any symbolic expression, which will be interpreted into
   <option value="5">Defun recursive (fatorial)</option>
   <option value="6">Higher order function (map)</option>
 </select>
-<input type="button" value="Interpret it" onClick="getCode();" />
-<br />
-<textarea id="s-exp" cols="80" rows="10"></textarea>
-<br />
 Language:
 <select id="chooseLang" onChange = "getCode();">
 <option value="JS" selected>JS</option>
 <option value="PHP">PHP</option>
 </select>
-<input type="button" value="Show result" onClick="runres();" /> <br />
+<input type="button" value="Interpret it" onClick="getCode();" />
+<input type="button" value="Run" onClick="getCode(); runres();" />
+<span id="timing"></span> <br />
 
-<textarea id="result" cols="80" rows="10">
-</textarea>
+<div id="codeDetails">
+	<textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
+	<textarea id="result" cols="60" rows="10"></textarea>
+</div> <br />
+
+<div id="theResult"></div>
 
 </form>
 
 <script>
 
-var predefined_functions = {},
-    predefined_replacements = {};
-
-$(loadDefinitions);
-
-function loadDefinitions() {
-	$.ajax({
-		url: "js_blocks.json",
-		beforeSend: function(xhr){
-			if (xhr.overrideMimeType) {
-				xhr.overrideMimeType("application/json");
-			}
-		},
-		success: function(json) {
-			predefined_functions = json.functions;
-			predefined_replacements = json.replace;
-		},
-		error: function(_, status, err) {debugMsg(status+'\n'+err);}
-	});
-}
+var debugMode = true; // set to true to turn on debugging
 
 // show sample of code
 function inject(num) {
@@ -107,7 +101,7 @@ function inject(num) {
 		  '["plus", 1, 2]',
 		  '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
 		  '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
-		  '[\n  "defun", "map", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["map", "f", ["rest", "arr"] ] ]\n],\n  ["map", "\\\\isNumber", [1,2,3,"a","b","c"] ] \n]',
+		  '[\n  "defun", "mymap", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["mymap", "f", ["rest", "arr"] ] ]\n],\n  ["mymap", ["block", "isNumber"], [1,2,3,"a","b","c"] ] \n]',
 	   ];
 	   $('#s-exp').val(samples[num]);
 	   getCode();
@@ -138,7 +132,16 @@ function chooseCompiler(Exp,lang,callBack) {
 function runres() {
    var c = $('#result').val();
    eval(c);
-   alert(pipe());
+
+   $("#theResult").html("");
+   const t0 = performance.now();
+   const result = pipe();
+   const t = performance.now()-t0;
+
+   debugMsg("done - ",result,"in ",t + " milliseconds.");
+
+   $("#theResult").append(result);
+   $("#timing").text("Time: "+t+"ms");
 }
 
 </script>

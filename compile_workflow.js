@@ -68,6 +68,17 @@ String.prototype.repeat = String.prototype.repeat || function(n){
   return Array(n+1).join(this);
 }
 
+String.prototype.replaceAll = String.prototype.replaceAll || function(search, replacement) {
+    const target = this;
+    return target.split(search).join(replacement);
+};
+
+String.prototype.unescape = function() {
+    const target = this;
+    return target //.replaceAll('\\n','\n').replaceAll('\\t','\t').replaceAll('\\\\','\\');
+};
+
+
 var globalCode = new codeString();
 
 // list of functions in use (to not repeat them)
@@ -179,11 +190,13 @@ function encode(Exp,vars) {
     else if (isString(Exp)) {
     // case 7: expression is a known variable
         if (tokens.contain(Exp)) res = Exp;
+	/* old approach 
     // case 7.5 (ahem...) - expression is a function being given as parameter
 	    else if(Exp.indexOf('\\') == 0) {
 			res = Exp.substring(1);
 			getOperator(res); 
 		}
+	*/
     // case 8: expression is a string
         else res = '"'+Exp+'"';
     }

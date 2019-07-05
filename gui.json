@@ -9,7 +9,7 @@
 				"getExp":"var inpt = block.find('form > input')[0]; return Number(inpt.value);"
 			},
 			"String": {
-				"getExp":"var inpt = block.find('form > input')[0]; return inpt.value;"
+				"getExp":"var inpt = block.find('form > input')[0]; return inpt.value.unescape();"
 			},
 			"JSON": {
 				"getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"

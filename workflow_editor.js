@@ -77,7 +77,7 @@ function initialise() {
 	custom.append('<button id="createNewBlock" onClick="editBlock();">New block</button>');
 	new blockType('Argument',argType).addTo({top:2, left:"-30px"}, custom); //
 
-	$( "#accordion" ).accordion() //{heightStyle: "fill"});
+	$( "#accordion" ).accordion() // {heightStyle: "fill");
 
 }
 
@@ -385,6 +385,10 @@ pipeInstance.prototype = {
 
 	// output function to view the expression for a block
 	displayExpression: function (blockID) {
+		changeSExp(this.getFullExpression(blockID));
+	},
+
+	getFullExpression: function (blockID) {
 		this.tokenList.clear();
 		this.defunList.clear();
 		// debugMsg(this.blockList);
@@ -401,13 +405,11 @@ pipeInstance.prototype = {
 			debugMsg(exp);
 		}
 		debugMsg(exp);
-		changeSExp(exp);
+		return exp;
 	},
 
 	getExpression: function (blockID) {
-
 		debugMsg("seeking expression for ",blockID);
-
 		const block = this.blockList.get(blockID);
 		//debugMsg("block is",block);
 
@@ -415,7 +417,7 @@ pipeInstance.prototype = {
 		// jsPlumb doesn't offer a method for filtering this by endPoint.
 		const connections = this.plumber.getConnections({ target:blockID });
 		debugMsg(connections.length, "connections found");
-		
+
 		//op contains the result
 		var op;
 
@@ -439,12 +441,16 @@ pipeInstance.prototype = {
 			const source = block.inPoints.get(0).findConnectedSource(connections);
 			var e = source?this.blockList.get(source).getExpression():null;
 			debugMsg("found the name of the block: ",e);
+			if (custom_functions.contains(e)) {
+				if (!this.defunList.contains(e)) {
+					this.defunList.add(e,custom_functions.get(e));
+				}
+			}
 			op = ["block", e];
 		}
 		else {
 			// inputs is the list of Input endPoints for the block
 			const inputs = block.inPoints;
-			debugMsg(inputs.size(), "input points found");
 
 			// exp is the expression contained in the current block.
 			var exp = block.getExpression();
@@ -482,7 +488,6 @@ pipeInstance.prototype = {
 			}
 
 			else op = exp;
-
 		}
 		debugMsg("Got expression", op);
 		return op; 
@@ -996,118 +1001,6 @@ blockEndpoint.prototype = {
 		this.block.pipe.plumber.deleteEndpoint(this.ep);
 	}
 	
-	/*
-
-		// ****** endPoint object affected all this older code
-
-		// How to use - call to make an endPoint
-		// a set of endpoints in each block?
-
-		// line 199
-		// should also clean up the endpoint objects?
-
-		// line 240 - single target of end block
-		this.plumber.addEndpoint(block, {
-			anchors:[0,0.5,-1,0],
-			isTarget: true,
-			maxConnections: 1
-		}, config.connectStyle);
-
-		// Could be:
-		(new blockEndPoint()).setTarget().setPos('left').addTo(this);
-
-		// line 551 - source endPoint
-		// should be via an endPoint object
-		setOutput: function() {
-			debugMsg("Adding block output");
-			var endProps;
-			if (this.outConnections() == -1) {
-				debugMsg("using -1 connection limit");
-				endProps = {anchor:[1,0.5,1,0], isSource: true, maxConnections: -1};
-			} else {
-				endProps = {anchor:[1,0.5,1,0], isSource: true};
-			}
-			this.pipe.plumber.addEndpoint(this.element, endProps, config.connectStyle);
-		},
-
-		// Changed to:
-		setOutput: function() {
-			debugMsg("Adding block output");
-			var e = (new endPoint()).setSource().setPos('right');
-			if (this.outConnections() == -1) {
-				e.setMulti();
-			}
-			e.addTo(this.element);
-		},
-
-		// line 575
-		// should be via an endPoint object
-		addInput: function(num) {
-			if (num===undefined) num = this.type.inConn;
-			var pos = 0.1+num/3.5;
-			var e = this.pipe.plumber.addEndpoint(this.element, {
-				anchor:[pos, 0, 0, 1],
-				isTarget: true,
-				maxConnections: 1
-			}, config.connectStyle);
-			this.inPoints.queue(e);
-		},
-
-		// could be
-		addInput: function(num) {
-			if (num===undefined) num = this.type.inConn;
-			var e = (new endPoint()).setPos('top',num).addTo(this.element);
-			this.inPoints.queue(e);
-		},
-
-		// line 583
-		// should be via an endPoint object
-		removeInput: function(num) {
-			debugMsg("Removing input num ",num+1," of block ",this.id);
-			var iP = this.inPoints.get(num);
-			this.pipe.plumber.deleteEndpoint(iP);
-			this.inPoints.remove(iP);
-			for (var pos; num<this.inPoints.size(); num++) {
-				pos = 0.1+num/3.5;
-				debugMsg("shifting ",num," to ", pos);
-				this.inPoints.get(num).setAnchor([pos, 0, 0, 1]);
-				debugMsg("done");
-			}
-			debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
-		},
-
-		// could be
-		// review setPos to allow *move* and create a remove method
-		removeInput: function(num) {
-			debugMsg("Removing input num ",num+1," of block ",this.id);
-			var iP = this.inPoints.get(num);
-			iP.remove();
-			for (this.inPoints.remove(iP); num<this.inPoints.size(); num++) {
-				debugMsg("shifting ",num);
-				this.inPoints.get(num).setPos('top',num);
-				debugMsg("done");
-			}
-			debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
-		},
-
-		// line 596
-		// should be via an endPoint object
-		numOfConnectors: function(n) {
-			var input = this.inPoints.get(n).anchor;
-			var cs = this.pipe.plumber.getConnections({target:this.id});
-			cs.filter(function(conn) {
-				var target = conn.endpoints[1].anchor;
-				// debugMsg("Comparing: ",target,input);
-				return (target==input);
-			});
-			debugMsg("Connections to remove: ",cs.length);
-			return cs.length;
-		}
-
-		// could be??? needs work!!
-		
-	*/
-	
 }
 
 function editBlock() {
@@ -1257,7 +1150,8 @@ customBlock.prototype = {
 
 	defun: function() {
 		this.pipe.useDefaultArguments = false;
-		var res = this.pipe.getExpression('end');
+		var res = this.pipe.getFullExpression('end');
+		//var res = this.pipe.getExpression('end'); // should be getFullExpression?
 		this.pipe.useDefaultArguments = true;
 		if (res != undefined) {
 			res = ["defun", this.name, this.argList.map(a => a.getExpression()), res];

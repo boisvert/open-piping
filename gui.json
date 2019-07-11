@@ -160,6 +160,6 @@
 	},
 	"filter": {
 		"label": "Blocks",
-		"args": 3
+		"args": 2
 	}
 }

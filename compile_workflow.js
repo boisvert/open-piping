@@ -207,20 +207,6 @@ function encode(Exp,vars) {
     return res;
 }
 
-// "call_fn": {"args": "f, arr", "body":"var fn=window[f]; return fn.apply(this,arr);"},
-
-
-/*
-
-[block,x]
-	si x est une fonction	
-      -- ajouter x aux fonctions en usage
-	si x est un remplacement
-	  -- ajouter x = (arg1, ...) => (...) -- exemple plus = (a,b) => (a+b);
-	retourner x
-*/
-
-
 function encodeArray(Exp, vars) {
 
     var res = null;
@@ -254,6 +240,14 @@ function encodeArray(Exp, vars) {
             }
 		// case 4.2: (yeah, well...) expression is a block (function or replacement) reference
 			else if (choice==4.2){
+				
+				/* [block,x]
+					si x est une fonction	
+					  -- ajouter x aux fonctions en usage
+					si x est un remplacement
+					  -- ajouter x = (arg1, ...) => (...) -- exemple plus = (a,b) => (a+b);
+					retourner x
+				*/
 				H = Exp[0]; // block name
 				debugMsg(Exp, "is block", H);
 				enforce(H, isString); // must be a string: it's a function call (!)
@@ -287,7 +281,7 @@ function encodeArray(Exp, vars) {
 				{
 					// NOT FINISHED if H is a token, we resolve it,
 					// but also we need to find and process the prerequisite functions
-					res = H+".apply(this,"+Arguments+")";
+					res = H+"("+Arguments+")"; // H+".apply(this,"+Arguments+")";
 				}
 				else {
 				    throw "Apply requires a block";				
@@ -446,29 +440,6 @@ function getOperator(X) {
     
     return function (Args) {return X+"("+Args.join(",")+")";};
 }
-
-/*
-function process(Exp) {
-   // calls the compiled instructions, respecting the structure, and returns a string to display.
-   
-    debugMsg('processing ', Exp);
-    var res;
-
-    if (isArray(Exp)) {
-        res = Exp.map(process);
-    }
-    else if(isString(Exp)) {
-        debugMsg('processing a string ',Exp)
-        res = Exp;
-    }
-    else {
-        res = eval(Exp);
-        if (typeof(res == "undefined")) res = Exp;
-    }
-    // done
-    return res;
-
-}*/
 
 
 // start with which takes a list of tokens and a string to check.

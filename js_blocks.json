@@ -57,7 +57,7 @@
 		"sort": {"args": "a,b", "js": "@a.sort(b)"},
 		"isArray": {"args": "a", "js": "$.isArray(@a)"},
 		"isNull": {"args": "x", "js": "@x===null"},
-		"alert": {"args": "txt", "js": "alert(txt)"},
+		"alert": {"args": "txt", "js": "alert(@txt)"},
 		"inject": {"args": "txt", "js": "$('#theResult').append(@txt)"}
     }
 }

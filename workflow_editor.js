@@ -75,7 +75,7 @@ function initialise() {
 
 	const custom = blockTypeList.addSection("Custom");
 	custom.append('<button id="createNewBlock" onClick="editBlock();">New block</button>');
-	new blockType('Argument',argType).addTo({top:2, left:"-30px"}, custom); //
+	new blockType('Argument',argType).addTo({top:2, left:"-30px"}, custom); // add blockType to accordion
 
 	$( "#accordion" ).accordion() // {heightStyle: "fill");
 
@@ -196,7 +196,7 @@ BlockTypeList.prototype = {
 	
 	addBlockType: function(label, defGUI, position) {
 		const section = this.addSection(defGUI.label);
-		new blockType(label, defGUI).addTo(position,section);
+		new blockType(label, defGUI).addTo(position,section); //add blocktype to accordion
 	},
 
 	removeBlockType: function(label) {
@@ -255,7 +255,6 @@ BlockTypeList.prototype = {
 	
 }
 
-
 // block functions - add, select, deselect, remove, blocktype, endblock - are messy
 function pipeInstance(element) {
 	debugMsg("enabling plumbing	");
@@ -279,7 +278,7 @@ function pipeInstance(element) {
 	});
 	*/
 
-	that = this;
+	const that = this;
 	this.canvas.click(function(e) {
 		// If the click was not inside the active span
 		debugMsg("click");
@@ -300,16 +299,16 @@ pipeInstance.prototype = {
 		debugMsg("Adding a block at position ", pos, " element ", elt.html() )
 		const typeName = elt.html().split("<")[0]
 		debugMsg("block type is", typeName, "list", blockTypeList.size() )
-		var realType = blockTypeList.get(typeName)
+		const realType = blockTypeList.get(typeName);
 		debugMsg("real type is",realType)
-				//was:  this.blockTypeList.get(blockType.html());
-	/*	if (!realType) {
-			realType = mainPipe.blockTypeList.get(blockType.html());
-		}
-	*/
-		//realType.moveBack()
-		const b = new blockInstance(realType, this, pos)
-		this.blockList.add(b.id, b)
+		/*	if (!realType) {
+				realType = mainPipe.blockTypeList.get(blockType.html());
+			}
+		*/
+		//realType.moveBack();
+		debugMsg("adding block to pipe",this);
+		const b = new blockInstance(realType, this, pos);
+		this.blockList.add(b.id, b);
 	},
 
 	removeBlock: function(block) {
@@ -353,8 +352,8 @@ pipeInstance.prototype = {
 	   this would be best organised with inheritance. Not done yet.
 	*/
 	addEndBlock: function () {
-		var blockID = 'end';
-		var block = $('<div>').attr('id',blockID).addClass('block').html("End");
+		const blockID = 'end';
+		const block = $('<div>').attr('id',blockID).addClass('block').html("End");
 		this.blockList.add(blockID, this);
 		this.type = {id: 'end'};
 
@@ -375,7 +374,7 @@ pipeInstance.prototype = {
 		
 		//this.plumber.repaintEverything();
 
-		var that = this;
+		const that = this;
 		$(block).click(function(e) {
 			e.stopPropagation();
 			that.blockSelection.clear();
@@ -551,19 +550,6 @@ function blockType(label, defGUI) {
 }
 blockType.prototype = {
 	addTo: function(position,section) {
-		/*
-		if (!section) section = 'Other';
-		debugMsg("adding into section ",section);
-
-		var sectionElt = $("#"+section);
-		if (!sectionElt.length) {
-			debugMsg("section not found, adding");
-			$('#accordion').append("<h3>"+section+"</h3>");			
-			sectionElt = $('<div>').attr("id",section);
-			//sectionElt.css("height: 428px;");
-			$('#accordion').append(sectionElt);
-		}
-		*/
 		const elt = $('<div>').addClass('blockType');
 		this.element = elt;
 		this.setLabel(this.label);
@@ -715,7 +701,7 @@ blockInstance.prototype = {
 
 		pipe.plumber.draggable(this.element, {containment: 'parent'});
 
-		var that = this;
+		const that = this;
 		this.element.click(function(e) {
 			e.stopPropagation();
 			that.pipe.deselectAllBlocks();
@@ -723,10 +709,10 @@ blockInstance.prototype = {
 			that.pipe.displayExpression(that.id);
 		});
 
-		var dropCode = this.dropCode();
+		const dropCode = this.dropCode();
 		if (dropCode != undefined) {
 			debugMsg('running dropcode', dropCode);
-			var block = this;
+			const block = this;
 			eval(dropCode);
 		}
 	},
@@ -734,18 +720,18 @@ blockInstance.prototype = {
 	// *** using new endPoint object
 	setOutput: function() {
 		debugMsg("Adding block output");
-		var e = (new blockEndpoint()).setSource().setPos('right');
+		const e = (new blockEndpoint()).setSource().setPos('right');
 		debugMsg(e.getAnchor())
 		if (this.outConnections() == -1) {
 			e.setMulti();
 		}
 		this.outPoint = e;
-		e.addTo(this);
+		e.addTo(this); // add endpoint to block
 	},
 
 	setInputs: function() {
 		// check if input connections are required for this block
-		var inConn = parseInt(this.inConnections());
+		const inConn = parseInt(this.inConnections());
 		if (inConn>0) {
 			// add input connections
 			debugMsg("There are ",inConn," inputs");
@@ -951,7 +937,7 @@ blockEndpoint.prototype = {
 		else
 			return null;
 	},
-	
+
 	findConnectedSource: function(connList) {
 		// to find if a block is connected to this endPoint
 		// first see if the outPoint is full
@@ -1012,8 +998,8 @@ function blockEditor() {
 	debugMsg("making block editor");
 
 	// Create dialog fro editor
-	var inpt = $('<input type="text" size=7 />');
-	var form = $('<form>').append('Block:').append(inpt);
+	const inpt = $('<input type="text" size=7 />');
+	const form = $('<form>').append('Block:').append(inpt);
 
 	this.editor = $('<div>').attr('title','Edit block');
 	this.editor.append(form);
@@ -1043,7 +1029,7 @@ blockEditor.prototype = {
 			userBlock.pipe.plumber.repaintEverything();
 		});
 
-		that = this;
+		const that = this;
 		this.editor.droppable({
 			tolerance: 'pointer',
 			over: function() {
@@ -1059,14 +1045,13 @@ blockEditor.prototype = {
 	},
 	drop: function(dropped, offset) {
 		if (dropped.hasClass('blockType')) {
-			var edPos = this.editor.offset();
+			const edPos = this.editor.offset();
 			t = offset.top-edPos.top;
 			l = offset.left-edPos.left;
 			this.userBlock.pipe.addBlock(dropped,{top:t, left:l});
 			mainPipe.canvas.droppable('enable');
 		}
 	}
-
 }
 
 function customBlock(editDialog) {
@@ -1162,9 +1147,9 @@ customBlock.prototype = {
 
 	icons: function() {
 
-		var height = 60+55*(this.num-1);
-		var edit = $('<div>');
-		var editIcon = $('<img>')
+		//var height = 60+55*(this.num-1);
+		const edit = $('<div>');
+		const editIcon = $('<img>')
 					.attr('src','icons/edit.jpg')
 					.attr('width',24)
 					.attr('height',24)
@@ -1172,13 +1157,13 @@ customBlock.prototype = {
 					.css({left:24, position:'relative'}) 
 		edit.append(editIcon);
 		this.customType.element.append(edit);
-		var copy = $('<img>')
+		const copy = $('<img>')
 				.attr('src','icons/copy.jpg')
 				.attr('width',24)
 				.attr('height',24)
 				.attr('alt','copy')
 				.css({left:-24, position:'relative'})
-		var del = $('<img>')
+		const del = $('<img>')
 				.attr('src','icons/delete.jpg')
 				.attr('width',24)
 				.attr('height',24)
@@ -1186,7 +1171,7 @@ customBlock.prototype = {
 				//.css({left:48, position:'relative'});
 		var delay;
 
-		var that = this;
+		const that = this;
 		del.on('click', function(e) {
 			e.stopPropagation();
 			edit.remove();

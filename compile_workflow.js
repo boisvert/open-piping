@@ -19,26 +19,6 @@ A stack of defined vars (setq) is also maintained
 var predefined_functions = {},
     predefined_replacements = {};
 
-//$(loadDefinitions);
-
-/*
-function loadDefinitions() {
-	$.ajax({
-		url: "js_blocks.json",
-		beforeSend: function(xhr){
-			if (xhr.overrideMimeType) {
-				xhr.overrideMimeType("application/json");
-			}
-		},
-		success: function(json) {
-			predefined_functions = json.functions;
-			predefined_replacements = json.replace;
-		},
-		error: function(_, status, err) {debugMsg(status+'\n'+err);}
-	});
-}
-*/
-
 function codeString() {
     this.text = "";
 	this.level = 0;
@@ -77,7 +57,6 @@ String.prototype.unescape = function() {
     const target = this;
     return target //.replaceAll('\\n','\n').replaceAll('\\t','\t').replaceAll('\\\\','\\');
 };
-
 
 var globalCode = new codeString();
 
@@ -476,17 +455,16 @@ function debugMsg() {
 		const seen = [];
         for (i in arguments) {
 			const a = arguments[i];
-			if (a != null && typeof a == "object")
-            m.push(JSON.stringify(a, function(key, val) {
-				//if (val != null && typeof val == "object") {
-					if (seen.indexOf(val) >= 0) {
-						return "_seen";
-					}
-					seen.push(val);
-				//}
-				return val;
-			}
-			),3);
+			if (typeof a == "object" && a != null)
+                m.push(JSON.stringify(a, function(key, val) {
+				    if (typeof val == "object" && val != null) {
+					   if (seen.indexOf(val) >= 0) {
+						    return "_seen";
+					   }
+					   seen.push(val);
+				    }
+					return val;
+				} ), 3 );
 			else m.push(a);
         }
         console.log(m.join(" "));

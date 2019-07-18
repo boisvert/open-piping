@@ -47,7 +47,7 @@
             "\/": {"getExp":"return 'divide';"},
 			"\\": {"getExp":"return 'intdiv';"},
             "mod": {"getExp":"return 'mod';"},
-            "^": {"getExp":"return 'power';"}
+            "power": {"getExp":"return 'power';"}
         }
     },
     "function": {

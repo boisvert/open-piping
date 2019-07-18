@@ -36,7 +36,7 @@
 		"divide": {"args": "a,b", "js": "@a/@b"},
 		"inrdiv": {"args": "a,b", "js": "Math.floor(@a/@b)"},
 		"mod": {"args": "a,b", "js": "(@a % @b)"},
-		"power": {"args": "a,b", "js": "(@a^@b)"},
+		"power": {"args": "a,b", "js": "Math.pow(@a,@b)"},
 		"sqrt": {"args": "a", "js": "Math.sqrt(@a)"},
 		"sin": {"args": "a", "js": "Math.sin(@a)"},
 		"cos": {"args": "a", "js": "Math.cos(@a)"},

@@ -47,7 +47,8 @@ function initialise() {
 			debugMsg("off the drop");
 		},
 		drop: function(event,ui) {
-			const blockType = ui.draggable
+			const blockType = ui.draggable;
+			focusPipe = mainPipe;
 			if (blockType.html()!='Argument') {
 				mainPipe.addBlock(blockType,ui.position);
 			}
@@ -1039,6 +1040,7 @@ blockEditor.prototype = {
 				mainPipe.canvas.droppable('enable');
 			},
 			drop: function(event,ui) {
+				focusPipe = that.userBlock.pipe;
 				that.drop(ui.draggable,ui.offset);
 			}
 		});

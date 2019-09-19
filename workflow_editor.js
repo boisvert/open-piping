@@ -50,7 +50,9 @@ function initialise() {
 			const blockType = ui.draggable;
 			focusPipe = mainPipe;
 			if (blockType.html()!='Argument') {
-				mainPipe.addBlock(blockType,ui.position);
+				const b = mainPipe.addBlock(blockType,ui.position); // b is the block
+				mainPipe.deselectAllBlocks();
+				mainPipe.selectBlock(b);
 			}
 		}
 	});
@@ -284,9 +286,10 @@ function pipeInstance(element) {
 		// If the click was not inside the active span
 		debugMsg("click");
 		if(!$(e.target).hasClass('blockSelected')) {
-			e.stopPropagation();			
+			//e.stopPropagation();			
 			debugMsg("canvas clicked");
 			that.deselectAllBlocks();
+			focusPipe = that;
 		}
 	});
 }
@@ -294,7 +297,7 @@ pipeInstance.prototype = {
 
 	/* addBlock: create a new block of the given type.
 	   the attributes within blockType provide all the data to customise the block.
-	   inConn is the number of input connections accepted (ie of parameters for function)
+	   return the block added
 	*/
 	addBlock: function (elt, pos) {
 		debugMsg("Adding a block at position ", pos, " element ", elt.html() )
@@ -309,7 +312,10 @@ pipeInstance.prototype = {
 		//realType.moveBack();
 		debugMsg("adding block to pipe",this);
 		const b = new blockInstance(realType, this, pos);
+		
 		this.blockList.add(b.id, b);
+		
+		return b;
 	},
 
 	removeBlock: function(block) {
@@ -1040,17 +1046,19 @@ blockEditor.prototype = {
 				mainPipe.canvas.droppable('enable');
 			},
 			drop: function(event,ui) {
-				focusPipe = that.userBlock.pipe;
 				that.drop(ui.draggable,ui.offset);
 			}
 		});
 	},
 	drop: function(dropped, offset) {
+		focusPipe = this.userBlock.pipe;
 		if (dropped.hasClass('blockType')) {
 			const edPos = this.editor.offset();
 			t = offset.top-edPos.top;
 			l = offset.left-edPos.left;
-			this.userBlock.pipe.addBlock(dropped,{top:t, left:l});
+			const b = focusPipe.addBlock(dropped,{top:t, left:l}); // b is the block
+			focusPipe.deselectAllBlocks();
+			focusPipe.selectBlock(b);
 			mainPipe.canvas.droppable('enable');
 		}
 	}

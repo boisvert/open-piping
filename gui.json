@@ -22,15 +22,17 @@
 		"output":1,
 		"getExp": "return 'getfile';"
 	},
-    "set variable": {
+    "keep variable": {
 		"label": "Data",
 		"args":1,
 		"output":-1,
-		"getExp":"return 'setq';"
+		"getExp":"return 'assign';"		
 	},
     "alert": {
 		"label": "Display",
-		"args":1
+		"args":1,
+		"getExp":"return 'popup';"
+
 	},
     "inject HTML": {
 		"label": "Display",
@@ -149,6 +151,10 @@
 	"apply": {
 		"label": "Blocks",
 		"args": 2
+	},
+	"parameters": {
+		"label": "Blocks",
+		"args": 1
 	},
 	"map": {
 		"label": "Blocks",

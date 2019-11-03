@@ -1,62 +1,62 @@
 {
     "constant": {
-		"label": "Data",
-		"args": 0,
-		"output": -1,
-		"blockCode": "<form><input type='text' /><form>",
-		"group": {
-			"Num": {
-				"getExp":"var inpt = block.find('form > input')[0]; return Number(inpt.value);"
-			},
-			"String": {
-				"getExp":"var inpt = block.find('form > input')[0]; return inpt.value.unescape();"
-			},
-			"JSON": {
-				"getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
-			}
-		}
-	},
-	"load file": {
-		"label": "Data",
-		"args":2,
-		"output":1,
-		"getExp": "return 'getfile';"
-	},
+      "label": "Data",
+      "args": 0,
+      "output": -1,
+      "blockCode": "<form><input type='text' /><form>",
+      "group": {
+         "Num": {
+            "getExp":"var inpt = block.find('form > input')[0]; return Number(inpt.value);"
+         },
+         "String": {
+            "getExp":"var inpt = block.find('form > input')[0]; return inpt.value.unescape();"
+         },
+         "JSON": {
+            "getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
+         }
+      }
+   },
+   "load file": {
+      "label": "Data",
+      "args":2,
+      "output":1,
+      "getExp": "return 'getfile';"
+   },
     "keep variable": {
-		"label": "Data",
-		"args":1,
-		"output":-1,
-		"getExp":"return 'assign';"		
-	},
+      "label": "Data",
+      "args":1,
+      "output":-1,
+      "getExp":"return 'assign';"      
+   },
     "alert": {
-		"label": "Display",
-		"args":1,
-		"getExp":"return 'popup';"
+      "label": "Display",
+      "args":1,
+      "getExp":"return 'popup';"
 
-	},
+   },
     "inject HTML": {
-		"label": "Display",
-		"args":1,
-		"getExp":"return 'inject';"
-	},
+      "label": "Display",
+      "args":1,
+      "getExp":"return 'inject';"
+   },
     "arithmetic": {
-		"label": "Math",
+      "label": "Math",
         "args": 2,
         "group": {
-			"+": {"getExp":"return 'plus';"},
+         "+": {"getExp":"return 'plus';"},
             "-": {"getExp":"return 'minus';"},
             "*": {"getExp":"return 'times';"},
             "\/": {"getExp":"return 'divide';"},
-			"\\": {"getExp":"return 'intdiv';"},
+         "\\": {"getExp":"return 'intdiv';"},
             "mod": {"getExp":"return 'mod';"},
             "power": {"getExp":"return 'power';"}
         }
     },
     "function": {
-		"label": "Math",
+      "label": "Math",
         "args": 1,
         "group": {
-			"sqrt": {},
+         "sqrt": {},
             "sin": {},
             "cos": {},
             "tan": {},
@@ -65,10 +65,10 @@
         }
     },
     "Statistics": {
-		"label": "Math",
+      "label": "Math",
         "args": 1,
         "group": {
-			"min": {},
+         "min": {},
             "max": {},
             "average": {},
             "median": {},
@@ -76,11 +76,11 @@
         }
     },
     "if": {
-		"label": "Conditional",
-		"args":3
-	},
+      "label": "Conditional",
+      "args":3
+   },
     "comparison": {
-		"label": "Conditional",
+      "label": "Conditional",
         "args": 2,
         "group": {
             "<": {"getExp":"return 'lt';"},
@@ -91,7 +91,7 @@
         }
     },
     "type check": {
-		"label": "Conditional",
+      "label": "Conditional",
         "args":1,
         "group": {
             "isNumber":{},
@@ -101,71 +101,71 @@
         }
     },
     "and, or": {
-		"label": "Conditional",
+      "label": "Conditional",
         "args": 2,
         "group": {
             "or": {},
             "and": {}
         }
     },
-	"not": {
-		"label": "Conditional",
-		"args": 1
-	},
-	"parts of array": {
-		"label": "Arrays",
-		"args": 1,
-		"group": {
-			"first": {},
-			"rest": {}
-		}
-	},
-	"array size": {
-		"label": "Arrays",
-		"args": 1,
-		"group": {
-			"size": {},
-			"isEmpty": {}
-		}
-	},
-	"cons": {
-		"label": "Arrays",
-		"args": 2
-	},
-	"join": {
-		"label":"Strings",
-		"args": 2
-	},
-	"split": {
-		"label":"Strings",
-		"args": 2
-	},
-	"concat": {
-		"label":"Strings",
-		"args": 2
-	},
-	"use block": {
-		"label": "Blocks",
-		"args": 1
-	},
-	"apply": {
-		"label": "Blocks",
-		"args": 2
-	},
-	"parameters": {
-		"label": "Blocks",
-		"args": 1
-	},
-	"map": {
-		"label": "Blocks",
-		"args": 2
-	},
-	"reduce": {
-		"label": "Blocks",
-		"args": 3
-	},
-	"filter": {
-		"label": "Blocks",
-		"args": 2
-	}
+   "not": {
+      "label": "Conditional",
+      "args": 1
+   },
+   "parts of array": {
+      "label": "Arrays",
+      "args": 1,
+      "group": {
+         "first": {},
+         "rest": {}
+      }
+   },
+   "array size": {
+      "label": "Arrays",
+      "args": 1,
+      "group": {
+         "size": {},
+         "isEmpty": {}
+      }
+   },
+   "cons": {
+      "label": "Arrays",
+      "args": 2
+   },
+   "join": {
+      "label":"Strings",
+      "args": 2
+   },
+   "split": {
+      "label":"Strings",
+      "args": 2
+   },
+   "concat": {
+      "label":"Strings",
+      "args": 2
+   },
+   "use block": {
+      "label": "Blocks",
+      "args": 1
+   },
+   "apply": {
+      "label": "Blocks",
+      "args": 2
+   },
+   "parameters": {
+      "label": "Blocks",
+      "args": 1
+   },
+   "map": {
+      "label": "Blocks",
+      "args": 2
+   },
+   "reduce": {
+      "label": "Blocks",
+      "args": 3
+   },
+   "filter": {
+      "label": "Blocks",
+      "args": 2
+   }
 }

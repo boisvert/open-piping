@@ -1,5 +1,6 @@
+
 /*
-Set of predefined functions 
+Set of predefined functions
 predefined functions both define the gui blocks
 and this compilation, so the functions are loaded in the editor
 
@@ -10,39 +11,653 @@ substitutions could uncoupling language specific structures
 and replace special cases of the compiler engine
 like conditionals and possibly function definition
 
-A stack of defined vars (setq) is also maintained
+A stack of defined vars (store) is also maintained
 */
+
+let predefined_functions = {},
+    predefined_replacements = {};
+
+// Collection: a class of data {name:value, name2:value2}
+
+const Collection = {
+
+   init: function() {
+	   this.list = {};
+	   return this;
+   },
+
+   clear: function() {
+      this.list={};
+      return this;
+   },
+
+   empty: function() {
+      return (this.size() == 0);
+   },
+
+   contains: function(lbl) {
+      return this.list[lbl] != undefined;
+   },
+
+   add: function (lbl,e) {
+      if (this.contains(lbl))
+         return false;
+      this.list[lbl] = e;
+      return this;
+   },
+
+   set: function (lbl,e) {
+      this.list[lbl] = e;
+      return this;
+   },
+
+   get: function(lbl) {
+      return this.list[lbl];
+   },
+
+   remove: function (lbl) {
+      if (this.contains(lbl)) {
+         delete this.list[lbl];
+         return this;
+      } else {
+         return false;
+      }
+   },
+
+   removeAll: function (lbls) {
+      return lbls.map(this.remove);
+   },
+
+   size: function() {
+      return Object.keys(this.list).length;
+   },
+
+   map: function(f) {
+      return this.list.map(f);
+   }
+
+}
 
 // String with the resulting code
 // plus simple encapsulated functions
 
-var predefined_functions = {},
-    predefined_replacements = {};
+const CodeString = {
+    nl: "\n\n",
+	
+    init: function() {
+        this.text = "";
+        this.level = 0;
+		return this;
+    },
 
-function codeString() {
-    this.text = "";
-	this.level = 0;
-}
-
-codeString.prototype = {
-	nl: "\n\n",
     clear: function() {
-		this.text = "";
-		this.level = 0;
-	},
+        this.text = "";
+        this.level = 0;
+    },
     line: function(lin) {
-		lin = " ".repeat(this.level)+lin;
-		this.text += lin + this.nl;
-	},
-	nest: function() {
-		this.level += 3;
-	},
-	denest: function() {
-		if (this.level>=3) this.level-=3;
-	}
+        lin = " ".repeat(this.level)+lin;
+        this.text += lin + this.nl;
+    },
+    nest: function() {
+        this.level += 3;
+    },
+    denest: function() {
+        if (this.level>=3) this.level-=3;
+    }	
+}
+
+/*
+function CodeString() {
+    this.text = "";
+    this.level = 0;
+}
+
+CodeString.prototype = {
+    nl: "\n\n",
+    clear: function() {
+        this.text = "";
+        this.level = 0;
+    },
+    line: function(lin) {
+        lin = " ".repeat(this.level)+lin;
+        this.text += lin + this.nl;
+    },
+    nest: function() {
+        this.level += 3;
+    },
+    denest: function() {
+        if (this.level>=3) this.level-=3;
+    }
+}
+*/
+
+const globalCode = Object.create(CodeString).init(); // new CodeString();
+
+// list of functions in use (to not repeat them)
+// this is the "d-list" of defined functions in LISP interpreters
+const FunctionsCollection = {
+	
+	init: function() {
+       this.list = [];
+	   return this;
+    },
+    clear: function() {
+        this.list=[];
+        return this;
+    },
+    notContain: function(F) {
+        return this.list.indexOf(F) === -1;
+    },
+    add: function (F) {
+        this.list.push(F);
+        return this;
+    }
+}
+
+const includedFunctions = Object.create(FunctionsCollection).init();
+
+/* list of tokens (variables) in use, to parse them
+   with encapsulated functions for handling the list
+   list of substitutions already parsed */
+const readyReplacements = {
+    list: [],
+    clear: function() {
+        readyReplacements.list=[];
+        return readyReplacements;
+    },
+    contain: function(X) {
+        return readyReplacements.list.indexOf[X] >= 0;
+    },
+    set: function (X,R) {
+        readyReplacements.list[X] = R;
+        return readyReplacements;
+    },
+    get: function (X) {
+        if (readyReplacements.contain(X))
+            return readyReplacements[X];
+        else
+            return false;
+    }
+}
+
+/*
+The "process" needs improvemet
+Need a wrapper object that limits the scope of needed functions
+secures the execution and provides support e.g. display, timing, execution journal
+*/
+function compile(Exp) {
+   includedFunctions.clear();
+   tokens.clear();
+   readyReplacements.clear();
+   globalCode.clear();
+   globalCode.line("// Automatically generated code");
+   const call = encode(Exp,globalCode);
+   globalCode.line("function pipe() { return "+call+"; }");
+   return globalCode.text;
+}
+
+function encode(Exp,vars) {
+    let res;
+
+    if (isArray(Exp)) {
+    // cases 1 to 6 - Exp is an array
+        res = encodeArray(Exp,vars);
+    }
+    else if (isString(Exp)) {
+    // case 7: expression is a known variable
+        if (tokens.contains(Exp)) res = Exp;
+    // case 8: expression is a string
+        else res = '"'+Exp+'"';
+    }
+    // case 9: expression is anything else - left unprocessed - works for number, boolean, null
+    else res = Exp;
+
+    // done
+    return res;
+}
+
+function encodeArray(Exp, vars) {
+
+    let res = null;
+    // case 1: expression is an empty array
+    if (Exp.length==0)
+        res = '[]';
+    else
+    // Cases 2-6: non-empty array
+    {
+        let H = Exp[0]; // take the head
+        let choice = caseOfHead(H);
+
+        if (choice==2)
+        //  case 2: Exp is a data array
+            res = '['+encodeEach(Exp,vars)+']';
+        else
+        {
+            Exp.shift(); // keep all but the head
+
+        // case 3: expression is a function definition
+            if (choice==3) {
+                globalCode.line(defun(Exp[0],Exp[1],Exp[2]));
+                res = encode(Exp[3],vars);
+            }
+        // case 4: expression is a variable setting
+            else if (choice==4) {
+                let tok = Exp[0];
+                tokens.stack(tok);
+                res = tok;
+                vars.line("let "+tok+" = "+encode(Exp[1])+";");
+            }
+        // case 4.2: (yeah, well...) expression is a block (function or replacement) reference
+            else if (choice==4.2) { // [block,H]
+                H = Exp[0]; // block name
+                debugMsg(Exp, "is block", H);
+                enforce(H, isString); // must be a string: it's a function call (!)
+                if ((H in predefined_functions) || tokens.contains(H)) { //    si H est une fonction
+                    getOperator(H); //      -- ajouter H aux fonctions en usage
+                    res = H;
+                }
+                else if (H in predefined_replacements) { //    si x est un remplacement
+                    // -- ajouter x = (arg1, ...) => (...) -- exemple plus = (a,b) => (a+b);
+                    debugMsg(H,"is predefined, ");
+                    res = getSubstitutor(H);
+                    let s = predefined_replacements[H].args;
+                    const args = predefined_replacements[H].args.split(',');
+                    res = "("+ s + ")=>"+res(args);
+                }
+                else
+                    throw "Block requires a block name";
+            }
+        // case 4.5: expression is a higher order function (x->y)->z
+            else if (choice==4.5) {
+                //const Arguments = encodeEach(Exp,vars);
+                H = encode(Exp[0],vars); // block to encode
+                enforce(H, isString); // must be a string: it's a function call (!)
+                 // Arguments.shift(); // rest are arguments
+                const Arguments = encodeEach(Exp[1],vars);
+                debugMsg("apply",H,"to",Arguments);
+                if (H.indexOf(")=>(")>-1) { //    H is a replacement (anon function)
+                    res = "("+H+").apply(this,["+Arguments+"])";
+                }
+                else if ((H in predefined_functions) || tokens.contains(H))
+                {
+                    // NOT FINISHED if H is a token, we resolve it,
+                    // but also we need to find and process the prerequisite functions
+                    res = H+"("+Arguments.join(",")+")"; // H+".apply(this,"+Arguments+")";
+                }
+                else {
+                    throw "Apply requires a block";
+                }
+            }
+        // case 5: predefined_replacements
+            else if (choice==5) {
+                let s = getSubstitutor(H);
+                // should there be validation on number and type of arguments?
+                let args = encodeEach(Exp,vars);
+                res = s(args);
+            }
+        // case 6: expression is a function call
+            else if (choice==6) {
+                // getOperator returns the string defining the function
+                let op = getOperator(H);
+                // should there be validation on number and type of arguments?
+                let args = encodeEach(Exp,vars);
+                res = op(args); //H+"("+arguments.join(",")+")";
+            } // case 6
+        } // cases 3-6
+    } // cases 2-6 (non-empty array)
+
+    return res;
+}
+
+function caseOfHead(H) {
+   if (H=="defun") return 3; //function definition
+   if (H=="store") return 4; // variable
+   if (H=="block") return 4.2; // variable
+   if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
+   if (H in predefined_replacements) return 5; // JSON replacement
+   if (H in predefined_functions) return 6; // JSON function
+   return 2; // anything else - data array
+}
+
+function encodeEach(E,vars) {
+    enforce(E, isArray);
+    debugMsg("encoding each of",E, E.length);
+    let Res = [];
+    if (E.length>0) {
+        debugMsg("encoding "+E[0]);
+        let First = encode(E[0],vars);
+        E.shift();
+        Res = encodeEach(E,vars);
+        if (First === null) {
+            debugMsg("tokens - not added to exec");
+        }
+        else {
+            Res.unshift(First);
+        }
+    }
+   return Res;
+}
+
+// defun adds necessary code for the function definition and updates the list of functions available
+// and the list of functions in use
+// not correctly chunked - the work of defining the function,
+// and its use, are tightly coupled here
+
+// the syntax is javascript: foo = function (arguments) {return body;}
+function defun(name,args,body) {
+    // adds a function definition to the "predefined functions" JSON list
+    debugMsg("defun",name,args,body);
+    includedFunctions.add(name); // needed for recursive functions
+    const fd = Object.create(FunData).init();
+    fd.setName(name);
+    fd.lambda(args,body);
+    return fd.getFun(name);
+}
+
+const FunData = {
+	
+   init: function() {
+      this.args = "";
+      this.js = "null";
+      this.name = null;
+	  return this;
+   },
+
+    setName(name) {
+        this.name = name;
+        predefined_functions[name] = this;
+        return this;
+    },
+
+    lambda: function (args,body) {
+        this.args = args.join(", ");
+        tokens.stackAll(args); // tokens list is filled with the function arguments
+        this.js = "return "+encode(body,globalCode)+";"; // vars???
+        tokens.removeAll(args);
+        return this;
+    },
+
+    getFun: function(name) {
+        const result = Object.create(CodeString).init(); //new CodeString();
+        result.line(name+" = function ("+ this.args + ") {");
+        result.line(this.js);
+        result.line("}");
+        return result.text;
+    }
+}
+
+/*
+TODO: Substitor object
+===
++ready bool false // flag - true once preprocessing has been done
++definition JSON {args:"", js:""} // from JSON file
++argIndexes Array [] // of integers, the index of each argument to use
++resultParts Array [] // of strings, the code to use in between arguments
+===
+getSubstitutor
+process
+startswithwhich
+
+*/
+
+const Substitutor = {
+	
+   init: function() {
+      this.ready = false;
+      this.definition = {};
+      this.argIndexes = []; // of integers, the index of each argument to use
+      this.resultParts = []; // of strings, the code to use in between arguments
+      return this;
+   },
+
+    getSubstitutor: function(X) {
+        let s;
+
+        if (readyReplacements.contain(X)) {
+            s = readyReplacements.get(X);
+        }
+        else {
+            let rX = predefined_replacements[X];
+
+            // parse rX.args and get strings to replace in the substitution
+            let args = rX.args.split(',').map($.trim);
+
+            // then parse rX.js - get the substrings that start with substitutions
+            let reps = rX.js.split('@');
+
+            // each string in reps (bar the first) starts with one of the strings in args
+            // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
+            let indexes = [];
+            // results_parts is a list of strings that need to be concatenated
+            let result_parts = [reps[0]]; // ['','?',':',''] ;
+
+            let i;
+            for (i=1; i<reps.length; i++) {
+                let ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
+                indexes.push(ind); // add to indexes array
+                let res_part = reps[i].slice(args[ind].length); // find the next substring
+                result_parts.push(res_part);
+            }
+
+            // return a function that makes the subtitition
+            // the function uses indexes and results_parts which are in its environment
+            // (thank you closure!)
+            s = function(bits) {
+                    let res = '(';
+                    for (let i=0; i<indexes.length; i++) {
+                        res += result_parts[i]+bits[indexes[i]];
+                    }
+                    res += result_parts[i] + ')';
+                    return res;
+                };
+            // add prerequisites to the code
+            if (rX.requires) {
+                let pre = rX.requires.map(getOperator);
+                globalCode.line(pre.join(""));
+            }
+
+            readyReplacements.set(X,s);
+        }
+
+        return s;
+    }
 
 }
 
+function getSubstitutor(X) {
+    let s;
+
+    if (readyReplacements.contain(X)) {
+        s = readyReplacements.get(X);
+    }
+    else {
+        let rX = predefined_replacements[X];
+
+        // parse rX.args and get strings to replace in the substitution
+        let args = rX.args.split(',').map($.trim);
+
+        // then parse rX.js - get the substrings that start with substitutions
+        let reps = rX.js.split('@');
+
+        // each string in reps (bar the first) starts with one of the strings in args
+        // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
+        let indexes = [];
+        // results_parts is a list of strings that need to be concatenated
+        let result_parts = [reps[0]]; // ['','?',':',''] ;
+
+        for (let i=1; i<reps.length; i++) {
+            let ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
+            indexes.push(ind); // add to indexes array
+            let res_part = reps[i].slice(args[ind].length); // find the next substring
+            result_parts.push(res_part);
+        }
+
+        // return a function that makes the subtitition
+        // the function uses indexes and results_parts which are in its environment
+        // (thank you closure!)
+        s = function(bits) {
+                let res = '(';
+            let i;
+                for (i=0; i<indexes.length; i++) {
+                    res += result_parts[i]+bits[indexes[i]];
+                }
+                res += result_parts[i] + ')';
+                return res;
+            };
+        // add prerequisites to the code
+        if (rX.requires) {
+            let pre = rX.requires.map(getOperator);
+            globalCode.line(pre.join(""));
+        }
+
+        readyReplacements.set(X,s);
+    }
+
+    return s;
+}
+
+function getOperator(X) {
+
+   if (includedFunctions.notContain(X)) {
+      let fX = predefined_functions[X];
+      includedFunctions.add(X);
+
+      // concatenate function definition
+      globalCode.line(
+         "function "+ X + "(" + fX.args + ") {\n" +
+         "   "+fX.body+"\n"+
+         "}");
+
+      // find pre-requisites
+      if (fX.requires) {
+         fX.requires.map(getOperator);
+      }
+   }
+
+   return function (Args) {return X+"("+Args.join(",")+")";};
+}
+
+/* start with which takes a list of tokens and a string to check.
+// It returns the index of the token with which the string starts
+// if the string starts with none of them, it returns undefined. */
+function startsWithWhich(toks, str) {
+    for (let which=0; which<toks.length; which++) {
+        if (str.indexOf(toks[which])==0) {
+            return which;
+        }
+    }
+    debugMsg('Not found any "'+toks+'" in "'+str+'"');
+    return undefined;
+}
+
+/* collection classes
+// bag = array of data (as in [a,b,c])
+// with encapsulated functions for handling
+*/
+const Bag = {
+   init: function() {
+      this.list = [];
+	  return this;
+   },
+
+   clear: function() {
+      this.list=[];
+      return this;
+   },
+
+   empty: function() {
+      return (this.size() == 0);
+   },
+
+   contains: function(e) {
+      return this.list.indexOf(e)>=0;
+   },
+
+   queue: function (e) {
+      this.list.push(e);
+      return this;
+   },
+
+   queueAll: function (es) {
+      debugMsg("queuing",es,"at the end of",this.list)
+      es.forEach(e => this.queue(e));
+      return this;
+   },
+
+   stack: function (e) {
+      this.list.unshift(e);
+      return this;
+   },
+
+   stackAll: function (es) {
+      debugMsg("stacking ",es);
+      const st = this.stack.bind(this);
+      es.forEach(st);
+      return this;
+   },
+
+   get: function(n) {
+      return this.list[n];
+   },
+
+   remove: function (e) {
+      if (this.contains(e)) {
+         this.list.splice(this.list.indexOf(e),1)
+         return this;
+      } else {
+         return false;
+      }
+   },
+
+   removeAll: function (es) {
+      const rm = this.remove.bind(this);
+      return es.forEach(rm);
+   },
+
+   dequeue: function (n) {
+      if (!n) n=1;
+      do {this.list.shift();} while (n-->0);
+      return this;
+   },
+
+   find: function(e) {
+      return this.list.indexOf(e);
+   },
+
+   size: function() {
+      return this.list.length;
+   },
+
+   map: function(f) {
+      return this.list.map(f);
+   }
+
+};
+
+const tokens = Object.create(Bag).init(); // was TokenCollection();
+
+const TokenGenerator = {
+      init: function(tok,index) {
+      // tokenGenerator - makes strings token+number
+      this.tokIndex = $.isNumeric(index)?parseInt(index):1;
+      this.tokString = tok;
+      return this;
+   },
+   next: function() {
+      const res = this.tokString+this.tokIndex;
+      this.tokIndex++;
+      return res;
+   },
+   last: function() {
+      return this.tokString+(this.tokIndex-1);
+   },
+   num: function() {
+      return this.tokIndex;
+   }
+}
+
+/* String extensions
+   repeat, replaceAll, unescape */
 String.prototype.repeat = String.prototype.repeat || function(n){
   n= n || 1;
   return Array(n+1).join(this);
@@ -58,384 +673,8 @@ String.prototype.unescape = function() {
     return target //.replaceAll('\\n','\n').replaceAll('\\t','\t').replaceAll('\\\\','\\');
 };
 
-var globalCode = new codeString();
-
-// list of functions in use (to not repeat them)
-// this is the "d-list" of defined functions in LISP interpreters
-var includedFunctions = {
-    list: [],
-    clear: function() { 
-        includedFunctions.list=[];
-        return includedFunctions;
-    },
-    notContain: function(F) {
-        return includedFunctions.list.indexOf(F) === -1;
-    },
-    add: function (F) {
-        includedFunctions.list.push(F);
-        return includedFunctions;
-    }
-}
-
-// list of tokens (variables) in use, to parse them
-// with encapsulated functions for handling the list
-var tokens = {
-    list: [],
-
-    clear: function() {
-        tokens.list=[];
-        return tokens;
-    },
-
-    contain: function(tok) {
-        return tokens.list.indexOf(tok)>=0;
-    },
-
-    add: function (tok) {
-        tokens.list.unshift(tok);
-        return tokens;
-    },
-
-    addAll: function (toks) {
-        debugMsg(toks); 
-        toks.map(tokens.add)
-    },
-
-    remove: function (tok) {
-        if (tokens.contain(tok)) {
-            return false;
-        } else {
-            tokens.list.splice(list.indexOf(tok),1)
-            return tokens;
-        }
-    },
-
-    removeAll: function (toks) {
-        toks.map(tokens.remove);
-    },
-
-    shift: function (n) {
-        if (!n) n=1;
-        do {tokens.list.shift();} while (n-->0);
-        return tokens;
-    }
-};
-
-// list of substitutions already parsed
-const readyReplacements = {
-    list: [],
-    clear: function() { 
-        readyReplacements.list=[];
-        return readyReplacements;
-    },
-    contain: function(X) {
-        return readyReplacements.list.indexOf[X] >= 0;
-    },
-    set: function (X,R) {
-        readyReplacements.list[X] = R;
-        return readyReplacements;
-    },
-    get: function (X) {
-        if (readyReplacements.contain(X))
-            return readyReplacements[X];
-        else
-            return false;        
-    }
-}
-
-/*
-The "process" needs rethinking
-Some wrapper object that limits the scope of needed functions
-secures the execution and provides support e.g. display, timing, execution journal 
-*/
-function compile(Exp) {
-   includedFunctions.clear();
-   tokens.clear();
-   readyReplacements.clear();
-   globalCode.clear();
-   globalCode.line("// Automatically generated code");
-   const call = encode(Exp,globalCode);
-   globalCode.line("function pipe() { return "+call+"; }");
-   return globalCode.text;
-}
-
-function encode(Exp,vars) {
-    var res;
-
-    if (isArray(Exp)) {
-    // cases 1 to 6 - Exp is an array
-        res = encodeArray(Exp,vars);
-    }
-    else if (isString(Exp)) {
-    // case 7: expression is a known variable
-        if (tokens.contain(Exp)) res = Exp;
-	/* old approach 
-    // case 7.5 (ahem...) - expression is a function being given as parameter
-	    else if(Exp.indexOf('\\') == 0) {
-			res = Exp.substring(1);
-			getOperator(res); 
-		}
-	*/
-    // case 8: expression is a string
-        else res = '"'+Exp+'"';
-    }
-    // case 9: expression is anything else - left unprocessed - works for number, boolean, null
-    else res = Exp;
-
-    // done
-    return res;
-}
-
-function encodeArray(Exp, vars) {
-
-    var res = null;
-    // case 1: expression is an empty array
-    if (Exp.length==0)
-        res = '[]';
-    else
-    // Cases 2-6: non-empty array 
-    {
-        var H = Exp[0]; // take the head
-        var choice = caseOfHead(H);
-
-        if (choice==2)
-        //  case 2: Exp is a data array
-            res = '['+encodeEach(Exp,vars)+']';
-        else
-        {
-            Exp.shift(); // keep all but the head
-
-        // case 3: expression is a function definition
-            if (choice==3) {
-                defun(Exp[0],Exp[1],Exp[2]);
-				res = encode(Exp[3],vars);
-            }
-        // case 4: expression is a variable setting
-            else if (choice==4) {
-                var tok = Exp[0];
-                tokens.add(tok);
-				res = tok;
-                vars.line("var "+tok+" = "+encode(Exp[1])+";");
-            }
-		// case 4.2: (yeah, well...) expression is a block (function or replacement) reference
-			else if (choice==4.2){
-				
-				/* [block,x]
-					si x est une fonction	
-					  -- ajouter x aux fonctions en usage
-					si x est un remplacement
-					  -- ajouter x = (arg1, ...) => (...) -- exemple plus = (a,b) => (a+b);
-					retourner x
-				*/
-				H = Exp[0]; // block name
-				debugMsg(Exp, "is block", H);
-				enforce(H, isString); // must be a string: it's a function call (!)
-				if ((H in predefined_functions) || tokens.contain(H)) {
-					getOperator(H); 
-					res = H;
-				}
-				//	H is a replacement... TBC
-				else if (H in predefined_replacements) {
-					// replacement: adapt getOperator to create an anon. function (a) => op(a)
-					debugMsg(H,"is predefined, ");
-					res = getSubstitutor(H);
-					var s = predefined_replacements[H].args;
-					const args = predefined_replacements[H].args.split(',');
-					res = "("+ s + ")=>"+res(args);
-				}
-				else
-				    throw "Block requires a block name";				
-			}
-        // case 4.5: expression is a higher order function (x->y)->z
-            else if (choice==4.5) {
-				const Arguments = encodeEach(Exp,vars);
-				H = Arguments[0]; // new head
-				debugMsg("apply",H);
-				enforce(H, isString); // must be a string: it's a function call (!)
- 				Arguments.shift(); // rest are arguments
-				 if (H.indexOf(")=>(")>-1) { //	H is a replacement (anon function)
-					res = "("+H+").apply(this,"+Arguments+")";
-				}
-				else if ((H in predefined_functions) || tokens.contain(H))
-				{
-					// NOT FINISHED if H is a token, we resolve it,
-					// but also we need to find and process the prerequisite functions
-					res = H+"("+Arguments+")"; // H+".apply(this,"+Arguments+")";
-				}
-				else {
-				    throw "Apply requires a block";				
-				}
-			}
-        // case 5: predefined_replacements
-            else if (choice==5) {
-                var s = getSubstitutor(H);
-                // should there be validation on number and type of arguments?
-                Arguments = encodeEach(Exp,vars);
-                res = s(Arguments);
-            }
-        // case 6: expression is a function call
-            else if (choice==6) {
-                // getOperator returns the string defining the function
-                var op = getOperator(H);
-                // should there be validation on number and type of arguments?
-                Arguments = encodeEach(Exp,vars);
-                res = op(Arguments); //H+"("+Arguments.join(",")+")";
-            } // case 6
-        } // cases 3-6
-    } // cases 2-6 (non-empty array)
-
-    return res;
-}
-
-function caseOfHead(H) {
-   if (H=="defun") return 3; //function definition
-   if (H=="setq") return 4; // variable
-   if (H=="block") return 4.2; // variable
-   if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
-   if (H in predefined_replacements) return 5; // JSON replacement
-   if (H in predefined_functions) return 6; // JSON function
-   return 2; // anything else - data array
-}
-
-function encodeEach(E,vars) {
-    enforce(E, isArray);
-    debugMsg("encoding each of",E, E.length);
-    var Res = [];
-    if (E.length>0) {
-        debugMsg("encoding "+E[0]);
-        var First = encode(E[0],vars);
-        E.shift();
-        var Res = encodeEach(E,vars);
-        if (First === null) {
-			debugMsg("tokens - not added to exec");
-		}
-		else {
-			Res.unshift(First);
-		}
-    }
-   return Res;
-}
-
-// defun adds necessary code for the function definition and updates the list of functions available
-// and the list of functions in use
-// the syntax is javascript: funtion foo(arguments) {return body;}
-function defun(name,args,body) {
-    // adds a function definition to the "predefined functions" JSON list
-    var f = {};
-    f["args"] = args.join(", ");
-    predefined_functions[name] = f;
-    includedFunctions.add(name);
-    tokens.addAll(args); // tokens list is filled with the function arguments
-	var vars = new codeString();
-	vars.line("function "+ name + "("+ f["args"] + ") {");
-    debugMsg(tokens);
-    vars.line("return "+encode(body,vars)+";");
-	vars.line("}");
-	debugMsg("defun",vars.text);
-    f["body"] = vars.text+" "+body;
-    tokens.removeAll(args);
-    globalCode.line(vars.text);
-}
-
-/*
-TODO: replacement object
-===
-+ready bool false // flag - true once preprocessing has been done
-+definition JSON {args:"", js:""} // from JSON file
-+argIndexes Array [] // of integers, the index of each argument to use
-+resultParts Array [] // of strings, the code to use in between arguments
-===
-getSubstitutor
-process
-startswithwhich
-
-*/
-
-function getSubstitutor(X) {
-    var s;
-    
-    if (readyReplacements.contain(X)) {
-        s = readyReplacements.get(X);
-    }
-    else {
-        rX = predefined_replacements[X];
-
-        // parse rX.args and get strings to replace in the substitution
-        args = rX.args.split(',').map($.trim);
-        
-        // then parse rX.js - get the substrings that start with substitutions
-        reps = rX.js.split('@');
-        
-        // each string in reps (bar the first) starts with one of the strings in args
-        // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
-        var indexes = [];
-        // results_parts is a list of strings that need to be concatenated
-        var result_parts = [reps[0]]; // ['','?',':',''] ;
-
-        for (var i=1; i<reps.length; i++) {
-            ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
-            indexes.push(ind); // add to indexes array
-            res_part = reps[i].slice(args[ind].length); // find the next substring
-            result_parts.push(res_part);
-        }
-
-        // return a function that makes the subtitition
-        // the function uses indexes and results_parts which are in its environment
-        // (thank you closure!)
-        s = function(bits) {
-                var res = '(';
-                for (var i=0; i<indexes.length; i++) {                
-                    res += result_parts[i]+bits[indexes[i]];
-                }
-                res += result_parts[i] + ')';
-                return res;
-            };
-        // add prerequisites to the code
-        if (rX.requires) {
-            var pre = rX.requires.map(getOperator);
-            globalCode.line(pre.join(""));
-        }
-
-        readyReplacements.set(X,s);
-    }
-
-    return s;
-}
-
-function getOperator(X) {
-    
-    if (includedFunctions.notContain(X)) {
-        fX = predefined_functions[X];
-        includedFunctions.add(X);
-
-        // concatenate function definition
-        globalCode.line("function "+ X + "(" + fX.args + ") {" + fX.body +"}");
-
-        // find pre-requisites
-        if (fX.requires) {
-            fX.requires.map(getOperator);
-        }
-    }
-    
-    return function (Args) {return X+"("+Args.join(",")+")";};
-}
-
-
-// start with which takes a list of tokens and a string to check.
-// It returns the index of the token with which the string starts
-// if the string starts with none of them, it returns undefined.
-function startsWithWhich(toks, str) {
-    for (var which=0; which<toks.length; which++) {
-        if (str.indexOf(toks[which])==0) {
-            return which;
-        }
-    }
-    debugMsg('Not found any "'+toks+'" in "'+str+'"');
-    return undefined;
-}
-
-// crude type checking
-// there is a type checking library that would be more appropriate
+/* crude type checking
+   there is a type checking library that would be more appropriate */
 function enforce(X,check) {
     if (!check(X))
         throw JSON.stringify(X,null,3)+" fails the check "+check;
@@ -446,51 +685,115 @@ function isString(s) {
 }
 
 function isArray(a) {
-   return (typeof a === 'array' || a instanceof Array);
+   return Object.prototype.toString.call(a) === '[object Array]';
+   //return a.isArray(); // <-- should work
 }
 
 function debugMsg() {
     if (debugMode) { // set debugMode to true to turn on debugging
         const m = [];
-		const seen = [];
+        const seen = [];
+      let i;
         for (i in arguments) {
-			const a = arguments[i];
-			if (typeof a == "object" && a != null)
+            const a = arguments[i];
+            if (typeof a == "object" && a != null)
                 m.push(JSON.stringify(a, function(key, val) {
-				    if (typeof val == "object" && val != null) {
-					   if (seen.indexOf(val) >= 0) {
-						    return "_seen";
-					   }
-					   seen.push(val);
-				    }
-					return val;
-				} ), 3 );
-			else m.push(a);
+                    if (typeof val == "object" && val != null) {
+                       if (seen.indexOf(val) >= 0) {
+                            return "_seen";
+                       }
+                       seen.push(val);
+                    }
+                    return val;
+                } ) );
+            else m.push(a);
         }
         console.log(m.join(" "));
     }
 }
 
 jsPlumb.ready(function() {
-	// load js
-	debugMsg("load js interpretation data");
-	$.ajax({
-		url: "js_blocks.json",
-		beforeSend: function(xhr){
-			if (xhr.overrideMimeType) {
-				xhr.overrideMimeType("application/json");
-			}
-		},
-		success: function(json) {
-			debugMsg("found js data",json);
-			predefined_functions = json.functions;
-			predefined_replacements = json.replace;
-		},
-		error: function(_, status, err) {debugMsg(status+'\n'+err);}
-	});
+    // load js
+    debugMsg("load js interpretation data");
+    $.ajax({
+        url: "js_blocks.json",
+        beforeSend: function(xhr){
+            if (xhr.overrideMimeType) {
+                xhr.overrideMimeType("application/json");
+            }
+        },
+        success: function(json) {
+            debugMsg("found js data",json);
+            predefined_functions = json.functions;
+            predefined_replacements = json.replace;
+        },
+        error: function(_, status, err) {debugMsg(status+'\n'+err);}
+    });
 });
 
+/* parameters of function
+// source: https://www.geeksforgeeks.org/how-to-get-the-javascript-function-parameter-names-values-dynamically
+
+// lookup regexp to find how to reomove from pattern (=>) to end of a string
+*/
+function getParams(func) {
+
+    // String representaation of the function code
+    const str = func.toString()
+            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove comments of the form /* ... */
+            .replace(/\/\/(.)*/g, '') // Removing comments of the form //
+            .replace(/{[\s\S]*}/, '') // Remove body of the function { ... }
+            .replace(/=>*/g, ''); // removing '=>' if func is arrow function
+
+    // Start parameter names after first '('
+    const start = str.indexOf("(") + 1;
+
+    // End parameter names is just before first ')'
+    const end = str.indexOf(")");
+
+    const result = str.substring(start, end).split(",");
+
+    let params = [];
+
+    result.forEach(element => {
+
+        // Removing any default value
+        element = element.replace(/=[\s\S]*/g, '').trim();
+
+        if(element.length > 0)
+            params.push(element);
+    });
+
+    return params;
+}
+
 /*
+
+// 2200 LOC
+
+// encapsulation in ES5
+const Animal = {
+  init: function(name,species) {
+    this.name = name;
+    this.species = species;
+	return this;
+  },
+  move: function() {
+    console.log('move');
+  }
+}
+
+const Cat = {
+  __proto__: Animal,
+  init: function(name) {
+    this.__proto__.init('Cat');
+	return this;
+  }
+}
+
+fluffy = Object.create(Cat).init('fluffy');
+fluffy.move()
+
 
 (plus 2 3) in JSON = ["plus", 2, 3]
 
@@ -508,7 +811,7 @@ result:
    square(2);
 
 =============
-   
+
 [
   ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],
   ["fac", 10]
@@ -517,7 +820,7 @@ result:
 result:
    function fac(n) {return lt(n,2)?1:times(n,fac(n-1));}
    fac(10);
-   
+
 ====== map defined from "apply" ====
 
 ["apply", "plus", [1, 2]]
@@ -530,16 +833,16 @@ result:
 
 (defun
     map
-    (f arr) 
+    (f arr)
     (if (empty arr)
-	    ()
-	    (concat
-    		(apply
-			    f
-		        ((first arr))
-		    )
-			(map f (rest arr))
-	    )
+        ()
+        (concat
+            (apply
+                f
+                ((first arr))
+            )
+            (map f (rest arr))
+        )
     )
 )
 

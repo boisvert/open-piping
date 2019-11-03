@@ -10,7 +10,7 @@
 
    Later versions are probably compatible, but this code is not compatible with
    jsPlumb 2.2.x and above as it stands.
-   
+  
    The commented links are to use dependencies from a shared repository. Alternatively, host a copy of them.
 -->
 
@@ -26,16 +26,16 @@
 <script src="compile_workflow.js"></script>
 
 <style>
-	
+   
     #theResult {
         border: 1px solid gray;
-		height: 300px;
-		width: 100%;
+      height: 300px;
+      width: 100%;
     }
 
 </style>
 
-    
+   
 <title>Edit and interpret a workflow</title>
 
 <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
@@ -52,7 +52,7 @@
 
 <a href="index.html">workflow</a> | tests | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
-  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
+  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> |
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
 <p>
 
@@ -79,8 +79,8 @@ Language:
 <span id="timing"></span> <br />
 
 <div id="codeDetails">
-	<textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
-	<textarea id="result" cols="60" rows="10"></textarea>
+   <textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
+   <textarea id="result" cols="60" rows="10"></textarea>
 </div> <br />
 
 <div id="theResult"></div>
@@ -94,17 +94,17 @@ var debugMode = true; // set to true to turn on debugging
 // show sample of code
 function inject(num) {
    if (num>=0) {
-	   var samples = [
-		  '1',
-		  '[1, 2, 3, "a", "b", "c"]',
-		  '["or",["isNumber", 3], ["isNumber", "a"]]',
-		  '["plus", 1, 2]',
-		  '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
-		  '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
-		  '[\n  "defun", "mymap", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["mymap", "f", ["rest", "arr"] ] ]\n],\n  ["mymap", ["block", "isNumber"], [1,2,3,"a","b","c"] ] \n]',
-	   ];
-	   $('#s-exp').val(samples[num]);
-	   getCode();
+      var samples = [
+        '1',
+        '[1, 2, 3, "a", "b", "c"]',
+        '["or",["isNumber", 3], ["isNumber", "a"]]',
+        '["plus", 1, 2]',
+        '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
+        '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
+        '[\n  "defun", "mymap", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["mymap", "f", ["rest", "arr"] ] ]\n],\n  ["mymap", ["block", "isNumber"], [1,2,3,"a","b","c"] ] \n]',
+      ];
+      $('#s-exp').val(samples[num]);
+      getCode();
    }
 }
 
@@ -112,18 +112,18 @@ function inject(num) {
 
 // compile
 function getCode() {
-	var lang = $('#chooseLang').val();
+   var lang = $('#chooseLang').val();
     var exp = $('#s-exp').val();
     chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
 }
 
 function chooseCompiler(Exp,lang,callBack) {
-	debugMsg("compiling in",lang);
+   debugMsg("compiling in",lang);
     if (lang==='JS') {
-		callBack(compile(JSON.parse(Exp)));
+      callBack(compile(JSON.parse(Exp)));
     }
     else if(lang==='PHP') {
-		Exp = encodeURIComponent(Exp);
+      Exp = encodeURIComponent(Exp);
         $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
     }
 }

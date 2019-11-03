@@ -11,7 +11,7 @@
 
    Later versions are probably compatible, but this code is not compatible with
    jsPlumb 2.2.x and above as it stands.
-   
+  
    The commented links are to use dependencies from a shared repository. Alternatively, host a copy of them.
 -->
 
@@ -24,57 +24,57 @@
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
 <script src="../libraries/jsPlumb.2.1.8.min.js"></script>
 
-<script src="workflow_editor.js"></script>
 <script src="compile_workflow.js"></script>
+<script src="workflow_editor.js"></script>
 
 <script>
 
 $( function() {
-	debugMsg("initialising layout");
-	const tgd = $( "#toggleDetails" );
+   debugMsg("initialising layout");
+   const tgd = $( "#toggleDetails" );
 
     tgd.on( "click", toggleDetails);
- 
+
     $( "#codeDetails" ).hide();
 
-    // run the 
+    // run the
     function toggleDetails() {
-		debugMsg("toggling details panel")
-		tgd.attr("disabled", "disabled");
-		if (tgd.attr("value") == "Show details")
-			$( "#codeDetails" ).show( 'slow' , curriedCallback("Hide details") )
-		else
-			$( "#codeDetails" ).hide( 'slow' , curriedCallback("Show details") );
+      debugMsg("toggling details panel")
+      tgd.attr("disabled", "disabled");
+      if (tgd.attr("value") == "Show details")
+         $( "#codeDetails" ).show( 'slow' , curriedCallback("Hide details") )
+      else
+         $( "#codeDetails" ).hide( 'slow' , curriedCallback("Show details") );
     };
 
     //callback function to bring a hidden box back
-	function curriedCallback(t) {
-		return function () { tgd.attr("value",t); return tgd.removeAttr("disabled")};
+   function curriedCallback(t) {
+      return function () { tgd.attr("value",t); return tgd.removeAttr("disabled")};
     };
 
 } );
 
 // change text
 function changeSExp(exp) {
-	$('#s-exp').val(JSON.stringify(exp,null,3));
-	debugMsg("updating s-expression");
-	getCode();
+   $('#s-exp').val(JSON.stringify(exp,null,3));
+   debugMsg("updating s-expression");
+   getCode();
 }
 
 // compile
 function getCode() {
-	var lang = $('#chooseLang').val();
+   var lang = $('#chooseLang').val();
     var exp = $('#s-exp').val();
     chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
 }
 
 function chooseCompiler(Exp,lang,callBack) {
-	debugMsg("compiling in",lang);
+   debugMsg("compiling in",lang);
     if (lang==='JS') {
-		callBack(compile(JSON.parse(Exp)));
+      callBack(compile(JSON.parse(Exp)));
     }
     else if(lang==='PHP') {
-		Exp = encodeURIComponent(Exp);
+      Exp = encodeURIComponent(Exp);
         $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
     }
 }
@@ -109,58 +109,58 @@ var debugMode = true; // set to true to turn on debugging
 
     #createNewBlock {
         width: 90px;
-		font-family: Calibri, Arial, "Sans serif";
-		position: relative;
+      font-family: Calibri, Arial, "Sans serif";
+      position: relative;
         left: -25px; /* top: 10px; */
-		margin: 0px;
+      margin: 0px;
     }
 
-	#maincontainer {
-		 height: 560px;
-	}
+   #maincontainer {
+       height: 560px;
+   }
 
     #pipeContainer {
         margin-left:122px;
         border: 1px solid gray;
         height: 100%;
     }
-	
-	#accordion {
+   
+   #accordion {
         float: left;
-		width: 120px;
-		height: 100%;
-	}
+      width: 120px;
+      height: 100%;
+   }
 
-	#accordion .ui-accordion-content {
-		max-height: 100%;
-		overflow-y: auto;
-		overflow-x: hidden;
-	}
+   #accordion .ui-accordion-content {
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+   }
 
-	#accordion .ui-accordion-header {
-		padding: .2em .2em .2em .2em;
-	}
+   #accordion .ui-accordion-header {
+      padding: 0em .1em 0em .1em;
+   }
 
     .block {
         position: absolute;
         min-height:50px; min-width: 80px;
         border: 1px solid blue;
         flex: 1;
-		font-family: Calibri, Arial, "Sans serif";
-		font-size: 16px;
-	    font-weight: bold;
-	    padding-top: 5px; padding-left: 5px
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+       font-weight: bold;
+       padding-top: 5px; padding-left: 5px
     }
 
     .blockType {
         position: relative;
-		left: -30px;
-		margin: 7px;
+      left: -30px;
+      margin: 7px;
         height:45px; width: 80px;
         border: 1px solid red;
-		font-family: Calibri, Arial, "Sans serif";
-		font-size: 16px;
-	}
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+   }
 
     .block:hover {
         border: 2px solid blue;
@@ -173,22 +173,22 @@ var debugMode = true; // set to true to turn on debugging
     .selectedBlock{
         border: 2px solid blue;
     }
-	
-	.editBlock {
-	    position: absolute;
-		right: 10px; top: 35px;
-	    border: 2px solid black;
-		height: 400px; width: 300px;
-	}
+   
+   .editBlock {
+       position: absolute;
+      right: 10px; top: 35px;
+       border: 2px solid black;
+      height: 400px; width: 300px;
+   }
 
-	.jtk-endpoint {
-	    z-index: 3000 !important;
+   .jtk-endpoint {
+       z-index: 3000 !important;
     }
 
     #theResult {
         border: 1px solid gray;
-		height: 300px;
-		width: 100%;
+      height: 300px;
+      width: 100%;
     }
 
 </style>
@@ -203,20 +203,20 @@ var debugMode = true; // set to true to turn on debugging
 
 wokflow | <a href="exp-tests.html">tests</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a> |
-  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> | 
+  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> |
   <a href="https://github.com/boisvert/open-piping/issues">issues</a>
 <p>
 
 <div id="maincontainer">
-	<div id="accordion"></div>
-	<div id="pipeContainer"></div>
+   <div id="accordion"></div>
+   <div id="pipeContainer"></div>
 </div>
 Compose an expression by using the blocks above.<br />
 
 Language:
 <select id="chooseLang" onChange="getCode();">
-	<option value="JS" selected>JS</option>
-	<option value="PHP">PHP</option>
+   <option value="JS" selected>JS</option>
+   <option value="PHP">PHP</option>
 </select>
 <input type="button" value="Show details" id="toggleDetails" />
 Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
@@ -225,8 +225,8 @@ Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.c
 <br />
 
 <div id="codeDetails">
-	<textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
-	<textarea id="result" cols="60" rows="10"></textarea>
+   <textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
+   <textarea id="result" cols="60" rows="10"></textarea>
 </div> <br />
 
 <div id="theResult"></div>

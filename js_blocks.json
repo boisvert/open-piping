@@ -1,70 +1,70 @@
 {
-	"functions": {
-		"isNumber": {"args": "n", "body": "return $.isNumeric(n);"},
-		"isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},
-		"pythagoras": {"args": "a,b", "body": "return Math.sqrt(a*a+b*b);"},
-		"isEmpty": {"args": "a", "body": "return $.isArray(a) && a.length==0;"},
-		"cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"},
-		"min": {"args": "a", "body": "return a.reduce((item,sofar)=>(item<sofar?item:sofar),a[0]);"},
-		"max": {"args": "a", "body": "return a.reduce((item,sofar)=>(item>sofar?item:sofar),a[0]);"},
-		"sum": {"args": "a", "body": "return a.reduce((item,sofar)=>(item+sofar),0);"},
+   "functions": {
+      "isNumber": {"args": "n", "body": "return $.isNumeric(n);"},
+      "isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},
+      "pythagoras": {"args": "a,b", "body": "return Math.sqrt(a*a+b*b);"},
+      "isEmpty": {"args": "a", "body": "return $.isArray(a) && a.length==0;"},
+      "cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"},
+      "min": {"args": "a", "body": "return a.reduce((item,sofar)=>(item<sofar?item:sofar),a[0]);"},
+      "max": {"args": "a", "body": "return a.reduce((item,sofar)=>(item>sofar?item:sofar),a[0]);"},
+      "sum": {"args": "a", "body": "return a.reduce((item,sofar)=>(item+sofar),0);"},
         "median": {"args": "values", "body": "values.sort((a,b)=>(a<b));\n   const half = Math.floor(values.length / 2);\n   return (values.length % 2)?values[half]:(values[half - 1] + values[half]) / 2;"},
-		"stdevp": {
-			"args": "a",
-		    "body": "const avg = average(a); return Math.sqrt(sum(a.map((e)=>((e-avg)*(e-avg)))))/a.length;",
-			"requires": ["sum", "average"]
-		},
-		"average": {"args": "a", "body": "return sum(a)/a.length;", "requires": ["sum"]},
-		"getfile": {
-			"args": "file,action",
-			"body":
-				"$.ajax({url: file, beforeSend: function(xhr) {if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain')}, success: action})"
-		},
-		"popup": {
-			"args": "txt",
-			"body": "alert(txt); return txt;"
-		},
-		"inject": {
-			"args": "txt",
-			"body": "$('#theResult').append(txt); return txt;"
-		}
-	},
+      "stdevp": {
+         "args": "a",
+          "body": "const avg = average(a); return Math.sqrt(sum(a.map((e)=>((e-avg)*(e-avg)))))/a.length;",
+         "requires": ["sum", "average"]
+      },
+      "average": {"args": "a", "body": "return sum(a)/a.length;", "requires": ["sum"]},
+      "getfile": {
+         "args": "file,action",
+         "body":
+            "$.ajax({url: file, beforeSend: function(xhr) {if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain')}, success: action})"
+      },
+      "popup": {
+         "args": "txt",
+         "body": "alert(txt); return txt;"
+      },
+      "inject": {
+         "args": "txt",
+         "body": "$('#theResult').append(txt); return txt;"
+      }
+   },
 
-	"replace": {
-		"join": {"args": "a,b", "js": "@a.join(@b)"},
-		"split": {"args": "a,b", "js": "@a.split(@b)"},
-		"concat": {"args": "a,b", "js": "@a+@b"},
-		"parameters": {"args": "f", "js": "getParams(@f)"},
-		"map": {"args": "a,b", "js": "@a.map(@b)"},
-		"reduce": {"args": "a,b,c", "js": "@a.reduce(@b,@c)"},
-		"filter": {"args": "a,b", "js": "@a.filter(@b)"},
-		"if": {"args": "a,b,c", "js": "@a?@b:@c"},
-		"plus": {"args": "a,b", "js": "@a+@b"},
-		"minus": {"args": "a,b", "js": "@a-@b"},
-		"times": {"args": "a,b", "js": "@a*@b"},
-		"divide": {"args": "a,b", "js": "@a/@b"},
-		"inrdiv": {"args": "a,b", "js": "Math.floor(@a/@b)"},
-		"mod": {"args": "a,b", "js": "(@a % @b)"},
-		"power": {"args": "a,b", "js": "Math.pow(@a,@b)"},
-		"sqrt": {"args": "a", "js": "Math.sqrt(@a)"},
-		"sin": {"args": "a", "js": "Math.sin(@a)"},
-		"cos": {"args": "a", "js": "Math.cos(@a)"},
-		"tan": {"args": "a", "js": "Math.tan(@a)"},
-		"log": {"args": "a", "js": "Math.log(@a)"},
-		"ezp": {"args": "a", "js": "Math.ezp(@a)"},
-		"equals": {"args": "a,b", "js": "@a===@b"},
-		"lt": {"args": "a,b", "js": "@a<@b"},
-		"mt": {"args": "a,b", "js": "@a>@b"},
-		"lte": {"args": "a,b", "js": "@a<=@b"},
-		"mte": {"args": "a,b", "js": "@a>=@b"},
-		"or": {"args": "a,b", "js": "@a||@b"},
-		"and": {"args": "a,b", "js": "@a&&@b"},
-		"not": {"args": "a", "js": "!@a"},
-		"first": {"args": "a", "js": "@a[0]"},
-		"rest": {"args": "a", "js": "@a.slice(1)"},
-		"size": {"args": "a", "js": "@a.length"},
-		"sort": {"args": "a,b", "js": "@a.sort(b)"},
-		"isArray": {"args": "a", "js": "$.isArray(@a)"},
-		"isNull": {"args": "x", "js": "@x===null"}
-	}
+   "replace": {
+      "join": {"args": "a,b", "js": "@a.join(@b)"},
+      "split": {"args": "a,b", "js": "@a.split(@b)"},
+      "concat": {"args": "a,b", "js": "@a+@b"},
+      "parameters": {"args": "f", "js": "getParams(@f)"},
+      "map": {"args": "a,b", "js": "@a.map(@b)"},
+      "reduce": {"args": "a,b,c", "js": "@a.reduce(@b,@c)"},
+      "filter": {"args": "a,b", "js": "@a.filter(@b)"},
+      "if": {"args": "a,b,c", "js": "@a?@b:@c"},
+      "plus": {"args": "a,b", "js": "@a+@b"},
+      "minus": {"args": "a,b", "js": "@a-@b"},
+      "times": {"args": "a,b", "js": "@a*@b"},
+      "divide": {"args": "a,b", "js": "@a/@b"},
+      "inrdiv": {"args": "a,b", "js": "Math.floor(@a/@b)"},
+      "mod": {"args": "a,b", "js": "(@a % @b)"},
+      "power": {"args": "a,b", "js": "Math.pow(@a,@b)"},
+      "sqrt": {"args": "a", "js": "Math.sqrt(@a)"},
+      "sin": {"args": "a", "js": "Math.sin(@a)"},
+      "cos": {"args": "a", "js": "Math.cos(@a)"},
+      "tan": {"args": "a", "js": "Math.tan(@a)"},
+      "log": {"args": "a", "js": "Math.log(@a)"},
+      "ezp": {"args": "a", "js": "Math.ezp(@a)"},
+      "equals": {"args": "a,b", "js": "@a===@b"},
+      "lt": {"args": "a,b", "js": "@a<@b"},
+      "mt": {"args": "a,b", "js": "@a>@b"},
+      "lte": {"args": "a,b", "js": "@a<=@b"},
+      "mte": {"args": "a,b", "js": "@a>=@b"},
+      "or": {"args": "a,b", "js": "@a||@b"},
+      "and": {"args": "a,b", "js": "@a&&@b"},
+      "not": {"args": "a", "js": "!@a"},
+      "first": {"args": "a", "js": "@a[0]"},
+      "rest": {"args": "a", "js": "@a.slice(1)"},
+      "size": {"args": "a", "js": "@a.length"},
+      "sort": {"args": "a,b", "js": "@a.sort(b)"},
+      "isArray": {"args": "a", "js": "$.isArray(@a)"},
+      "isNull": {"args": "x", "js": "@x===null"}
+   }
 }

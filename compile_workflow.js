@@ -311,7 +311,7 @@ function encodeArray(Exp, vars) {
 
 function caseOfHead(H) {
    if (H=="defun") return 3; //function definition
-   if (H=="store") return 4; // variable
+   if (H=="assign") return 4; // variable
    if (H=="block") return 4.2; // variable
    if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
    if (H in predefined_replacements) return 5; // JSON replacement
@@ -398,8 +398,6 @@ getSubstitutor
 process
 startswithwhich
 
-*/
-
 const Substitutor = {
 	
    init: function() {
@@ -463,6 +461,8 @@ const Substitutor = {
     }
 
 }
+
+*/
 
 function getSubstitutor(X) {
     let s;
@@ -886,6 +886,34 @@ function map(f, arr) {
 function isNumber(n) {return $.isNumeric(n);}
 
 function main() { return map(isNumber,[1,2,3,"a","b","c"]); }
+
+============================ example of compose ======================
+
+[
+   "defun",
+   "wraplist", ["arg1"],
+   [ "cons", "arg1", [] ],
+   [ "lambda",
+      [  "apply", "f",
+         [  "wraplist",
+            [  "apply",
+               g,
+               [  "assign",
+                  [  "parameters",
+                     "g"
+                  ]
+               ]
+            ]
+         ]
+      ],
+      [  "assign",
+         [  "parameters",
+            0
+         ]
+      ]
+   ]
+]
+
 
 */
 

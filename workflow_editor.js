@@ -393,13 +393,13 @@ const PipeInstance = {
          }
 
          if (inputs.size()>0) {
-            if (exp == "setq") {
+            if (exp == "assign") {
                if (!this.tokenList.contains(blockID)) {
                   // set the token value according to the expression connected source
                   // or to null if there is none
                   const v = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
                   this.tokenList.add(blockID,v);
-                  op = ["setq", blockID, v]
+                  op = ["assign", blockID, v]
                } else {
                   op = blockID;
                }

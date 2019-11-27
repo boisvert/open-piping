@@ -125,7 +125,11 @@ const CodeString = {
       const c = code.getLines();
       c.map((l) => this.line(l));
       return this;
+<<<<<<< HEAD
    }
+=======
+   }   
+>>>>>>> ecb8dc4b259936e5a1566f30eff7ff4930b5e695
 =======
    init: function() {
       this.text = "";
@@ -166,7 +170,12 @@ const CodeString = {
       const c = code.getLines();
       c.map((l) => this.line(l));
       return this;
+<<<<<<< HEAD
    }
+=======
+   }	
+>>>>>>> .theirs
+>>>>>>> ecb8dc4b259936e5a1566f30eff7ff4930b5e695
 }
 
 const globalCode = Object.create(CodeString).init();

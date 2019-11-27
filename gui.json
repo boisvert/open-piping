@@ -132,6 +132,18 @@
       "label": "Arrays",
       "args": 2
    },
+   "map": {
+      "label": "Arrays",
+      "args": 2
+   },
+   "reduce": {
+      "label": "Arrays",
+      "args": 3
+   },
+   "filter": {
+      "label": "Arrays",
+      "args": 2
+   },
    "join": {
       "label":"Strings",
       "args": 2
@@ -148,6 +160,10 @@
       "label": "Blocks",
       "args": 1
    },
+   "lambda": {
+      "label": "Blocks",
+      "args": 2
+   },
    "apply": {
       "label": "Blocks",
       "args": 2
@@ -155,17 +171,5 @@
    "parameters": {
       "label": "Blocks",
       "args": 1
-   },
-   "map": {
-      "label": "Blocks",
-      "args": 2
-   },
-   "reduce": {
-      "label": "Blocks",
-      "args": 3
-   },
-   "filter": {
-      "label": "Blocks",
-      "args": 2
    }
 }

@@ -22,8 +22,8 @@ let predefined_functions = {},
 const Collection = {
 
    init: function() {
-	   this.list = {};
-	   return this;
+      this.list = {};
+      return this;
    },
 
    clear: function() {
@@ -82,64 +82,60 @@ const Collection = {
 // plus simple encapsulated functions
 
 const CodeString = {
-    nl: "\n\n",
-	
-    init: function() {
-        this.text = "";
-        this.level = 0;
-		return this;
-    },
+   nl: "\n",
+   tabbing: 3,
 
-    clear: function() {
-        this.text = "";
-        this.level = 0;
-    },
-    line: function(lin) {
-        lin = " ".repeat(this.level)+lin;
-        this.text += lin + this.nl;
-    },
-    nest: function() {
-        this.level += 3;
-    },
-    denest: function() {
-        if (this.level>=3) this.level-=3;
-    }	
+   init: function() {
+      this.text = "";
+      this.level = 0;
+      this.lineHead = "";
+      return this;
+   },
+   clear: function() {
+      this.text = "";
+      this.level = 0;
+      return this;
+   },
+   line: function(lin) {
+      this.text += this.lineHead + lin + this.nl;
+      return this;
+   },
+   skip: function() {
+      this.text += this.nl;
+      return this;
+   },
+   nest: function() {
+      this.level++;
+      this.lineHead = " ".repeat(this.tabbing*this.level);
+      return this;
+   },
+   denest: function() {
+      if (this.level>0)
+           this.level--
+      else
+         this.level=0;
+      this.lineHead = " ".repeat(this.tabbing*this.level);
+      return this;
+   },
+   getLines: function() {
+      return this.text.split(this.nl);
+   },
+   insertCode: function(code) {
+      const c = code.getLines();
+      c.map((l) => this.line(l));
+      return this;
+   }   
 }
 
-/*
-function CodeString() {
-    this.text = "";
-    this.level = 0;
-}
-
-CodeString.prototype = {
-    nl: "\n\n",
-    clear: function() {
-        this.text = "";
-        this.level = 0;
-    },
-    line: function(lin) {
-        lin = " ".repeat(this.level)+lin;
-        this.text += lin + this.nl;
-    },
-    nest: function() {
-        this.level += 3;
-    },
-    denest: function() {
-        if (this.level>=3) this.level-=3;
-    }
-}
-*/
-
-const globalCode = Object.create(CodeString).init(); // new CodeString();
+const globalCode = Object.create(CodeString).init();
 
 // list of functions in use (to not repeat them)
 // this is the "d-list" of defined functions in LISP interpreters
 const FunctionsCollection = {
-	
-	init: function() {
+   
+   init: function() {
        this.list = [];
-	   return this;
+      return this;
     },
     clear: function() {
         this.list=[];
@@ -191,8 +187,13 @@ function compile(Exp) {
    readyReplacements.clear();
    globalCode.clear();
    globalCode.line("// Automatically generated code");
+   globalCode.skip();
    const call = encode(Exp,globalCode);
-   globalCode.line("function pipe() { return "+call+"; }");
+   globalCode.line("function pipe() {");
+   globalCode.nest();
+   globalCode.line("return "+call+";");
+   globalCode.denest();
+   globalCode.line("}");
    return globalCode.text;
 }
 
@@ -238,7 +239,12 @@ function encodeArray(Exp, vars) {
         // case 3: expression is a function definition
             if (choice==3) {
                 globalCode.line(defun(Exp[0],Exp[1],Exp[2]));
+                globalCode.skip();
                 res = encode(Exp[3],vars);
+            }
+        // case 3.5: (yeah, well...) expression is a lambda-expression
+            if (choice==3.5) {
+                res = lambda(Exp[0],Exp[1]);
             }
         // case 4: expression is a variable setting
             else if (choice==4) {
@@ -247,7 +253,7 @@ function encodeArray(Exp, vars) {
                 res = tok;
                 vars.line("let "+tok+" = "+encode(Exp[1])+";");
             }
-        // case 4.2: (yeah, well...) expression is a block (function or replacement) reference
+        // case 4.2:  expression results in a block (function or replacement)
             else if (choice==4.2) { // [block,H]
                 H = Exp[0]; // block name
                 debugMsg(Exp, "is block", H);
@@ -267,14 +273,14 @@ function encodeArray(Exp, vars) {
                 else
                     throw "Block requires a block name";
             }
-        // case 4.5: expression is a higher order function (x->y)->z
+        // case 4.5: expression is the application of a block (x->y)
             else if (choice==4.5) {
                 //const Arguments = encodeEach(Exp,vars);
                 H = encode(Exp[0],vars); // block to encode
-                enforce(H, isString); // must be a string: it's a function call (!)
-                 // Arguments.shift(); // rest are arguments
-                const Arguments = encodeEach(Exp[1],vars);
-                debugMsg("apply",H,"to",Arguments);
+                // enforce(H, isString); // it's a function call - but not always a string, e.g. lambda! (!)
+                // Arguments.shift(); // rest are arguments
+                const Arguments = encode(Exp[1],vars);
+                debugMsg("apply",H,"to",Arguments,isFunction(H));
                 if (H.indexOf(")=>(")>-1) { //    H is a replacement (anon function)
                     res = "("+H+").apply(this,["+Arguments+"])";
                 }
@@ -282,7 +288,10 @@ function encodeArray(Exp, vars) {
                 {
                     // NOT FINISHED if H is a token, we resolve it,
                     // but also we need to find and process the prerequisite functions
-                    res = H+"("+Arguments.join(",")+")"; // H+".apply(this,"+Arguments+")";
+                    res = H+".apply(this,"+Arguments+")";
+                }
+                else if (H.indexOf("function")>-1) { //    H is a replacement (anon function)
+                    res = "("+H+").apply(this,"+Arguments+")";
                 }
                 else {
                     throw "Apply requires a block";
@@ -311,23 +320,24 @@ function encodeArray(Exp, vars) {
 
 function caseOfHead(H) {
    if (H=="defun") return 3; //function definition
+   if (H=="lambda") return 3.5; // lambda
    if (H=="assign") return 4; // variable
-   if (H=="block") return 4.2; // variable
+   if (H=="block") return 4.2; // function as data
    if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
    if (H in predefined_replacements) return 5; // JSON replacement
    if (H in predefined_functions) return 6; // JSON function
    return 2; // anything else - data array
 }
 
-function encodeEach(E,vars) {
+function encodeEach(E,environment) {
     enforce(E, isArray);
     debugMsg("encoding each of",E, E.length);
     let Res = [];
     if (E.length>0) {
         debugMsg("encoding "+E[0]);
-        let First = encode(E[0],vars);
+        let First = encode(E[0],environment);
         E.shift();
-        Res = encodeEach(E,vars);
+        Res = encodeEach(E,environment);
         if (First === null) {
             debugMsg("tokens - not added to exec");
         }
@@ -350,40 +360,55 @@ function defun(name,args,body) {
     includedFunctions.add(name); // needed for recursive functions
     const fd = Object.create(FunData).init();
     fd.setName(name);
-    fd.lambda(args,body);
-    return fd.getFun(name);
+    fd.setLambda(args,body,this.environment);
+    return fd.getFun();
+}
+
+function lambda(args,body) {
+    // adds a function definition to the "predefined functions" JSON list
+    debugMsg("lambda",args,body);
+    const fd = Object.create(FunData).init();
+    fd.setLambda(args,body);
+   debugMsg("lambda produces ",fd.js);
+    return fd.getLambda();
 }
 
 const FunData = {
-	
+   
    init: function() {
       this.args = "";
       this.js = "null";
       this.name = null;
-	  return this;
+      this.environment = Object.create(CodeString).init();
+      return this;
    },
 
-    setName(name) {
-        this.name = name;
-        predefined_functions[name] = this;
-        return this;
+   setName(name) {
+      this.name = name;
+      predefined_functions[name] = this;
+      return this;
     },
 
-    lambda: function (args,body) {
-        this.args = args.join(", ");
-        tokens.stackAll(args); // tokens list is filled with the function arguments
-        this.js = "return "+encode(body,globalCode)+";"; // vars???
-        tokens.removeAll(args);
-        return this;
-    },
+   setLambda: function (args,body) {
+      this.args = args.join(", ");
+      tokens.stackAll(args); // tokens list is filled with the function arguments
+      this.js = encode(body,this.environment);
+      tokens.removeAll(args);
+      return this;
+   },
 
-    getFun: function(name) {
-        const result = Object.create(CodeString).init(); //new CodeString();
-        result.line(name+" = function ("+ this.args + ") {");
-        result.line(this.js);
-        result.line("}");
-        return result.text;
-    }
+   getLambda: function () {
+      const result = Object.create(CodeString).init();
+      result.line("function ("+ this.args + ") {");
+      result.insertCode(this.environment);
+      result.line("return "+this.js+";");
+      result.line("}");
+      return result.text;
+   },
+
+   getFun: function() {
+      return (this.name+" = "+this.getLambda());
+   }
 }
 
 /*
@@ -399,7 +424,7 @@ process
 startswithwhich
 
 const Substitutor = {
-	
+   
    init: function() {
       this.ready = false;
       this.definition = {};
@@ -557,7 +582,7 @@ function startsWithWhich(toks, str) {
 const Bag = {
    init: function() {
       this.list = [];
-	  return this;
+     return this;
    },
 
    clear: function() {
@@ -689,6 +714,10 @@ function isArray(a) {
    //return a.isArray(); // <-- should work
 }
 
+function isFunction(functionToCheck) {
+   return functionToCheck && {}.toString.call(functionToCheck) === '[object Function]';
+}
+
 function debugMsg() {
     if (debugMode) { // set debugMode to true to turn on debugging
         const m = [];
@@ -769,14 +798,14 @@ function getParams(func) {
 
 /*
 
-// 2200 LOC
+// Nov 2019: 2760 LOC (includes config data)
 
 // encapsulation in ES5
 const Animal = {
   init: function(name,species) {
     this.name = name;
     this.species = species;
-	return this;
+   return this;
   },
   move: function() {
     console.log('move');
@@ -787,7 +816,7 @@ const Cat = {
   __proto__: Animal,
   init: function(name) {
     this.__proto__.init('Cat');
-	return this;
+   return this;
   }
 }
 
@@ -887,33 +916,93 @@ function isNumber(n) {return $.isNumeric(n);}
 
 function main() { return map(isNumber,[1,2,3,"a","b","c"]); }
 
-============================ example of compose ======================
+====================== minimal example of lambda / apply =============
 
-[
-   "defun",
-   "wraplist", ["arg1"],
-   [ "cons", "arg1", [] ],
-   [ "lambda",
-      [  "apply", "f",
-         [  "wraplist",
-            [  "apply",
-               g,
-               [  "assign",
-                  [  "parameters",
-                     "g"
-                  ]
-               ]
-            ]
-         ]
-      ],
-      [  "assign",
-         [  "parameters",
-            0
-         ]
-      ]
-   ]
+[  "apply",
+   [  "lambda",
+      [  "n" ],
+      [  "plus", "n", 1  ]
+   ],
+   [ 3 ]
 ]
 
+// result: November 2019
+
+// Automatically generated code
+
+function pipe() {
+   return (function (n) {
+      return (n+1);
+   }).apply(this,[3]);
+}
+
+============================ example of compose ======================
+
+[ "defun",
+  "compose",
+  [ "f", "g" ],
+  [ "lambda",
+    [ "x" ],
+    [ "apply",
+      "f",
+      [ "cons", [ "apply", "g", [ "x" ] ], [] ]
+    ]
+  ],
+  [ "apply",
+    [ "compose", [ "block", "sin" ], [ "block", "sqrt" ] ],
+    3
+  ]
+]
+
+// works in js (Nov 2019)
+// result:
+// Automatically generated code
+
+function cons(elt,list) {
+   list.unshift(elt);return list;
+}
+
+compose = function (f, g) {
+   return function (x) {
+      return f.apply(this,cons(g.apply(this,[x]),[]));
+   };
+}
+
+function pipe() {
+   return (compose((a)=>(Math.sin(a)),(a)=>(Math.sqrt(a)))).apply(this,[3]);
+}
+
+========================================================
+
+[  "defun",
+   "distance",
+   [  "a",  "b"  ],
+   [  "defun",
+      "square",
+      [  "x"  ],
+      [  "times",  "x",   "x"  ],
+      [  "sqrt",
+         [  "plus",
+            [  "square",  "a"  ],
+            [  "square",  "b"  ]
+         ]
+      ]
+   ],
+   [  "distance", 3, 4  ]
+]
+
+// works in js (Nov 2019)
+// result:
+
+square = function (x) {
+   return (x*x);
+}
+
+distance = function (a, b) {
+   return (Math.sqrt((square(a)+square(b))));
+}
+
+function pipe() { return distance(3,4); }
 
 */
 

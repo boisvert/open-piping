@@ -85,6 +85,7 @@ const CodeString = {
    nl: "\n",
    tabbing: 3,
 
+<<<<<<< .mine
    init: function() {
       this.text = "";
       this.level = 0;
@@ -124,7 +125,48 @@ const CodeString = {
       const c = code.getLines();
       c.map((l) => this.line(l));
       return this;
-   }   
+   }
+=======
+   init: function() {
+      this.text = "";
+      this.level = 0;
+      this.lineHead = "";
+      return this;
+   },
+   clear: function() {
+      this.text = "";
+      this.level = 0;
+      return this;
+   },
+   line: function(lin) {
+      this.text += this.lineHead + lin + this.nl;
+      return this;
+   },
+   skip: function() {
+      this.text += this.nl;
+      return this;
+   },
+   nest: function() {
+      this.level++;
+      this.lineHead = " ".repeat(this.tabbing*this.level);
+      return this;
+   },
+   denest: function() {
+      if (this.level>0)
+   	     this.level--
+	   else
+         this.level=0;
+      this.lineHead = " ".repeat(this.tabbing*this.level);
+      return this;
+   },
+   getLines: function() {
+      return this.text.split(this.nl);
+   },
+   insertCode: function(code) {
+      const c = code.getLines();
+      c.map((l) => this.line(l));
+      return this;
+   }
 }
 
 const globalCode = Object.create(CodeString).init();
@@ -132,7 +174,7 @@ const globalCode = Object.create(CodeString).init();
 // list of functions in use (to not repeat them)
 // this is the "d-list" of defined functions in LISP interpreters
 const FunctionsCollection = {
-   
+
    init: function() {
        this.list = [];
       return this;
@@ -364,6 +406,7 @@ function defun(name,args,body) {
     return fd.getFun();
 }
 
+<<<<<<< .mine
 function lambda(args,body) {
     // adds a function definition to the "predefined functions" JSON list
     debugMsg("lambda",args,body);
@@ -373,14 +416,30 @@ function lambda(args,body) {
     return fd.getLambda();
 }
 
+=======
+function lambda(args,body) {
+    // adds a function definition to the "predefined functions" JSON list
+    debugMsg("lambda",args,body);
+    const fd = Object.create(FunData).init();
+    fd.setLambda(args,body);
+	debugMsg("lambda produces ",fd.js);
+    return fd.getLambda();
+}
+
+>>>>>>> .theirs
 const FunData = {
-   
+
    init: function() {
       this.args = "";
       this.js = "null";
       this.name = null;
+<<<<<<< .mine
       this.environment = Object.create(CodeString).init();
       return this;
+=======
+	   this.environment = Object.create(CodeString).init();
+	   return this;
+>>>>>>> .theirs
    },
 
    setName(name) {
@@ -424,7 +483,7 @@ process
 startswithwhich
 
 const Substitutor = {
-   
+
    init: function() {
       this.ready = false;
       this.definition = {};

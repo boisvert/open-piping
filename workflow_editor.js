@@ -8,7 +8,7 @@ const BlockTypeList = {
 
    init: function() {
       this.list =  Object.create(Collection).init(); // new collection(); // blockType objects
-      this.display = $(accordion); // elt // canvas      
+      this.display = $(accordion); // elt // canvas
      return this;
    },
 
@@ -182,7 +182,7 @@ const BlockTypeList = {
 }
 
 const PipeInstance = {
-   
+
    init: function(element) {
       debugMsg("enabling plumbing   ");
       this.canvas = element; // the document element to attach blocks etc. top
@@ -219,7 +219,7 @@ const PipeInstance = {
           focusPipe = that;
         }
       });
-      
+
      return this;
    },
 
@@ -618,7 +618,7 @@ const BlockInstance = {
       this.setHTML();
       this.setPosition(pos);
       this.setPipe(pipe);
-      return this;   
+      return this;
    },
 
    setID: function(id) {
@@ -732,7 +732,7 @@ const BlockInstance = {
    getExpression: function() {
       let res;
       if (this.type.getExp) {
-         
+
          // eval("function f() {let block = this.element; "+this.type.getExp+"}");
          // res = f();
          // would this work instead? It's neater+paases ESlint

@@ -282,7 +282,7 @@ function encodeArray(Exp, vars) {
                 const Arguments = encode(Exp[1],vars);
                 debugMsg("apply",H,"to",Arguments,isFunction(H));
                 if (H.indexOf(")=>(")>-1) { //    H is a replacement (anon function)
-                    res = "("+H+").apply(this,["+Arguments+"])";
+                    res = "("+H+").apply(this,"+Arguments+")";
                 }
                 else if ((H in predefined_functions) || tokens.contains(H))
                 {
@@ -972,7 +972,26 @@ function pipe() {
    return (compose((a)=>(Math.sin(a)),(a)=>(Math.sqrt(a)))).apply(this,[3]);
 }
 
-========================================================
+
+============= currying a function with 2 arguments =======================
+
+[  "defun",
+   "curry",
+   [  "f"  ],
+   [  "lambda",
+      [  "x"  ],
+      [  "lambda",
+         [  "y"  ],
+         [  "apply",
+            "f",
+            [  "x", "y"  ]
+         ]
+      ]
+   ],
+   [  "curry",  [  "block", "plus"  ]  ]
+]
+
+========================== two functions simultaneously ==============================
 
 [  "defun",
    "distance",

@@ -107,26 +107,26 @@ var debugMode = true; // set to true to turn on debugging
 
 <style>
 
-    #createNewBlock {
-        width: 90px;
+   #createNewBlock {
+      width: 90px;
       font-family: Calibri, Arial, "Sans serif";
       position: relative;
-        left: -25px; /* top: 10px; */
+      left: -25px; /* top: 10px; */
       margin: 0px;
-    }
+   }
 
    #maincontainer {
        height: 560px;
    }
 
-    #pipeContainer {
-        margin-left:122px;
-        border: 1px solid gray;
-        height: 100%;
-    }
+   #pipeContainer {
+      margin-left:122px;
+      border: 1px solid gray;
+      height: 100%;
+   }
    
    #accordion {
-        float: left;
+      float: left;
       width: 120px;
       height: 100%;
    }
@@ -141,55 +141,60 @@ var debugMode = true; // set to true to turn on debugging
       padding: 0em .1em 0em .1em;
    }
 
-    .block {
-        position: absolute;
-        min-height:50px; min-width: 80px;
-        border: 1px solid blue;
-        flex: 1;
+   .block {
+      position: absolute;
+      min-height:50px; min-width: 80px;
+      border: 3px solid #33F;
+	  border-radius: 7px;
+      flex: 1;
       font-family: Calibri, Arial, "Sans serif";
       font-size: 16px;
-       font-weight: bold;
-       padding-top: 5px; padding-left: 5px
-    }
+      font-weight: bold;
+      padding-top: 5px; padding-left: 5px; padding-right: 20px; padding-bottom: 5px;
+   }
 
-    .blockType {
-        position: relative;
+   .blockType {
+      position: relative;
       left: -30px;
       margin: 7px;
-        height:45px; width: 80px;
-        border: 1px solid red;
+      height:45px; width: 80px;
+      border: 3px solid #33F;
+	  border-radius: 7px;
       font-family: Calibri, Arial, "Sans serif";
       font-size: 16px;
    }
 
-    .block:hover {
-        border: 2px solid blue;
-    }
+   .block:hover {
+	  box-shadow:
+        0 0 4px 2px #66f;
+   }
 
-    .blockType:hover{
-        border: 2px solid blue;
-    }
+   .blockType:hover{
+	  box-shadow:
+        0 0 4px 2px #66f;
+   }
 
-    .selectedBlock{
-        border: 2px solid blue;
-    }
-   
+   .selectedBlock{
+	  box-shadow:
+        0 0 4px 2px #66f;
+   }
+
    .editBlock {
-       position: absolute;
+      position: absolute;
       right: 10px; top: 35px;
-       border: 2px solid black;
+      border: 2px solid black;
       height: 400px; width: 300px;
    }
 
    .jtk-endpoint {
-       z-index: 3000 !important;
-    }
+      z-index: 3000 !important;
+   }
 
-    #theResult {
-        border: 1px solid gray;
+   #theResult {
+      border: 1px solid gray;
       height: 300px;
       width: 100%;
-    }
+   }
 
 </style>
 

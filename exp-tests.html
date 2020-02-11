@@ -67,8 +67,8 @@ On this page you can try any symbolic expression, which will be interpreted into
   <option value="3">Function substitution</option>
   <option value="4">Defun</option>
   <option value="5">Defun recursive (fatorial)</option>
-  <option value="6">Higher order function (map)</option>
-  <option value="7">Two embedded functions (distance)</option>
+  <option value="6">Two embedded functions (distance)</option>
+  <option value="7">Higher order function (map)</option>
 </select>
 Language:
 <select id="chooseLang" onChange = "getCode();">
@@ -102,8 +102,8 @@ function inject(num) {
         '["plus", 1, 2]',
         '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
         '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
-        '[\n  "defun", "mymap", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["mymap", "f", ["rest", "arr"] ] ]\n],\n  ["mymap", ["block", "isNumber"], [1,2,3,"a","b","c"] ] \n]',
-		'["defun",\n "square",\n ["x"],\n ["times", "x", "x"],\n ["defun",\n  "distance",\n  ["a","b"],\n  ["sqrt",\n   ["plus",\n    ["square","a"],\n    ["square","b"]\n   ]\n  ],\n  ["distance", 3, 4]\n ]\n]'
+		'["defun",\n "square",\n ["x"],\n ["times", "x", "x"],\n ["defun",\n  "distance",\n  ["a","b"],\n  ["sqrt",\n   ["plus",\n    ["square","a"],\n    ["square","b"]\n   ]\n  ],\n  ["distance", 3, 4]\n ]\n]',
+        '[\n  "defun", "mymap", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["mymap", "f", ["rest", "arr"] ] ]\n],\n  ["mymap", ["block", "isNumber"], [1,2,3,"a","b","c"] ] \n]'
       ];
       $('#s-exp').val(samples[num]);
       getCode();

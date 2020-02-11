@@ -17,6 +17,11 @@ A stack of defined vars (store) is also maintained
 let predefined_functions = {},
     predefined_replacements = {};
 
+// flag to process strings as potential variables
+// used when interpreting lambda expressions
+// it shouldn't be a global variable - but - in progress
+let lambdaFlag = false;
+
 // Collection: a class of data {name:value, name2:value2}
 
 const Collection = {
@@ -198,23 +203,30 @@ function compile(Exp) {
 }
 
 function encode(Exp,vars) {
-    let res;
+   let res;
 
-    if (isArray(Exp)) {
-    // cases 1 to 6 - Exp is an array
-        res = encodeArray(Exp,vars);
-    }
-    else if (isString(Exp)) {
-    // case 7: expression is a known variable
-        if (tokens.contains(Exp)) res = Exp;
-    // case 8: expression is a string
-        else res = '"'+Exp+'"';
-    }
-    // case 9: expression is anything else - left unprocessed - works for number, boolean, null
-    else res = Exp;
+   if (isArray(Exp)) {
+   // cases 1 to 6 - Exp is an array
+      res = encodeArray(Exp,vars);
+   }
+   else if (isString(Exp)) {
+   // case 7: expression is a known variable
+      if (tokens.contains(Exp)) {
+         if (lambdaFlag) {
+            res = '\"+expCheck('+Exp+')+\"';
+            debugMsg(res);
+         } else
+            res = Exp;
+         }
+   // case 8: expression is a string
+      else
+         res = '"'+Exp+'"';
+   }
+   // case 9: expression is anything else - left unprocessed - works for number, boolean, null
+   else res = Exp;
 
-    // done
-    return res;
+   // done
+   return res;
 }
 
 function encodeArray(Exp, vars) {
@@ -244,7 +256,7 @@ function encodeArray(Exp, vars) {
             }
         // case 3.5: (yeah, well...) expression is a lambda-expression
             if (choice==3.5) {
-                res = lambda(Exp[0],Exp[1]);
+                res = encodeLambda(Exp[0],Exp[1],globalCode); // was: lambda(Exp[0],Exp[1]);
             }
         // case 4: expression is a variable setting
             else if (choice==4) {
@@ -275,42 +287,34 @@ function encodeArray(Exp, vars) {
             }
         // case 4.5: expression is the application of a block (x->y)
             else if (choice==4.5) {
-                //const Arguments = encodeEach(Exp,vars);
-                H = encode(Exp[0],vars); // block to encode
-                // enforce(H, isString); // it's a function call - but not always a string, e.g. lambda! (!)
-                // Arguments.shift(); // rest are arguments
-                const Arguments = encode(Exp[1],vars);
-                debugMsg("apply",H,"to",Arguments,isFunction(H));
-                if (H.indexOf(")=>(")>-1) { //    H is a replacement (anon function)
-                    res = "("+H+").apply(this,"+Arguments+")";
-                }
-                else if ((H in predefined_functions) || tokens.contains(H))
-                {
-                    // NOT FINISHED if H is a token, we resolve it,
-                    // but also we need to find and process the prerequisite functions
-                    res = H+".apply(this,"+Arguments+")";
-                }
-                else if (H.indexOf("function")>-1) { //    H is a replacement (anon function)
-                    res = "("+H+").apply(this,"+Arguments+")";
-                }
-                else {
-                    throw "Apply requires a block";
-                }
+               //const Arguments = encodeEach(Exp,vars);
+               H = encode(Exp[0],vars); // block to encode
+               // enforce(H, isString); // it's a function call - but not always a string, e.g. lambda! (!)
+               // Arguments.shift(); // rest are arguments
+               const Arguments = encode(Exp[1],vars);
+               debugMsg("apply",H,"to",Arguments,isFunction(H));
+               res = "("+H+").apply(this,"+Arguments+")";
+
+               if (H in predefined_functions)
+               {
+                  getOperator(H) // find and process the prerequisite functions
+               // getOp also returns function call but we ignore it
+               }
             }
         // case 5: predefined_replacements
             else if (choice==5) {
-                let s = getSubstitutor(H);
-                // should there be validation on number and type of arguments?
-                let args = encodeEach(Exp,vars);
-                res = s(args);
+               let s = getSubstitutor(H);
+               // should there be validation on number and type of arguments?
+               let args = encodeEach(Exp,vars);
+               res = s(args);
             }
         // case 6: expression is a function call
             else if (choice==6) {
-                // getOperator returns the string defining the function
-                let op = getOperator(H);
-                // should there be validation on number and type of arguments?
-                let args = encodeEach(Exp,vars);
-                res = op(args); //H+"("+arguments.join(",")+")";
+               // getOperator returns the string defining the function
+               let op = getOperator(H);
+               // should there be validation on number and type of arguments?
+               let args = encodeEach(Exp,vars);
+               res = op(args); //H+"("+arguments.join(",")+")";
             } // case 6
         } // cases 3-6
     } // cases 2-6 (non-empty array)
@@ -360,17 +364,67 @@ function defun(name,args,body) {
     includedFunctions.add(name); // needed for recursive functions
     const fd = Object.create(FunData).init();
     fd.setName(name);
-    fd.setLambda(args,body,this.environment);
+    fd.setLambda(args,body);
     return fd.getFun();
 }
 
-function lambda(args,body) {
-    // adds a function definition to the "predefined functions" JSON list
-    debugMsg("lambda",args,body);
-    const fd = Object.create(FunData).init();
-    fd.setLambda(args,body);
+// lambda, see comment
+/*
+// the aim of lambda is that the compiled result,
+// creates a new function at interpret 
+// is limiting
+// because is doesn't allow dynamic setting of arguments
+// arguments (their number at least) have to be pre determined
+// to allows the creation of function interpretation at compile time
+// dynamic arguments = expression interpretation at runtime, which *may* break the security model
+
+function encodeLambda(args,body) {
+   // return an anonymous function definition 
+   debugMsg("lambda",args,body);
+   const fd = Object.create(FunData).init();
+   fd.setLambda(args,body);
    debugMsg("lambda produces ",fd.js);
-    return fd.getLambda();
+   return fd.getLambda();
+}
+*/
+
+// lambda version 2
+/*
+Needs TLC
+Especially
+ - resolution of tokens
+ - risks of injection
+*/
+
+function encodeLambda(argsExp,bodyExp,context) {
+   debugMsg("lambda",argsExp,bodyExp);
+   const fd = Object.create(FunData).init();
+   fd.setInterpretLambda(argsExp,bodyExp,context);
+      // encode the argument expression; leads to executable expression 
+      // which when executed (at run time) yields the list of arguments
+   return fd.getInterpretLambda();
+}
+
+// version 2 needs service function
+
+
+// function should be injected in executable code
+// a lot of kludge here
+// 
+function my_lambda(args, body) {
+   debugMsg(args, body)
+   args.forEach(function(arg) {
+      body = body.replaceAll("'"+arg+"'", arg).replaceAll('"'+arg+'"', arg);
+   });
+   const f = "("+args.join(", ")+")=>{"+body+"}";
+   debugMsg(f);
+   return eval(f);
+}
+
+function expCheck(v) {
+   if (typeof v == "object" && v != null)
+       return JSON.stringify(v);
+   else return v.toString();
 }
 
 const FunData = {
@@ -406,13 +460,28 @@ const FunData = {
       return result.text;
    },
 
+   setInterpretLambda: function (args,body,context) {
+      const LArgs = encode(args,context); // encode(args,this.environment);
+      lambdaFlag = true;
+      let LBody = encode(body,this.environment);
+      lambdaFlag = false;
+      LBody = (this.environment.text +"return "+LBody+';').replaceAll('\n',' ');
+          //.replaceAll('"',"'"); // was yet more replaceAll - but interferes
+      this.js = "my_lambda("+LArgs+", \""+LBody+"\")";
+      return this;
+   },
+
+   getInterpretLambda: function () {
+      return this.js;
+   },
+
    getFun: function() {
       return (this.name+" = "+this.getLambda());
    }
 }
 
 /*
-TODO: Substitor object
+TODO: Substitutor object
 ===
 +ready bool false // flag - true once preprocessing has been done
 +definition JSON {args:"", js:""} // from JSON file
@@ -824,31 +893,46 @@ fluffy = Object.create(Cat).init('fluffy');
 fluffy.move()
 
 
-(plus 2 3) in JSON = ["plus", 2, 3]
+=============== minimal example of lamda with dynamic arguments ==============
 
-(1 2 3) in JSON = [1, 2, 3]
+// see above versions 1 and 2 of lambda
+// version 1 safe but no dynamic arguments allowed
+// version 2 in progress / in testing - December 2019
 
-Examples of expression that ought to be interpretable:
-
-[
-  ["defun", "square", ["x"], ["times", "x", "x"]],
-  ["square", 2]
+[  "lambda",
+   [  "x"  ],
+   [  "plus",
+      [  "assign",
+         "id5",
+         [  "first",  [  "x"  ]  ]
+      ],
+      "id5"
+   ]
 ]
 
-result:
-   function square(x) { return x*x; }
-   square(2);
-
-=============
-
-[
-  ["defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]]],
-  ["fac", 10]
+["apply",
+   [  "lambda",
+      [  "x"  ],
+      [  "plus",
+         [  "assign",
+            "id5",
+            [  "first",  [  "x"  ]  ]
+         ],
+         "id5"
+      ]
+   ],
+   [10]
 ]
 
-result:
-   function fac(n) {return lt(n,2)?1:times(n,fac(n-1));}
-   fac(10);
+
+// Resulting code should be:
+
+function pipe() {
+   return lambda(["x"], "let id5 = ([\"x\"][0]); return (id5+id5)"};
+}
+
+// See function lambda version 2 which is needed to interpret that code
+
 
 ====== map defined from "apply" ====
 
@@ -857,64 +941,6 @@ result:
 result:
    plus(1,2);
    function plus(a,b) {return a+b;}
-
-===
-
-(defun
-    map
-    (f arr)
-    (if (empty arr)
-        ()
-        (concat
-            (apply
-                f
-                ((first arr))
-            )
-            (map f (rest arr))
-        )
-    )
-)
-
-===
-
-definition of map - result
-
-function map(f,arr) {
-   return (empty(arr))?[]:concat(f(first(arr)),map(f,rest(arr)));
-}
-
-================ example of map =============
-
-[
-  ["defun", "map",
-            ["f", "arr"],
-            ["if", ["isEmpty", "arr"],
-                   [],
-                   ["cons",
-                         ["apply", "f", [["first", "arr"]] ],
-                         ["map", "f", ["rest", "arr"] ]
-                   ]
-            ]
-  ],
-  ["map", "\\isNumber", [1,2,3,"a","b","c"] ]
-]
-
-// works in js (June 2017)
-// result:
-
-// Automatically generated code
-
-function isEmpty(a) {return $.isArray(a) && a.length==0;}
-
-function cons(elt,list) {list.unshift(elt);return list;}
-
-function map(f, arr) {
-   return isEmpty(arr)?[]:cons(f.apply(this,[arr[0]]),map(f,arr.slice(1)));
-}
-
-function isNumber(n) {return $.isNumeric(n);}
-
-function main() { return map(isNumber,[1,2,3,"a","b","c"]); }
 
 ====================== minimal example of lambda / apply =============
 
@@ -972,7 +998,6 @@ function pipe() {
    return (compose((a)=>(Math.sin(a)),(a)=>(Math.sqrt(a)))).apply(this,[3]);
 }
 
-
 ============= currying a function with 2 arguments =======================
 
 [  "defun",
@@ -991,37 +1016,4 @@ function pipe() {
    [  "curry",  [  "block", "plus"  ]  ]
 ]
 
-========================== two functions simultaneously ==============================
-
-[  "defun",
-   "distance",
-   [  "a",  "b"  ],
-   [  "defun",
-      "square",
-      [  "x"  ],
-      [  "times",  "x",   "x"  ],
-      [  "sqrt",
-         [  "plus",
-            [  "square",  "a"  ],
-            [  "square",  "b"  ]
-         ]
-      ]
-   ],
-   [  "distance", 3, 4  ]
-]
-
-// works in js (Nov 2019)
-// result:
-
-square = function (x) {
-   return (x*x);
-}
-
-distance = function (a, b) {
-   return (Math.sqrt((square(a)+square(b))));
-}
-
-function pipe() { return distance(3,4); }
-
 */
-

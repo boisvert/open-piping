@@ -1158,17 +1158,26 @@ const CustomBlock = {
          // let oldBlock = that;
          currentBE.editor.dialog('close');
          editBlock();
-         let newName = that.name+'_copy'
+         const newName = that.name+'_copy'
          currentBE.userBlock.rename(newName);
          currentBE.editor.find("input").val(currentBE.userBlock.name);
          for (let bID in that.pipe.blockList.list) {
             if (bID!='end') {
-               let oB = that.pipe.blockList.get(bID);
+               const oB = that.pipe.blockList.get(bID);
                debugMsg('old block', bID);
-               let oType = oB.type.element;
-               let oPos = oB.getPosition();
+               const oType = oB.type.element;
+               const oPos = oB.getPosition();
                debugMsg(oPos);
                currentBE.userBlock.pipe.addBlock(oType,oPos);
+               
+               /*
+               const connections = that.pipe.plumber.getConnections({ source:bID });
+               const inputs = oB.inPoints;
+               const source = inputs.get(i).findConnectedSource(connections);
+               // jsPlumb.connect({ source:"someDiv", target:"someOtherDiv" });
+               // doc: http://jsplumb.github.io/jsplumb/types.html#connection-type
+               ... source?something:other
+               */
             }
          }
       });
@@ -1264,10 +1273,16 @@ function initialise() {
       }
    });
 
-   // delete selected block(s)
-   $('html').keyup(function(e){
-      if(e.keyCode == 46) {
+   // del = delete selected block(s); backspace = suppress navigation
+   $('html').keydown(function(e){
+      // check
+      if(e.keyCode == 46 && e.target==document.body) { // del key and body (not form)
+         debugMsg("deleting");
          focusPipe.deleteSelectedBlocks();
+      } else if (e.keyCode == 8) {
+         // code 8 = backspace: suppress unless editable element
+         const $target = $(e.target||e.srcElement);
+         if (!$target.is('input,[contenteditable="true"],textarea')) { e.preventDefault(); }
       }
    });
 

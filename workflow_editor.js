@@ -7,9 +7,9 @@
 const BlockTypeList = {
 
    init: function() {
-      this.list =  Object.create(Collection).init(); // new collection(); // blockType objects
-      this.display = $(accordion); // elt // canvas
-     return this;
+      this.list =  Object.create(Collection).init(); //blockType objects
+      this.display = $(accordion);
+      return this;
    },
 
    initBlocks: function() {
@@ -20,8 +20,6 @@ const BlockTypeList = {
       for (block in predefined_gui) {
 
          const defGUI = predefined_gui[block];
-
-         //const section = (defGUI.hasOwnProperty("label"))?defGUI.label:"default";
 
          if (defGUI.hasOwnProperty("group")) {
             // the block is a group
@@ -36,9 +34,7 @@ const BlockTypeList = {
             this.addBlockType(block, defGUI, numBlock);
          }
          //numBlock++;
-
       }
-
    },
 
    addSection: function(section) {
@@ -68,8 +64,7 @@ const BlockTypeList = {
       const arr = {}; // arr - array to collect expression for each item
       let allHaveExp = true; // flag whether all items have a getExp
       let bc = "<form><select>";
-      let g;
-      for (g in defGUI.group) {
+      for (let g in defGUI.group) {
          //
          const ghtml = document.createElement('div').appendChild(document.createTextNode(g)).parentNode.innerHTML; // vulnerable see SO html encoding
          bc += '<option value="'+ghtml+'">'+ghtml+'</option>';
@@ -95,7 +90,7 @@ const BlockTypeList = {
       }
       else {
          newGetExp = "let op = block.find('form > select').val(); ";
-          newGetExp += "let arr = "+JSON.stringify(arr)+"; ";
+         newGetExp += "let arr = "+JSON.stringify(arr)+"; ";
          if (allHaveExp) {
             newGetExp += "eval('function f() {'+arr[op]+';}');";
             newGetExp += "return f();"
@@ -114,7 +109,7 @@ const BlockTypeList = {
       }
       defGUI.getExp = newGetExp;
 
-      delete defGUI.group;
+      // delete defGUI.group;
 
       this.addBlockType(label, defGUI, position);
 
@@ -139,7 +134,7 @@ const BlockTypeList = {
    },
 
    get: function(label) {
-      debugMsg("Getting from blockTypeList",this,label);
+      debugMsg("Getting from blockTypeList ",this,label);
       return this.list.get(label);
    },
 
@@ -157,9 +152,9 @@ const BlockTypeList = {
    },
 
    add: function (lbl,e) {
-      debugMsg("adding",lbl,"to",this.list)
-      if (this.list.add(lbl,e)) return false
-      return this
+      debugMsg("adding",lbl);
+      if (this.list.add(lbl,e)) return false;
+      return this;
    },
 
    set: function (lbl,e) {
@@ -198,15 +193,11 @@ const PipeInstance = {
       //this.typeList = new BlockTypeList(); // moved to global object
       this.useDefaultArguments = true; // used to swap arguments when debugging custom blocks
 
-      /*
       this.plumber.bind("connection", function(info) {
         // ***** endpoint object updated here??
-        debugMsg('connecting ', info.source);
-        debugMsg('to ', info.target);
-        debugMsg('via ', info.sourceEndpoint);
-        debugMsg('and ', info.targetEndpoint);
+        debugMsg('connecting ', info.source, 'to ', info.target);
+        debugMsg('via ', info.sourceEndpoint,'and ', info.targetEndpoint);
       });
-      */
 
       const that = this;
       this.canvas.click(function(e) {
@@ -266,10 +257,11 @@ const PipeInstance = {
    },
 
    /*
-   // create new connector
-   pipeInstance.prototype.addConnector: function(from,to) {
-
-      // define style of connectors
+   // track new connector
+   addConnector: function(from,to) {
+      
+      debugMsg("adding connector");
+      // Define style of connectors
       let connStyle = {
          anchor:["Bottom","Left"],
          endpoint:"Dot"
@@ -279,9 +271,8 @@ const PipeInstance = {
          source:from,
          target:to
       },
-      connStyle);
-   }
-   */
+      connStyle); 
+   },*/
 
    /* adding the 'endBlock'. Unlike others,
       it has no output endpoint; it also can't be removed from the canvas.
@@ -299,6 +290,7 @@ const PipeInstance = {
       // *** this should be making an endPoint target object to add
       this.plumber.addEndpoint(block, {
          anchors:[0,0.5,-1,0],
+         uuid: "end_in0",
          isTarget: true,
          maxConnections: 1
       }, config.connectStyle);
@@ -480,8 +472,8 @@ const BlockType = {
       this.inConn = (defGUI.args==='undefined')?2:defGUI.args;
       this.outConn = (defGUI.output==='undefined')?1:defGUI.output;
       this.uses = Object.create(Bag).init();
-     return this;
-   },
+      return this;
+   },  
 
    addTo: function(position,section) {
       const elt = $('<div>').addClass('blockType');
@@ -618,6 +610,7 @@ const BlockInstance = {
       this.setHTML();
       this.setPosition(pos);
       this.setPipe(pipe);
+      this.inCount=1;
       return this;
    },
 
@@ -680,8 +673,9 @@ const BlockInstance = {
 
    // *** using new endPoint object
    addInput: function(num) {
-      if (num===undefined) num = this.type.inConn;
+      if (num===undefined) num = this.inConnections();
       let e = Object.create(BlockEndpoint).init().setPos('top',num).addTo(this);
+      this.inCount++;
       debugMsg("added endpoint to block",this.id,e.ep.getParameters());
       this.inPoints.queue(e);
    },
@@ -735,7 +729,7 @@ const BlockInstance = {
 
          // eval("function f() {let block = this.element; "+this.type.getExp+"}");
          // res = f();
-         // would this work instead? It's neater+paases ESlint
+         // would this work instead? It's neater+passes ESlint
          let fn = "(function(block) {"+this.type.getExp+"})(this.element)";
          debugMsg("evaluating: ",fn);
          res = eval(fn);
@@ -744,6 +738,52 @@ const BlockInstance = {
          res = this.type.label;
       }
       return res;
+   },
+
+   copyStateTo: function(targetBlock) {
+      // updates the targetBlock according to the state of this block
+      // used to make a copy of custom block
+      targetBlock.setState(this.getState());
+   },
+
+   getState: function() {
+      // returns the state of the block input(s) and select(s) if there are any
+      // use to serialise the block state
+      const state = {}
+      const inputs = this.element.find('form > input');
+      if (inputs.length>0) {
+         state.inputs = [];
+         for (let i in inputs) {
+            if (inputs[i].value) state.inputs.push(inputs[i].value);
+         }
+      }
+      debugMsg("block inputs state",state);
+      const selects = this.element.find('form > select');
+      if (selects.length>0) {
+         state.selects = [];
+         for (i in selects) {
+            if (selects[i].value) state.selects.push(selects[i].value);
+         }
+      }
+      debugMsg("Block state:",state);
+      return state
+   },
+
+   setState: function(state) {
+      // updates the block according to state data (see getState)
+      // use to recover the block's state from serialised information
+      if (state.hasOwnProperty("inputs")) {
+         const inputs = this.element.find('form > input');
+         for (let i in state.inputs) {
+            inputs[i].value = state.inputs[i];
+         }
+      }
+      if (state.hasOwnProperty("selects")) {
+         const selects = this.element.find('form > select');
+         for (let i in state.selects) {
+            selects[i].value = state.selects[i];
+         }
+      }
    },
 
    // get block dropCode
@@ -862,6 +902,16 @@ const BlockEndpoint = {
       return this.properties.anchors;
    },
 
+   setUuid: function() {
+      var uuid  = this.block.id+'_';
+      uuid += (this.isSource())?'out':('in'+this.block.inCount); // number needs updating
+      this.properties.uuid = uuid;
+      return this;
+   },
+   getUuid: function() {
+      return this.properties.uuid;
+   },
+
    /*
    getConnections(): function() {
       //let = this.ep.id???
@@ -908,6 +958,7 @@ const BlockEndpoint = {
    addTo: function(b) {
       debugMsg("adding endpoint with props", this.properties);
       this.block = b;
+      this.setUuid();
       const e = b.pipe.plumber.addEndpoint(b.element, this.properties, config.connectStyle);
       debugMsg("Endpoint added ",e.anchor);
       this.ep = e;
@@ -1168,18 +1219,19 @@ const CustomBlock = {
                const oType = oB.type.element;
                const oPos = oB.getPosition();
                debugMsg(oPos);
-               currentBE.userBlock.pipe.addBlock(oType,oPos);
-               
-               /*
-               const connections = that.pipe.plumber.getConnections({ source:bID });
-               const inputs = oB.inPoints;
-               const source = inputs.get(i).findConnectedSource(connections);
-               // jsPlumb.connect({ source:"someDiv", target:"someOtherDiv" });
-               // doc: http://jsplumb.github.io/jsplumb/types.html#connection-type
-               ... source?something:other
-               */
+               const newB = currentBE.userBlock.pipe.addBlock(oType,oPos);
+               oB.copyStateTo(newB);
             }
          }
+         const connections = that.pipe.plumber.getConnections();
+         connections.map(
+            conn => {
+               debugMsg("Connecting", conn.sourceId, "to", conn.targetId);
+               const epout = conn.endpoints[0].getUuid(), epin = conn.endpoints[1].getUuid(); 
+               debugMsg("Connecting", epout, "to", epin);
+               currentBE.userBlock.pipe.plumber.connect({uuids:[epout,epin]});
+            }
+         );
       });
 
       let mo = function() {

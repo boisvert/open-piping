@@ -1,18 +1,21 @@
 {
-    "constant": {
+   "constant": {
       "label": "Data",
       "args": 0,
       "output": -1,
       "blockCode": "<form><input type='text' /><form>",
       "group": {
          "Num": {
-            "getExp":"var inpt = block.find('form > input')[0]; return Number(inpt.value);"
+            "getExp":"const inpt = block.find('form > input')[0]; return Number(inpt.value);"
          },
          "String": {
-            "getExp":"var inpt = block.find('form > input')[0]; return inpt.value.unescape();"
+            "getExp":"const inpt = block.find('form > input')[0]; return inpt.value.unescape();"
+         },
+         "Array": {
+            "getExp": "const inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
          },
          "JSON": {
-            "getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
+            "getExp": "const inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
          }
       }
    },
@@ -22,37 +25,37 @@
       "output":1,
       "getExp": "return 'getfile';"
    },
-    "keep variable": {
+   "keep variable": {
       "label": "Data",
       "args":1,
       "output":-1,
       "getExp":"return 'assign';"      
    },
-    "alert": {
+   "alert": {
       "label": "Display",
       "args":1,
       "getExp":"return 'popup';"
 
    },
-    "inject HTML": {
+   "inject HTML": {
       "label": "Display",
       "args":1,
       "getExp":"return 'inject';"
    },
-    "arithmetic": {
+   "arithmetic": {
       "label": "Math",
-        "args": 2,
-        "group": {
+      "args": 2,
+      "group": {
          "+": {"getExp":"return 'plus';"},
-            "-": {"getExp":"return 'minus';"},
-            "*": {"getExp":"return 'times';"},
-            "\/": {"getExp":"return 'divide';"},
+         "-": {"getExp":"return 'minus';"},
+         "*": {"getExp":"return 'times';"},
+         "\/": {"getExp":"return 'divide';"},
          "\\": {"getExp":"return 'intdiv';"},
-            "mod": {"getExp":"return 'mod';"},
-            "power": {"getExp":"return 'power';"}
-        }
-    },
-    "function": {
+         "mod": {"getExp":"return 'mod';"},
+         "power": {"getExp":"return 'power';"}
+      }
+   },
+   "function": {
       "label": "Math",
         "args": 1,
         "group": {
@@ -64,7 +67,7 @@
             "log": {}
         }
     },
-    "Statistics": {
+   "Statistics": {
       "label": "Math",
         "args": 1,
         "group": {
@@ -75,11 +78,11 @@
             "stdevp": {}
         }
     },
-    "if": {
+   "if": {
       "label": "Conditional",
       "args":3
    },
-    "comparison": {
+   "comparison": {
       "label": "Conditional",
         "args": 2,
         "group": {
@@ -90,7 +93,7 @@
             "=": {"getExp":"return 'equals';"}
         }
     },
-    "type check": {
+   "type check": {
       "label": "Conditional",
         "args":1,
         "group": {
@@ -100,7 +103,7 @@
             "isNull": {}
         }
     },
-    "and, or": {
+   "boolean and/or": {
       "label": "Conditional",
         "args": 2,
         "group": {
@@ -173,3 +176,4 @@
       "args": 1
    }
 }
+

@@ -134,7 +134,7 @@ const BlockTypeList = {
    },
 
    get: function(label) {
-      debugMsg("Getting from blockTypeList ",this,label);
+      debugMsg("Getting from blockTypeList ",label);
       return this.list.get(label);
    },
 
@@ -178,28 +178,27 @@ const BlockTypeList = {
 
 const PipeInstance = {
 
-   init: function(element) {
-      debugMsg("enabling plumbing   ");
+   init: function(element,owner) {
+      debugMsg("enabling plumbing","owner",owner?(owner.name):"unknown");
       this.canvas = element; // the document element to attach blocks etc. top
-      this.plumber = jsPlumb.getInstance(this.canvas); // the jsPlumb instance, see jsPlumb API for details
+      this.plumber = jsPlumb.getInstance(this.canvas); // jsPlumb instance - see jsPlumb API
       this.idNum = 0; // for generating the ID of blocks in use in this pipe
-      this.tokenList = Object.create(Collection).init();
-                 // new collection(); // for generating the list of tokens
-      this.defunList = Object.create(Collection).init();
-                 // new collection(); // for generating the list of defuns
+      this.tokenList = Object.create(Collection).init(); // for generating the list of tokens
+      this.defunList = Object.create(Collection).init(); // for generating the list of defuns
       this.blockSelection = Object.create(Bag).init(); // list of blocks selected for interaction
-      this.blockList = Object.create(Collection).init();
-                 // new collection(); // all block objects on this pipe
-      //this.typeList = new BlockTypeList(); // moved to global object
+      this.blockList = Object.create(Collection).init(); // all block objects on this pipe
       this.useDefaultArguments = true; // used to swap arguments when debugging custom blocks
-
-      this.plumber.bind("connection", function(info) {
-        // ***** endpoint object updated here??
-        debugMsg('connecting ', info.source, 'to ', info.target);
-        debugMsg('via ', info.sourceEndpoint,'and ', info.targetEndpoint);
-      });
+      this.owner = owner; // owner is the editor for custom blocks, null otherwise
 
       const that = this;
+      this.plumber.bind("connection", function(info) {
+         debugMsg('connecting ', info.sourceEndpoint.getUuid(),'to ', info.targetEndpoint.getUuid());
+         that.save();
+      });
+      this.plumber.bind("connectionDetached", function(info) {
+         debugMsg('detaching ', info.sourceEndpoint.getUuid(),'from ', info.targetEndpoint.getUuid());
+         that.save();
+      });
       this.canvas.click(function(e) {
         // If the click was not inside the active span
         debugMsg("click");
@@ -207,12 +206,25 @@ const PipeInstance = {
           //e.stopPropagation();
           debugMsg("canvas clicked");
           that.deselectAllBlocks();
-          focusPipe = that;
+          that.getFocus();
+          stateStore.updateFocus();
         }
       });
 
      return this;
    },
+
+   getFocus: function() {
+      focusPipe = this;
+      const name = (this.owner)?this.owner.name:null
+      stateStore.updateFocus(name);
+      return this;
+   },
+   
+   hasFocus: function() {
+      return (focusPipe === this);
+   },
+
 
    /* addBlock: create a new block of the given type.
       the attributes within blockType provide all the data to customise the block.
@@ -220,26 +232,27 @@ const PipeInstance = {
    */
    addBlock: function (elt, pos) {
       debugMsg("Adding a block at position ", pos, " element ", elt.html() )
-      const typeName = elt.html().split("<")[0]
-      debugMsg("block type is", typeName, "list", blockTypeList.size() )
+      const typeName = elt.html().split("<")[0];
+
+      return this.addBlockByName(typeName,pos);
+   },
+
+   addBlockByName: function (typeName, pos, id) {
       const realType = blockTypeList.get(typeName);
-      debugMsg("real type is",realType)
-      /*   if (!realType) {
-            realType = mainPipe.blockTypeList.get(blockType.html());
-         }
-      */
-      //realType.moveBack();
-      debugMsg("adding block to pipe",this);
-      const b = Object.create(BlockInstance).init(realType, this, pos);
+
+      debugMsg("adding block to pipe") // formerly had ,this);
+      const b = Object.create(BlockInstance).init(realType, this, pos, id);
 
       this.blockList.add(b.id, b);
+
+      this.save();
 
       return b;
    },
 
    removeBlock: function(block) {
       let ok = true;
-      if (focusPipe != mainPipe) {
+      if (!mainPipe.hasFocus()) {
          if (currentBE.userBlock.isArgument(block)) {
             debugMsg("the block is an argument");
             ok = currentBE.userBlock.deleteArgument(block);
@@ -253,6 +266,8 @@ const PipeInstance = {
          this.deselectBlock(block);
          this.blockList.remove(block.id);
          block.remove();
+         this.save();
+
       }
    },
 
@@ -308,6 +323,7 @@ const PipeInstance = {
    // output function to view the expression for a block
    displayExpression: function (blockID) {
       changeSExp(this.getFullExpression(blockID));
+      this.save();
    },
 
    getFullExpression: function (blockID) {
@@ -415,10 +431,91 @@ const PipeInstance = {
       return op;
    },
 
+   save: function() {
+      stateStore.updateCurrentPipe(this.getJSON(),this.owner);
+   },
+
+   getJSON: function() {
+      /* serialise the pipe into a JSON structure for saving
+         Structure: {blocks: Array, args: int, connections: Array}
+         - array of blocks, each contains block description, in an array: [label, position, state]
+         (state is data of block form, see blockInstance.getJSON)
+         - array of connections contains pairs [source,target]
+         (source and target being the UUID of the endpoint connected
+      */
+      let blocks = [];
+      let args = 0;
+      for (let bID in this.blockList.list) {
+         if (bID!='end') {
+            const b = this.blockList.get(bID);
+            if (b.isArg()) {
+               blocks.unshift(b.getJSON());
+               args++;
+            }
+            else {
+               blocks.push(b.getJSON());
+            }
+         }
+      }
+      const connections = {}
+      this.plumber.getConnections().map(
+         conn => {
+            const epout = conn.endpoints[0].getUuid(),
+                  epin = conn.endpoints[1].getUuid();
+            debugMsg("Connecting", epout, "to", epin);
+            connections[epin]=epout;
+         }
+      );
+      const result = {blocks:blocks, args:args, connections:connections};
+      // debugMsg(result);
+      return result;
+   },
+
+   setArgsFromJSON: function(pipeData) {
+      const pb = pipeData.blocks;
+      const nArgs = pipeData.args;
+      for (let i=0; i<nArgs; i++) {
+            const bd = pb[i];
+            debugMsg('adding old Arg', bd);
+            const newB = this.addBlockByName(bd[0],bd[1],bd[3]);
+            newB.setState(bd[2]);
+      }
+   },
+
+   setExpFromJSON: function(pipeData) {
+      const pb = pipeData.blocks;
+      for (let i=pipeData.args; i<pb.length; i++) {
+            const bd = pb[i];
+            debugMsg('adding old block', bd);
+            const newB = this.addBlockByName(bd[0],bd[1],bd[3]);
+            newB.setState(bd[2]);
+      }
+      const pc = pipeData.connections;
+      for (let epin in pc) {
+         const epout = pc[epin];
+         debugMsg("Connecting", epout, "to", epin);
+         this.plumber.connect({uuids:[epout,epin]});         
+      }
+      if (this.owner) {
+         debugMsg("recording function"); 
+         this.owner.done();
+      }
+   },
+
+   setFromJSON: function(pipeData) {
+      // pipeData is serialised pipe in JSON
+      this.setArgsFromJSON(pipeData);
+      this.setExpFromJSON(pipeData);
+   },
+
    // Generate a unique ID for each block in this pipe
+   // Avoiding IDs already attributed
    nextID: function () {
       let result = 'id'+this.idNum;
       this.idNum++;
+      if (this.blockList.contains(result)) {
+         result = this.nextID();
+      }
       return result;
    },
 
@@ -599,8 +696,9 @@ const BlockType = {
 // blockInstance
 const BlockInstance = {
 
-   init: function(type, pipe, pos) {
+   init: function(type, pipe, pos, id) {
       debugMsg("new block");
+      this.inCount=0;
       this.type = type; // blockType element - contains a lot of data
       this.pipe = undefined; // pipe (when the block is added)
       this.id = undefined;
@@ -609,19 +707,19 @@ const BlockInstance = {
       this.element = $('<div>').addClass('block');
       this.setHTML();
       this.setPosition(pos);
-      this.setPipe(pipe);
-      this.inCount=1;
+      this.setPipe(pipe,id);
       return this;
    },
 
    setID: function(id) {
+      if (id==null) id = this.pipe.nextID();
       this.element.attr('id',id);
       this.id = id;
    },
 
-   setPipe: function(pipe) {
+   setPipe: function(pipe,id) {
       this.pipe = pipe;
-      this.setID(pipe.nextID());
+      this.setID(id);
       pipe.canvas.append(this.element);
 
       this.type.addUse(this);
@@ -630,12 +728,12 @@ const BlockInstance = {
 
       pipe.plumber.draggable(this.element, {containment: 'parent'});
 
-      const that = this;
+      const self = this;
       this.element.click(function(e) {
          e.stopPropagation();
-         that.pipe.deselectAllBlocks();
-         that.select();
-         that.pipe.displayExpression(that.id);
+         self.pipe.deselectAllBlocks();
+         self.select();
+         self.pipe.displayExpression(self.id);
       });
 
       const dropCode = this.dropCode();
@@ -675,7 +773,6 @@ const BlockInstance = {
    addInput: function(num) {
       if (num===undefined) num = this.inConnections();
       let e = Object.create(BlockEndpoint).init().setPos('top',num).addTo(this);
-      this.inCount++;
       debugMsg("added endpoint to block",this.id,e.ep.getParameters());
       this.inPoints.queue(e);
    },
@@ -690,7 +787,6 @@ const BlockInstance = {
          iP = this.inPoints.get(num);
          debugMsg("endPoint to shift details",iP.ep.getParameters());
          iP.setPos('top',num).updateProps();
-         debugMsg("done");
       }
       debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
    },
@@ -721,6 +817,10 @@ const BlockInstance = {
       }
 
       this.element.html(inHTML);
+   },
+
+   isArg: function() {
+      return this.type.label == "Argument";
    },
 
    getExpression: function() {
@@ -786,6 +886,10 @@ const BlockInstance = {
       }
    },
 
+   getJSON: function () {
+      return [this.type.label,this.getPosition(),this.getState(),this.id]
+   },
+
    // get block dropCode
    dropCode: function() {
       return this.type.dropCode;
@@ -802,7 +906,7 @@ const BlockInstance = {
 
    // selecting is initiated by the block
    select: function () {
-      focusPipe = this.pipe;
+      this.pipe.getFocus();
       this.pipe.selectBlock(this);
       this.element.addClass("blockSelected");
    },
@@ -819,6 +923,11 @@ const BlockInstance = {
 
    repaint: function() {
       this.pipe.plumber.repaint(this.element);
+   },
+
+   nextCount: function () {
+      this.inCount++;
+      return this.inCount;
    }
 }
 
@@ -904,20 +1013,13 @@ const BlockEndpoint = {
 
    setUuid: function() {
       var uuid  = this.block.id+'_';
-      uuid += (this.isSource())?'out':('in'+this.block.inCount); // number needs updating
+      uuid += (this.isSource())?'out':('in'+this.block.nextCount());
       this.properties.uuid = uuid;
       return this;
    },
    getUuid: function() {
       return this.properties.uuid;
    },
-
-   /*
-   getConnections(): function() {
-      //let = this.ep.id???
-      //this.block.plumber.getConnections({ target:??? });
-   }
-   */
 
    isConnected: function() {
       //isConnected returns true if the endPoint is a connected-target-
@@ -943,7 +1045,7 @@ const BlockEndpoint = {
          debugMsg("there is one, seeking among", connList.length);
          for (let i=0; i<connList.length; i++) {
             let e = connList[i].endpoints;
-            debugMsg("trying source",i, e);
+            debugMsg("trying source",i, e[0].getUuid(), e[1].getUuid());
             let tep = e[1];
             if (this.ep===tep) {
                res=$(e[0].getElement()).attr("id");
@@ -990,20 +1092,20 @@ const BlockEditor = {
    init: function() {
       debugMsg("making block editor");
 
-   // Create dialog fro editor
-   const inpt = $('<input type="text" size=7 />');
-   const form = $('<form>').append('Block:').append(inpt);
+      // Create dialog fro editor
+      const inpt = $('<input type="text" size=7 />');
+      const form = $('<form>').append('Block:').append(inpt);
 
-   this.editor = $('<div>').attr('title','Edit block');
-   this.editor.append(form);
-   this.editor.dialog({width: 560, height:420});
+      this.editor = $('<div>').attr('title','Edit block');
+      this.editor.append(form);
+      this.editor.dialog({width: 560, height:420});
 
-   // create and establish the draggable 'user block'
-   this.setUserBlock(Object.create(CustomBlock).init(this));
+      // create and establish the draggable 'user block'
+      this.setUserBlock(Object.create(CustomBlock).init(this));
 
-   this.userBlock.pipe.addEndBlock();
+      this.userBlock.pipe.addEndBlock();
 
-   return this;
+      return this;
    },
 
    setUserBlock: function(userBlock) {
@@ -1019,7 +1121,7 @@ const BlockEditor = {
       });
 
       this.editor.on('dialogresize', function() {
-         userBlock.pipe.plumber.repaintEverything();
+         userBlock.repaint();
       });
 
       const that = this;
@@ -1036,8 +1138,9 @@ const BlockEditor = {
          }
       });
    },
+   
    drop: function(dropped, offset) {
-      focusPipe = this.userBlock.pipe;
+      this.userBlock.pipe.getFocus();
       if (dropped.hasClass('blockType')) {
          const edPos = this.editor.offset();
          const t = offset.top-edPos.top;
@@ -1048,6 +1151,7 @@ const BlockEditor = {
          mainPipe.canvas.droppable('enable');
       }
    }
+
 }
 
 const CustomBlock = {
@@ -1055,21 +1159,26 @@ const CustomBlock = {
    init: function(editDialog) {
       // this is block-specific
       debugMsg("making block");
-      this.name = edGen.next();
-      this.num = edGen.num();
+      this.name = this.edGen.next();
+      this.num = this.edGen.num();
       this.argGen = Object.create(TokenGenerator).init('arg'); // makes argNames (arg1, arg2...)
       this.argList = Object.create(Bag).init(); //[]; // list of arguments
       this.customType = this.newType(); // blockType
       this.icons();
-      this.pipe = Object.create(PipeInstance).init(editDialog.editor);
+      this.pipe = Object.create(PipeInstance).init(editDialog.editor,this);
       this.bE = editDialog;
       this.edit = undefined;
+      this.pipe.save();
       return this;
    },
+
+   // Static field - current block names (newBlock1, ...)
+   edGen: Object.create(TokenGenerator).init('newBlock'),
 
    rename: function(newName) {
       debugMsg("renaming ",this.name," to ",newName);
       if (this.customType.changeLabel(newName)) {
+         stateStore.renameBlock(this.name,newName);
          this.name = newName;
          this.icons();
       }
@@ -1120,6 +1229,7 @@ const CustomBlock = {
       // need to 'unsave...'
       $('#createNewBlock').removeAttr('disabled','disabled');
       this.customType.element.remove();
+      stateStore.removeBlock(this.name);
    },
 
    saveDefun: function() {
@@ -1193,16 +1303,17 @@ const CustomBlock = {
          debugMsg('edit block');
          if (currentBE != that.bE) {
             debugMsg('change edited block');
-            currentBE.editor.dialog('close');
+            if (currentBE) currentBE.editor.dialog('close');
             currentBE = that.bE;
          }
          if (currentBE.editor.is(":hidden")) {
             debugMsg('show editor');
             currentBE.editor.dialog('open');
+            that.repaint();
          }
       });
 
-      copy.on('click', function(e) { // was that.remove() - didn't work
+      copy.on('click', function(e) {
          e.stopPropagation();
          // make a copy
          debugMsg('copy block');
@@ -1227,11 +1338,13 @@ const CustomBlock = {
          connections.map(
             conn => {
                debugMsg("Connecting", conn.sourceId, "to", conn.targetId);
-               const epout = conn.endpoints[0].getUuid(), epin = conn.endpoints[1].getUuid(); 
+               const epout = conn.endpoints[0].getUuid(),
+                     epin = conn.endpoints[1].getUuid(); 
                debugMsg("Connecting", epout, "to", epin);
                currentBE.userBlock.pipe.plumber.connect({uuids:[epout,epin]});
             }
          );
+         stateStore.copyBlock(that.name,newName);
       });
 
       let mo = function() {
@@ -1239,6 +1352,10 @@ const CustomBlock = {
          del.detach();
       }
 
+   },
+
+   repaint: function() {
+      this.pipe.plumber.repaintEverything();
    }
 
    /* not called correctly from delete click event
@@ -1247,6 +1364,190 @@ const CustomBlock = {
       this.edit.remove();
    }
    */
+}
+
+const stateSaver = {
+// Stores and recover the state of the system (GUI+pipe+custom blocks)
+// in browser local storage
+
+   init: function (pre) {
+      // this.blockList = Object.create(Bag).init(); // list of blocks names (not needed?)
+      this.prefix = pre;
+      this.loadStateGUI(); // state of interface: what block is open, whether details are up, what accordion is showing
+      this.mainPipe = {}; // the main pipe, in the same format as block definitions
+      this.blocks = Object.create(Collection).init(); // one entry per custom block
+      
+      return this;
+   },
+
+   load: function() {
+      // this.loadBlockList(); // no need?
+      this.loadBlocks();
+      this.loadMainPipe();
+      this.loadStateGUI();
+   },
+
+   saveBlock: function(blockName) {
+      this.setItem(blockName,this.blocks.get(blockName));
+   },
+
+   renameBlock: function(oldName,newName) {
+      this.blocks.rename(oldName,newName);
+      this.saveBlock(newName);
+      this.removeBlock(oldName);
+      return this;
+   },
+
+   copyBlock: function(oldName,newName) {
+      this.blocks.copy(oldName,newName);
+      this.saveBlock(newName);
+      return this;
+   },
+
+   saveMainPipe: function() {
+      this.setItem("mainPipe",this.mainPipe);
+   },
+
+   saveStateGUI: function() {
+      this.setItem("stateGUI",this.stateGUI);
+   },
+
+   loadBlocks: function() {
+      const len = localStorage.length, bs = [];
+      for (let i=0 ; i < len ; i++) {
+         let bN = this.key( i );
+         if (bN != 'mainPipe' && bN != 'stateGUI') {
+            bs.push(this.loadBlock(bN));
+         }
+      }
+      bs.map(f=>f());
+   },
+
+   loadBlock: function(blockName) {
+      // this function loads the block in two stages
+      // it creates the block and sets arguments as it runs
+      // it then returns a function which when executed,
+      // completes the block rebuilding.
+      const blockString = this.getItem(blockName);
+      this.blocks.set(blockName,blockString);
+      currentBE = Object.create(BlockEditor).init();
+      currentBE.userBlock.rename(blockName);
+      currentBE.editor.find("input").val(blockName);
+      currentBE.userBlock.repaint();
+      const p = currentBE.userBlock.pipe;
+      p.setArgsFromJSON(blockString);
+      currentBE.editor.dialog('close');
+      return function() {p.setExpFromJSON(blockString);};
+   },
+
+   loadMainPipe: function() {
+      const mp = this.getItem("mainPipe");
+      if (mp) {
+         this.mainPipe = mp;
+         mainPipe.setExpFromJSON(mp);
+         // to do: update the pipe with the blocks
+      }
+   },
+
+   loadStateGUI: function() {
+      // Get from storage, then filter data
+      const sg = this.getItem("stateGUI");
+      this.stateGUI = {};
+      if (sg) {
+         // is the detail panel showing?
+         const detailsOn = (sg.details)?true:false; // boolean
+         if (detailsOn) {
+            $( "#codeDetails" ).show();
+            $( "#toggleDetails" ).attr("value","Hide details");
+         }
+         else {
+            $( "#codeDetails" ).hide();
+            $( "#toggleDetails" ).attr("value","Show details");
+         }
+         this.stateGUI.details = detailsOn;
+         // which accordion group to show?
+         let acc = Number.parseInt(sg.accordion);
+         // debugMsg("accordion says ",sg.accordion," which is ",acc);
+         if (acc==NaN) acc = 0; //default
+         $( "#accordion" ).accordion( "option", "active", acc );
+         this.stateGUI.accordion = acc;
+         // this.stateGUI.pipe = (sg.pipe)?
+         // this.stateGUI = this.getItem("stateGUI");
+      }
+   },
+
+   addBlock: function(blockName,blockValue) {
+      // this.saveBlockList();
+      this.blocks.add(blockName,blockValue);
+      this.saveBlock(blockName);
+   },
+
+   updateBlock: function(customBlock,pipeData) {
+      this.blocks.set(customBlock,pipeData);
+      this.saveBlock(customBlock);
+   },
+
+   removeBlock: function(customBlock) {
+      this.blocks.remove(customBlock);
+      this.removeItem(customBlock);
+   },
+
+   updateMainPipe: function (pipeData) {
+      this.mainPipe = pipeData;
+      this.saveMainPipe();
+   },
+
+   updateCurrentPipe: function (pipeData,pipeOwner) {
+      // Find current editor and save this pipe
+      if (pipeOwner)
+         this.updateBlock(pipeOwner.name,pipeData);
+      else
+         this.updateMainPipe(pipeData);
+   },
+
+   updateFocus: function (pipeName) {
+      // store new pipe if there is one - remove old one if not
+      if (pipeName)
+         this.stateGUI.pipe = pipeName;
+      else
+         delete this.stateGUI.pipe;
+      this.saveStateGUI();
+   },
+
+   updateShowDetails: function (details) {
+      // details is true or false, depending whether the panel shows
+      this.stateGUI.details = details;
+      this.saveStateGUI();
+   },
+
+   updateAccordion: function (panelNum) {
+      // accordion is the name of the accordion panel currently showing
+      this.stateGUI.accordion = panelNum;
+      this.saveStateGUI();
+   },
+
+   setItem: function(key,val) {
+      localStorage.setItem(this.prefix+key,JSON.stringify(val));
+      debugMsg("store set", key, val);
+      return val;
+   },
+
+   getItem: function (key) {
+      const val = JSON.parse(localStorage.getItem(this.prefix+key));
+      debugMsg("store get", key, val);
+      return val;
+   },
+   
+   key: function(i) {
+      const k = localStorage.key(i);
+      const l = this.prefix.length;
+      return k.substring(l);
+   },
+
+   removeItem: function(key) {
+      localStorage.removeItem(this.prefix+key);
+      debugMsg("store delete", key);
+   }
 }
 
 const config = {
@@ -1260,6 +1561,7 @@ const config = {
       ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]
    }
 }
+
 
 /* Set of predefined functions
    predefined functions both define the blocks available to interconnect
@@ -1284,8 +1586,8 @@ let focusPipe; // set to mainPipe at initialisation
 // set of custom (user-defined) functions
 const custom_functions = Object.create(Collection).init(); // new collection();
 
-// current block names (newBlock1, ...)
-const edGen = Object.create(TokenGenerator).init('newBlock');
+// Maintain state in local storage
+const stateStore = Object.create(stateSaver).init("local");
 
 /* start:
    - load the file of predefined functions
@@ -1297,7 +1599,7 @@ function initialise() {
    const pipeCanvas = $('#pipeContainer');
 
    mainPipe = Object.create(PipeInstance).init(pipeCanvas);
-   focusPipe = mainPipe; // main is in focus by default
+   mainPipe.getFocus(); // main is in focus by default
 
    blockTypeList = Object.create(BlockTypeList).init(); // all block types to drag (small b!)
    blockTypeList.initBlocks();
@@ -1316,7 +1618,7 @@ function initialise() {
       },
       drop: function(event,ui) {
          const blockType = ui.draggable;
-         focusPipe = mainPipe;
+         mainPipe.getFocus();
          if (blockType.html()!='Argument') {
             const b = mainPipe.addBlock(blockType,ui.position); // b is the block
             mainPipe.deselectAllBlocks();
@@ -1352,9 +1654,17 @@ function initialise() {
 
    const custom = blockTypeList.addSection("Custom");
    custom.append('<button id="createNewBlock" onClick="editBlock();">New block</button>');
-   Object.create(BlockType).init('Argument',argType).addTo({top:2, left:"-30px"}, custom); // add blockType to accordion
+   Object.create(BlockType).init('Argument',argType).addTo({top:2, left:"-30px"}, custom);
+   // add blockType to accordion
 
-   $( "#accordion" ).accordion() // {heightStyle: "fill");
+   $( "#accordion" ).accordion( {
+      activate: function( event, ui ) {
+         const active = $( "#accordion" ).accordion( "option", "active" );
+         stateStore.updateAccordion(active);
+      }
+   } ) // {heightStyle: "fill");
+
+   stateStore.load();
 
 }
 

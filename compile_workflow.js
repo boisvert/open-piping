@@ -22,67 +22,6 @@ let predefined_functions = {},
 // it shouldn't be a global variable - but - in progress
 let lambdaFlag = false;
 
-// Collection: a class of data {name:value, name2:value2}
-
-const Collection = {
-
-   init: function() {
-      this.list = {};
-      return this;
-   },
-
-   clear: function() {
-      this.list={};
-      return this;
-   },
-
-   empty: function() {
-      return (this.size() == 0);
-   },
-
-   contains: function(lbl) {
-      return this.list[lbl] != undefined;
-   },
-
-   add: function (lbl,e) {
-      if (this.contains(lbl))
-         return false;
-      this.list[lbl] = e;
-      return this;
-   },
-
-   set: function (lbl,e) {
-      this.list[lbl] = e;
-      return this;
-   },
-
-   get: function(lbl) {
-      return this.list[lbl];
-   },
-
-   remove: function (lbl) {
-      if (this.contains(lbl)) {
-         delete this.list[lbl];
-         return this;
-      } else {
-         return false;
-      }
-   },
-
-   removeAll: function (lbls) {
-      return lbls.map(this.remove);
-   },
-
-   size: function() {
-      return Object.keys(this.list).length;
-   },
-
-   map: function(f) {
-      return this.list.map(f);
-   }
-
-}
-
 // String with the resulting code
 // plus simple encapsulated functions
 
@@ -644,14 +583,15 @@ function startsWithWhich(toks, str) {
     return undefined;
 }
 
-/* collection classes
-// bag = array of data (as in [a,b,c])
-// with encapsulated functions for handling
+// collection classes
+
+/* Bag = array of data (as in [a,b,c])
+   with encapsulated functions for handling
 */
 const Bag = {
    init: function() {
       this.list = [];
-     return this;
+      return this;
    },
 
    clear: function() {
@@ -728,10 +668,89 @@ const Bag = {
 
 };
 
+
+// Collection: a class of data {name:value, name2:value2}
+
+const Collection = {
+
+   init: function() {
+      this.list = {};
+      return this;
+   },
+
+   clear: function() {
+      this.list={};
+      return this;
+   },
+
+   empty: function() {
+      return (this.size() == 0);
+   },
+
+   contains: function(lbl) {
+      return this.list[lbl] != undefined;
+   },
+
+   add: function (lbl,e) {
+      if (this.contains(lbl))
+         return undefined;
+      this.list[lbl] = e;
+      return this;
+   },
+
+   copy: function (oldLbl,newLbl) {
+      let result = this.get(oldLbl);
+      if (typeof result !== 'undefined') {
+         result = this.add(newLbl,result);
+      }
+      return this;
+   },
+
+   rename: function (oldLbl,newLbl) {
+      let result = this.copy(oldLbl,newLbl).get(newLbl);
+      if (typeof result !== 'undefined') {
+         this.remove(oldLbl);
+      }
+      return this;
+   },
+
+   set: function (lbl,e) {
+      this.list[lbl] = e;
+      return this;
+   },
+
+   get: function(lbl) {
+      return this.list[lbl];
+   },
+
+   remove: function (lbl) {
+      if (this.contains(lbl)) {
+         delete this.list[lbl];
+         return this;
+      } else {
+         return false;
+      }
+   },
+
+   removeAll: function (lbls) {
+      return lbls.map(this.remove);
+   },
+
+   size: function() {
+      return Object.keys(this.list).length;
+   },
+
+   map: function(f) {
+      return this.list.map(f);
+   }
+
+}
+
+
 const tokens = Object.create(Bag).init(); // was TokenCollection();
 
 const TokenGenerator = {
-      init: function(tok,index) {
+   init: function(tok,index) {
       // tokenGenerator - makes strings token+number
       this.tokIndex = $.isNumeric(index)?parseInt(index):1;
       this.tokString = tok;

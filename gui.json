@@ -131,9 +131,14 @@
          "isEmpty": {}
       }
    },
-   "cons": {
+   "build": {
       "label": "Arrays",
-      "args": 2
+      "args": 2,
+      "group": {
+         "add_to_Start": {},
+         "add_to_End": {},
+         "list_Concat": {}
+      }
    },
    "map": {
       "label": "Arrays",
@@ -155,7 +160,7 @@
       "label":"Strings",
       "args": 2
    },
-   "concat": {
+   "string_concat": {
       "label":"Strings",
       "args": 2
    },

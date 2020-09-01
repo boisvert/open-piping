@@ -24,33 +24,40 @@
 <!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
 <script src="../libraries/jsPlumb.2.1.8.min.js"></script>
 
+
+<script>
+var debugMode = true; // set to true to turn on console debug messages
+</script>
+
 <script src="compile_workflow.js"></script>
 <script src="workflow_editor.js"></script>
 
 <script>
 
+// This script governs UI functionality attached to the index page
 $( function() {
    debugMsg("initialising layout");
    const tgd = $( "#toggleDetails" );
 
-    tgd.on( "click", toggleDetails);
+   tgd.on( "click", toggleDetails);
 
-    $( "#codeDetails" ).hide();
+   $( "#codeDetails" ).hide();
 
-    // run the
-    function toggleDetails() {
+   // run the
+   function toggleDetails() {
       debugMsg("toggling details panel")
       tgd.attr("disabled", "disabled");
-      if (tgd.attr("value") == "Show details")
-         $( "#codeDetails" ).show( 'slow' , curriedCallback("Hide details") )
+      const state = (tgd.attr("value") == "Show details")
+      if (state)
+         $( "#codeDetails" ).show( 'slow' , curriedCallback("Hide details",state) )
       else
-         $( "#codeDetails" ).hide( 'slow' , curriedCallback("Show details") );
-    };
+         $( "#codeDetails" ).hide( 'slow' , curriedCallback("Show details",state) );
+   };
 
-    //callback function to bring a hidden box back
-   function curriedCallback(t) {
-      return function () { tgd.attr("value",t); return tgd.removeAttr("disabled")};
-    };
+   //callback function to bring a hidden box back
+   function curriedCallback(t,s) {
+      return function () { tgd.attr("value",t); tgd.removeAttr("disabled"); stateStore.updateShowDetails(s); };
+   };
 
 } );
 
@@ -94,8 +101,6 @@ function runres() {
    $("#theResult").append(result);
    $("#timing").text("Time: "+t+"ms");
 }
-
-var debugMode = true; // set to true to turn on debugging
 
 </script>
 

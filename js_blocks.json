@@ -4,7 +4,8 @@
       "isString": {"args": "s", "body": "return (typeof s === 'string' || s instanceof String);"},
       "pythagoras": {"args": "a,b", "body": "return Math.sqrt(a*a+b*b);"},
       "isEmpty": {"args": "a", "body": "return $.isArray(a) && a.length==0;"},
-      "cons": {"args": "elt,list", "body": "list.unshift(elt);return list;"},
+      "add_to_Start": {"args": "elt,list", "body": "list.unshift(elt);return list;"},
+      "add_to_End": {"args": "elt,list", "body": "list.push(elt);return list;"},
       "min": {"args": "a", "body": "return a.reduce((item,sofar)=>(item<sofar?item:sofar),a[0]);"},
       "max": {"args": "a", "body": "return a.reduce((item,sofar)=>(item>sofar?item:sofar),a[0]);"},
       "sum": {"args": "a", "body": "return a.reduce((item,sofar)=>(item+sofar),0);"},
@@ -31,9 +32,10 @@
    },
 
    "replace": {
+      "list_Concat": {"args": "l1,l2", "js": "@l1.concat(@l2);"},
       "join": {"args": "a,b", "js": "@a.join(@b)"},
       "split": {"args": "a,b", "js": "@a.split(@b)"},
-      "concat": {"args": "a,b", "js": "@a+@b"},
+      "string_Concat": {"args": "a,b", "js": "@a+@b"},
       "parameters": {"args": "f", "js": "getParams(@f)"},
       "map": {"args": "a,b", "js": "@a.map(@b)"},
       "reduce": {"args": "a,b,c", "js": "@a.reduce(@b,@c)"},

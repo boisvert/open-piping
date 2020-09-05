@@ -102,6 +102,34 @@ function runres() {
    $("#timing").text("Time: "+t+"ms");
 }
 
+function saveData(data) {
+   const a = document.createElement("a");
+   document.body.appendChild(a);
+   a.style = "display: none";
+   const json = JSON.stringify(data),
+         blob = new Blob([json], {type: "octet/stream"}),
+         url = window.URL.createObjectURL(blob);
+   a.href = url;
+   
+   a.download = 'pipe-'+formatDate()+'.json';
+   a.click();
+   window.URL.revokeObjectURL(url);
+}
+
+function formatDate() {
+   // formats the current date as an ISO string
+   let d = new Date(),
+       month = '' + (d.getMonth() + 1),
+       day = '' + d.getDate(),
+       year = d.getFullYear(),
+       hour = d.getHours(),
+       min = d.getMinutes(),
+       sec = d.getSeconds();
+   const dateStr = [year,month,day,hour,min,sec].map((x)=>(x.length<2)?'0'+x:x).join('-');
+
+   return dateStr;
+}
+
 </script>
 
 <title>Edit and interpret a workflow</title>
@@ -150,7 +178,7 @@ function runres() {
       position: absolute;
       min-height:50px; min-width: 80px;
       border: 3px solid #33F;
-	  border-radius: 7px;
+	   border-radius: 7px;
       flex: 1;
       font-family: Calibri, Arial, "Sans serif";
       font-size: 16px;
@@ -161,10 +189,10 @@ function runres() {
    .blockType {
       position: relative;
       left: -30px;
-      margin: 7px;
-      height:45px; width: 80px;
+      margin: 6px;
+      height:43px; width: 80px;
       border: 3px solid #33F;
-	  border-radius: 7px;
+	   border-radius: 7px;
       font-family: Calibri, Arial, "Sans serif";
       font-size: 16px;
    }
@@ -223,13 +251,14 @@ wokflow | <a href="exp-tests.html">tests</a> | Github:
 </div>
 Compose an expression by using the blocks above.<br />
 
+Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
+<input type="button" value="Download workflow" onClick="saveData(stateStore.getAllItems());" />
 Language:
 <select id="chooseLang" onChange="getCode();">
    <option value="JS" selected>JS</option>
    <option value="PHP">PHP</option>
 </select>
 <input type="button" value="Show details" id="toggleDetails" />
-Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
 <input type="button" value="Run" onClick="runres();" />
 <span id="timing"></span>
 <br />

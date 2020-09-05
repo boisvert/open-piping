@@ -477,8 +477,8 @@ const PipeInstance = {
       for (let i=0; i<nArgs; i++) {
             const bd = pb[i];
             debugMsg('adding old Arg', bd);
-            const newB = this.addBlockByName(bd[0],bd[1],bd[3]);
-            newB.setState(bd[2]);
+            const newB = this.addBlockByName(bd.type,bd,bd.id);
+            newB.setState(bd);
       }
    },
 
@@ -487,8 +487,8 @@ const PipeInstance = {
       for (let i=pipeData.args; i<pb.length; i++) {
             const bd = pb[i];
             debugMsg('adding old block', bd);
-            const newB = this.addBlockByName(bd[0],bd[1],bd[3]);
-            newB.setState(bd[2]);
+            const newB = this.addBlockByName(bd.type,bd,bd.id);
+            newB.setState(bd);
       }
       const pc = pipeData.connections;
       for (let epin in pc) {
@@ -887,7 +887,13 @@ const BlockInstance = {
    },
 
    getJSON: function () {
-      return [this.type.label,this.getPosition(),this.getState(),this.id]
+      const result = this.getState(),
+            pos = this.getPosition();
+      result.top = pos.top;
+      result.left = pos.left;
+      result.type = this.type.label;
+      result.id = this.id;
+      return result;
    },
 
    // get block dropCode
@@ -1537,7 +1543,19 @@ const stateSaver = {
       debugMsg("store get", key, val);
       return val;
    },
-   
+
+   getAllItems: function() {
+      // returns the set of blocks as a JSON string
+      const len = localStorage.length, result = {};
+      for (let i=0 ; i < len ; i++) {
+         let k = this.key( i );
+         if (k != 'stateGUI') { // all keys except for stateGUI
+            result[k] = this.getItem(k);
+         }
+      }
+      return result;
+   },
+
    key: function(i) {
       const k = localStorage.key(i);
       const l = this.prefix.length;

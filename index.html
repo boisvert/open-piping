@@ -103,6 +103,7 @@ function runres() {
 }
 
 function saveData(data) {
+   // gives data to the user by giving them the 
    const a = document.createElement("a");
    document.body.appendChild(a);
    a.style = "display: none";
@@ -121,13 +122,18 @@ function formatDate() {
    let d = new Date(),
        month = '' + (d.getMonth() + 1),
        day = '' + d.getDate(),
-       year = d.getFullYear(),
-       hour = d.getHours(),
-       min = d.getMinutes(),
-       sec = d.getSeconds();
-   const dateStr = [year,month,day,hour,min,sec].map((x)=>(x.length<2)?'0'+x:x).join('-');
+       year = '' + d.getFullYear(),
+       hour = '' + d.getHours(),
+       min = '' + d.getMinutes(),
+       sec = '' + d.getSeconds();
+   const dateStr = [year,month,day,hour,min,sec].map((x)=>(x.length<2)?'0'+x:x).join('_');
 
    return dateStr;
+}
+
+async function loadFile(inp) {
+   const dataText = await inp.files[0].text();
+   stateStore.loadFile(await JSON.parse(dataText));
 }
 
 </script>
@@ -239,10 +245,15 @@ function formatDate() {
 
 <h2>Program a workflow</h2>
 
-wokflow | <a href="exp-tests.html">tests</a> | Github:
-  <a href="https://github.com/boisvert/open-piping">code</a> |
-  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a> |
-  <a href="https://github.com/boisvert/open-piping/issues">issues</a>
+wokflow | <a href="exp-tests.html">tests</a> | Github
+  <a href="https://github.com/boisvert/open-piping">code</a>,
+  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
+  <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
+
+Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
+<input type="button" value="Save workflow" onClick="saveData(stateStore.getAllItems());" />
+Load workflow: <input type="file" onChange="loadFile(this);" />
+
 <p>
 
 <div id="maincontainer">
@@ -250,9 +261,6 @@ wokflow | <a href="exp-tests.html">tests</a> | Github:
    <div id="pipeContainer"></div>
 </div>
 Compose an expression by using the blocks above.<br />
-
-Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
-<input type="button" value="Download workflow" onClick="saveData(stateStore.getAllItems());" />
 Language:
 <select id="chooseLang" onChange="getCode();">
    <option value="JS" selected>JS</option>

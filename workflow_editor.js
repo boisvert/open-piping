@@ -1393,6 +1393,18 @@ const stateSaver = {
       this.loadStateGUI();
    },
 
+   loadFile: function(data) {
+      // saves then loads the data
+      debugMsg("loading pipe");
+      const mp = data.mainPipe;
+      delete data.mainPipe;
+      for (blockName in data) {
+         this.addBlock(blockName,data[blockName]);
+      }
+      this.updateMainPipe(mp);
+      this.load();
+   },
+
    saveBlock: function(blockName) {
       this.setItem(blockName,this.blocks.get(blockName));
    },
@@ -1483,7 +1495,6 @@ const stateSaver = {
    },
 
    addBlock: function(blockName,blockValue) {
-      // this.saveBlockList();
       this.blocks.add(blockName,blockValue);
       this.saveBlock(blockName);
    },

@@ -719,6 +719,11 @@ const Collection = {
       return this;
    },
 
+   setAll: function (data) {
+      data.map((lbl)=>this.add(lbl,data[lbl]));
+      return this;
+   },
+
    get: function(lbl) {
       return this.list[lbl];
    },

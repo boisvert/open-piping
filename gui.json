@@ -1,6 +1,7 @@
 {
    "constant": {
       "label": "Data",
+      "tip": "Set a constant value (can be a number, string, array, or JSON value)",
       "args": 0,
       "output": -1,
       "blockCode": "<form><input type='text' /><form>",
@@ -21,29 +22,34 @@
    },
    "load file": {
       "label": "Data",
+      "tip": "Load the file given in the first argument. Second argument is a call back to process it",
       "args":2,
       "output":1,
       "getExp": "return 'getfile';"
    },
    "keep variable": {
       "label": "Data",
+      "tip": "Store the result: link any input to the argument. You can connect the output to any number of processes",
       "args":1,
       "output":-1,
       "getExp":"return 'assign';"      
    },
    "alert": {
       "label": "Display",
+      "tip": "Show the argument in a popup window, then outputs the argument for more processing",
       "args":1,
       "getExp":"return 'popup';"
 
    },
    "inject HTML": {
       "label": "Display",
+      "tip": "Place the result in the HTML page, then outputs the argument for more processing",
       "args":1,
       "getExp":"return 'inject';"
    },
    "arithmetic": {
       "label": "Math",
+      "tip": "Execute the operation chosen between the two numerical arguments and outputs the result",
       "args": 2,
       "group": {
          "+": {"getExp":"return 'plus';"},
@@ -57,66 +63,75 @@
    },
    "function": {
       "label": "Math",
-        "args": 1,
-        "group": {
+      "tip": "Applies the selected function to the numerical argument and outputs the result",
+      "args": 1,
+      "group": {
          "sqrt": {},
-            "sin": {},
-            "cos": {},
-            "tan": {},
-            "exp": {},
-            "log": {}
-        }
-    },
+         "sin": {},
+         "cos": {},
+         "tan": {},
+         "exp": {},
+         "log": {}
+      }
+   },
    "Statistics": {
       "label": "Math",
-        "args": 1,
-        "group": {
+      "tip": "Applies the selected function to the numerical argument and outputs the result",
+      "args": 1,
+      "group": {
          "min": {},
-            "max": {},
-            "average": {},
-            "median": {},
-            "stdevp": {}
-        }
-    },
+         "max": {},
+         "average": {},
+         "median": {},
+         "stdevp": {}
+      }
+   },
    "if": {
       "label": "Conditional",
-      "args":3
+      "args":3,
+      "tip":"Execute one branch if the first input is true, the other if it is false",
+      "argtips": ["Condition","Result if true","Result if false"]
    },
    "comparison": {
       "label": "Conditional",
-        "args": 2,
-        "group": {
-            "<": {"getExp":"return 'lt';"},
-            "<=": {"getExp":"return 'lte';"},
-            ">": {"getExp":"return 'mt';"},
-            ">=": {"getExp":"return 'mte';"},
-            "=": {"getExp":"return 'equals';"}
-        }
-    },
+      "args": 2,
+      "tip": "Compares the two arguments, and outputs a boolean (true or false)",
+      "group": {
+         "<": {"getExp":"return 'lt';"},
+         "<=": {"getExp":"return 'lte';"},
+         ">": {"getExp":"return 'mt';"},
+         ">=": {"getExp":"return 'mte';"},
+         "==": {"getExp":"return 'equals';"}
+      }
+   },
    "type check": {
       "label": "Conditional",
-        "args":1,
-        "group": {
-            "isNumber":{},
-            "isString": {},
-            "isArray": {},
-            "isNull": {}
-        }
-    },
+      "tip": "Checks the type of the argument. Outputs a boolean (true or false)",
+      "args":1,
+      "group": {
+         "isNumber":{},
+         "isString": {},
+         "isArray": {},
+         "isNull": {}
+      }
+   },
    "boolean and/or": {
       "label": "Conditional",
-        "args": 2,
-        "group": {
-            "or": {},
-            "and": {}
-        }
+      "tip": "Applies <i>and</i> or <i>or</i> to the two boolean arguments. Outputs a boolean (true or false)",
+      "args": 2,
+      "group": {
+         "or": {},
+         "and": {}
+      }
     },
    "not": {
       "label": "Conditional",
+      "tip": "Outputs the negation of the boolean input: true becomes false, and vice versa",
       "args": 1
    },
    "parts of array": {
       "label": "Arrays",
+      "tip": "Takes in an array. Returns either its first element, or an array of all but the first",
       "args": 1,
       "group": {
          "first": {},
@@ -125,6 +140,7 @@
    },
    "array size": {
       "label": "Arrays",
+      "tip": "Takes in an array. Returns a boolean - true if the array is empty, false otherwise",
       "args": 1,
       "group": {
          "size": {},
@@ -133,6 +149,7 @@
    },
    "build": {
       "label": "Arrays",
+      "tip": "The first argument is an element, and the second an array. Returns new array with the element added",
       "args": 2,
       "group": {
          "add_to_Start": {},
@@ -142,42 +159,52 @@
    },
    "map": {
       "label": "Arrays",
+      "tip": "The first argument is an array, and the second a function to apply. Returns an array containing the application of the function to each input element",
       "args": 2
    },
    "reduce": {
       "label": "Arrays",
+      "tip": "The first argument is an array, the second a function, and the third is a starting value. Returns a reduction of the array to a single value obtained by applying the function to each array element and accumulating the returned value",
       "args": 3
    },
    "filter": {
       "label": "Arrays",
+      "tip": "The first argument is an array, and the second a function that returns a boolean. Returns an array containing the subset of the input array for which the function returns true",
       "args": 2
    },
    "join": {
       "label":"Strings",
+      "tip": "The first argument is an array of strings, and the second a separator string. Returns a  string formed by all elements, separated by the separator",
       "args": 2
    },
    "split": {
       "label":"Strings",
+      "tip": "The first argument is a string, and the second a separator. Returns an array of substrings separated according to the separator",
       "args": 2
    },
    "string_concat": {
       "label":"Strings",
+      "tip": "Input two strings. Returns a string formed by concatenating them",
       "args": 2
    },
    "use block": {
       "label": "Blocks",
+      "tip": "Link a block to the argument. The output will be the function represented by the block, as opposed to its result",
       "args": 1
    },
    "lambda": {
       "label": "Blocks",
+      "tip": "The first argument is an array of strings, and the second a graph of one or more blocks. The output will be the function formed by treating the strings as arguments to the graph",
       "args": 2
    },
    "apply": {
       "label": "Blocks",
+      "tip": "The first argument is an array of arguments, and the second a function. The output will be the result of applying the arguments to the function",
       "args": 2
    },
    "parameters": {
       "label": "Blocks",
+      "tip": "The input is a function. The output is an array of the function's parameters",
       "args": 1
    }
 }

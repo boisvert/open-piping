@@ -564,6 +564,7 @@ const BlockType = {
       this.pos = undefined;
       this.label = label;
       this.blockCode = (defGUI.blockCode)?(defGUI.blockCode):"";
+      if (defGUI.tip) this.tip = defGUI.tip;
       this.getExp = defGUI.getExp;
       this.dropCode = defGUI.dropCode;
       this.inConn = (defGUI.args==='undefined')?2:defGUI.args;
@@ -576,6 +577,7 @@ const BlockType = {
       const elt = $('<div>').addClass('blockType');
       this.element = elt;
       this.setLabel(this.label);
+      if (this.tip) this.element.prop('title',this.tip);
 
       section.append(elt);
       this.setPos(position);
@@ -1700,6 +1702,7 @@ function initialise() {
 jsPlumb.ready(function() {
    // load block GUI
    debugMsg("begin initialisation");
+   $( document ).tooltip();
    $.ajax({
       url: "gui.json",
       beforeSend: function(xhr){

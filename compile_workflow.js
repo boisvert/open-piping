@@ -406,7 +406,7 @@ const FunData = {
       lambdaFlag = false;
       LBody = (this.environment.text +"return "+LBody+';').replaceAll('\n',' ');
           //.replaceAll('"',"'"); // was yet more replaceAll - but interferes
-      this.js = "my_lambda("+LArgs+", \""+LBody+"\")";
+      this.js = "my_lambda("+LArgs+", '"+LBody+"')";
       return this;
    },
 

@@ -22,10 +22,24 @@
    },
    "load file": {
       "label": "Data",
-      "tip": "Load the file given in the first argument. Second argument is a call back to process it",
-      "args":2,
+      "tip": "Load the file given in the argument. Returns a 'promise' to process the file",
+      "args":1,
       "output":1,
       "getExp": "return 'getfile';"
+   },
+   "wait": {
+      "label": "Data",
+      "tip": "Wait for the promise to resolve, then returns the result",
+      "args":1,
+      "output":1,
+      "getExp": "return 'waitFor';"
+   },
+   "then": {
+      "label": "Data",
+      "tip": "The first argument is a promise, the second a block to execute. The block is executed when possible, and execution is not blocked in the meantime.",
+      "args":2,
+      "output":1,
+      "getExp": "return 'thenDo';"
    },
    "keep variable": {
       "label": "Data",

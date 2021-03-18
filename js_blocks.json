@@ -19,7 +19,7 @@
       "getfile": {
          "args": "file,action",
          "body":
-            "$.ajax({url: file, beforeSend: function(xhr) {if (xhr.overrideMimeType) xhr.overrideMimeType('text/plain')}, success: action})"
+            "if (!action) action = (x)=>x; return fetch(file).then((response)=>response.text()).then(action)"
       },
       "popup": {
          "args": "txt",
@@ -32,6 +32,8 @@
    },
 
    "replace": {
+      "thenDo": {"args": "p,f", "js": "@p.then(@f)"},
+      "waitFor": {"args": "p", "js": "await @p"},
       "list_Concat": {"args": "l1,l2", "js": "@l1.concat(@l2);"},
       "join": {"args": "a,b", "js": "@a.join(@b)"},
       "split": {"args": "a,b", "js": "@a.split(@b)"},

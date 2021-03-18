@@ -133,7 +133,7 @@ function compile(Exp) {
    globalCode.line("// Automatically generated code");
    globalCode.skip();
    const call = encode(Exp,globalCode);
-   globalCode.line("function pipe() {");
+   globalCode.line("async function pipe() {");
    globalCode.nest();
    globalCode.line("return "+call+";");
    globalCode.denest();

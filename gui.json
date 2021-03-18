@@ -115,7 +115,8 @@
          "<=": {"getExp":"return 'lte';"},
          ">": {"getExp":"return 'mt';"},
          ">=": {"getExp":"return 'mte';"},
-         "==": {"getExp":"return 'equals';"}
+         "==": {"getExp":"return 'equals';"},
+         "!=": {"getExp":"return 'unequal';"}
       }
    },
    "type check": {

@@ -87,13 +87,15 @@ function chooseCompiler(Exp,lang,callBack) {
 }
 
 // run result
-function runres() {
-   var c = $('#result').val();
-   eval(c);
+async function runres() {
 
+   const c = "(async () => {" + $('#result').val() + "; return await pipe();})()"
    $("#theResult").html("");
+
    const t0 = performance.now();
-   const result = pipe();
+
+   let result = await eval(c); // await pipe();
+
    const t = performance.now()-t0;
 
    debugMsg("done - ",result,"in ",t + " milliseconds.");

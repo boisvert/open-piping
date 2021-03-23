@@ -148,16 +148,32 @@ async function loadFile(inp) {
 
 <style>
 
-   #createNewBlock {
-      width: 90px;
-      font-family: Calibri, Arial, "Sans serif";
-      position: relative;
-      left: -25px; /* top: 10px; */
-      margin: 0px;
+   #maincontainer {
+      height: 560px;
    }
 
-   #maincontainer {
-       height: 560px;
+   .ui-dialog-titlebar {
+      border: 3px solid #33F;
+      border-top-style: solid;
+      border-right-style: solid;
+      border-bottom-style: none;
+      border-left-style: solid;
+      border-radius: 7px 7px 0px 0px;
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+      font-weight: bold;
+   }
+
+   #block-dialog {
+      border: 3px solid #33F;
+      border-top-style: none;
+      border-right-style: solid;
+      border-bottom-style: solid;
+      border-left-style: solid;
+      border-radius: 0px 0px 7px 7px;
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+      font-weight: bold;
    }
 
    #pipeContainer {
@@ -180,6 +196,14 @@ async function loadFile(inp) {
 
    #accordion .ui-accordion-header {
       padding: 0em .1em 0em .1em;
+   }
+
+   #createNewBlock {
+      width: 90px;
+      font-family: Calibri, Arial, "Sans serif";
+      position: relative;
+      left: -25px; /* top: 10px; */
+      margin: 0px;
    }
 
    .block {

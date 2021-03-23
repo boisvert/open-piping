@@ -271,44 +271,41 @@ const PipeInstance = {
       }
    },
 
-   /*
-   // track new connector
-   addConnector: function(from,to) {
-      
-      debugMsg("adding connector");
-      // Define style of connectors
-      let connStyle = {
-         anchor:["Bottom","Left"],
-         endpoint:"Dot"
-      };
-
-      this.plumber.connect({
-         source:from,
-         target:to
-      },
-      connStyle); 
-   },*/
-
    /* adding the 'endBlock'. Unlike others,
       it has no output endpoint; it also can't be removed from the canvas.
       this would be best organised with inheritance. Not done yet.
    */
-   addEndBlock: function () {
+   addEndBlock: function (inCustomBlock) {
+      // inCustomBlock - not in use
       const blockID = 'end';
-      const block = $('<div>').attr('id',blockID).addClass('block').html("End");
+      const block = $('<div>').attr('id',blockID);
       this.blockList.add(blockID, this);
       this.type = {id: 'end'};
 
       this.canvas.append(block);
-      block.css({bottom:10, right:10});
+      /*
+      if (inCustomBlock) {
+         block.css({bottom:20, right:1, position:"absolute", height:"1px", width:"1px"});
+         this.plumber.addEndpoint(block, {
+            anchors:[1,0.5,-1,0],
+            uuid: "end_in0",
+            isTarget: true,
+            cssClass:"block-end",
+            maxConnections: 1
+         }, config.connectStyle);
+      } else
+      { */
+         block.addClass('block').text('End');
+         block.css({bottom:10, right:10});
+         this.plumber.addEndpoint(block, {
+            anchors:[0,0.5,-1,0],
+            uuid: "end_in0",
+            isTarget: true,
+            maxConnections: 1
+         }, config.connectStyle);
+      // } // end of "inCustomBlock" conditional
 
       // *** this should be making an endPoint target object to add
-      this.plumber.addEndpoint(block, {
-         anchors:[0,0.5,-1,0],
-         uuid: "end_in0",
-         isTarget: true,
-         maxConnections: 1
-      }, config.connectStyle);
 
       //this.plumber.repaintEverything();
 
@@ -360,9 +357,10 @@ const PipeInstance = {
       let op;
 
       // the bizarre 'end' block breaks everything
-      // end bloock is a different case because
+      // end block is a different case because
       // inPoints are not properly set up. Needs repair
-      if (blockID==='end') {
+      if (blockID==='end' || blockID==='block-dialog' ) {
+         debugMsg("end block");
          if (connections.length==1)
             op = this.getExpression(connections[0].sourceId)
          else
@@ -446,7 +444,7 @@ const PipeInstance = {
       let blocks = [];
       let args = 0;
       for (let bID in this.blockList.list) {
-         if (bID!='end') {
+         if (bID!='end' && bID!='block-dialog' ) {
             const b = this.blockList.get(bID);
             if (b.isArg()) {
                blocks.unshift(b.getJSON());
@@ -1101,17 +1099,34 @@ const BlockEditor = {
       debugMsg("making block editor");
 
       // Create dialog fro editor
-      const inpt = $('<input type="text" size=7 />');
-      const form = $('<form>').append('Block:').append(inpt);
-
-      this.editor = $('<div>').attr('title','Edit block');
+      const inpt = $('');
+      const form = '<form>Block: <input type="text" size=7 /></form>';
+      const blockID = 'block-dialog';
+      this.editor = $('<div>').attr('id',blockID);
       this.editor.append(form);
-      this.editor.dialog({width: 560, height:420});
+
+      // To move the form into the title bar, idea:
+      // jboyblogger.wordpress.com/2014/09/12/how-to-use-html-for-jquery-dialog-title
+      
+      this.editor.dialog({width: 560, height:420, title:'Edit block'});
 
       // create and establish the draggable 'user block'
       this.setUserBlock(Object.create(CustomBlock).init(this));
 
-      this.userBlock.pipe.addEndBlock();
+      //this.userBlock.pipe.addEndBlock(true);
+      
+      // replaces addEndBlock - only the endPoint
+
+      this.userBlock.pipe.blockList.add(blockID, this.userBlock.pipe);
+      this.userBlock.pipe.type = {id: blockID};
+      //this.userBlock.pipe.canvas.append(this.editor);
+      this.userBlock.pipe.plumber.addEndpoint(this.editor, {
+         anchors:[1,0.9,-1,0],
+         uuid: "end_in0",
+         isTarget: true,
+         maxConnections: 1
+      }, config.connectStyle);
+      // end addEndBlock
 
       return this;
    },
@@ -1250,8 +1265,8 @@ const CustomBlock = {
 
    defun: function() {
       this.pipe.useDefaultArguments = false;
-      let res = this.pipe.getFullExpression('end');
-      //let res = this.pipe.getExpression('end'); // should be getFullExpression?
+      let res = this.pipe.getFullExpression('block-dialog');
+                           // block-dialog = the div the endPoint is tied to
       this.pipe.useDefaultArguments = true;
       if (res != undefined) {
          res = ["defun", this.name, this.argList.map(a => a.getExpression()), res];

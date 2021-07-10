@@ -34,7 +34,7 @@
    "replace": {
       "thenDo": {"args": "p,f", "js": "@p.then(@f)"},
       "waitFor": {"args": "p", "js": "await @p"},
-      "list_Concat": {"args": "l1,l2", "js": "@l1.concat(@l2);"},
+      "list_Concat": {"args": "l1,l2", "js": "@l1.concat(@l2)"},
       "join": {"args": "a,b", "js": "@a.join(@b)"},
       "split": {"args": "a,b", "js": "@a.split(@b)"},
       "string_concat": {"args": "a,b", "js": "@a+@b"},
@@ -55,7 +55,7 @@
       "cos": {"args": "a", "js": "Math.cos(@a)"},
       "tan": {"args": "a", "js": "Math.tan(@a)"},
       "log": {"args": "a", "js": "Math.log(@a)"},
-      "exp": {"args": "a", "js": "Math.ezp(@a)"},
+      "exp": {"args": "a", "js": "Math.exp(@a)"},
       "equals": {"args": "a,b", "js": "@a===@b"},
       "unequal": {"args": "a,b", "js": "@a!=@b"},
       "lt": {"args": "a,b", "js": "@a<@b"},

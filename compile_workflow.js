@@ -14,6 +14,7 @@ like conditionals and possibly function definition
 A stack of defined vars (store) is also maintained
 */
 
+// should use collection classes!
 let predefined_functions = {},
     predefined_replacements = {};
 
@@ -75,23 +76,28 @@ const globalCode = Object.create(CodeString).init();
 
 // list of functions in use (to not repeat them)
 // this is the "d-list" of defined functions in LISP interpreters
+
 const FunctionsCollection = {
 
    init: function() {
        this.list = [];
       return this;
     },
+
     clear: function() {
         this.list=[];
         return this;
     },
+
     notContain: function(F) {
         return this.list.indexOf(F) === -1;
     },
+
     add: function (F) {
         this.list.push(F);
         return this;
     }
+
 }
 
 const includedFunctions = Object.create(FunctionsCollection).init();
@@ -122,9 +128,12 @@ const readyReplacements = {
 
 /*
 The "process" needs improvemet
-Need a wrapper object that limits the scope of needed functions
-secures the execution and provides support e.g. display, timing, execution journal
+Need a wrapper object to
+- limit the scope of needed functions
+- secure the execution
+- provide support e.g. display, timing, execution journal
 */
+
 function compile(Exp) {
    includedFunctions.clear();
    tokens.clear();
@@ -142,30 +151,35 @@ function compile(Exp) {
 }
 
 function encode(Exp,vars) {
-   let res;
 
-   if (isArray(Exp)) {
    // cases 1 to 6 - Exp is an array
-      res = encodeArray(Exp,vars);
+   if (isArray(Exp)) {
+      return encodeArray(Exp,vars);
    }
-   else if (isString(Exp)) {
-   // case 7: expression is a known variable
+
+   if (isString(Exp)) {
+      // case 7: expression is a known variable
       if (tokens.contains(Exp)) {
          if (lambdaFlag) {
-            res = '\"+expCheck('+Exp+')+\"';
-            debugMsg(res);
-         } else
-            res = Exp;
+            Exp = "\'+expCheck("+Exp+")+\'"; // '\"+expCheck('+Exp+')+\"';
+            debugMsg(Exp);
          }
-   // case 8: expression is a string
-      else
-         res = '"'+Exp+'"';
+         return Exp;
+      }
+      // case 8: expression is a string
+      return '"'+unescape_underscore(Exp)+'"';
    }
    // case 9: expression is anything else - left unprocessed - works for number, boolean, null
-   else res = Exp;
+   return Exp;
+   
+   // unescape underscore: process initial underscore
+   // which is used to mark variable tokens and function names
+   function unescape_underscore(S) {
+      S = S.replaceAll('"','\\"').replaceAll("'","\\'");
+      if (S.startsWith("__")) return S.substring(1)
+      return S
+   }
 
-   // done
-   return res;
 }
 
 function encodeArray(Exp, vars) {
@@ -209,7 +223,7 @@ function encodeArray(Exp, vars) {
                 H = Exp[0]; // block name
                 debugMsg(Exp, "is block", H);
                 enforce(H, isString); // must be a string: it's a function call (!)
-                if ((H in predefined_functions) || tokens.contains(H)) { //    si H est une fonction
+                if ((H in predefined_functions) || tokens.contains(H)) { // si H est une fonction
                     getOperator(H); //      -- ajouter H aux fonctions en usage
                     res = H;
                 }
@@ -262,11 +276,11 @@ function encodeArray(Exp, vars) {
 }
 
 function caseOfHead(H) {
-   if (H=="defun") return 3; //function definition
-   if (H=="lambda") return 3.5; // lambda
-   if (H=="assign") return 4; // variable
-   if (H=="block") return 4.2; // function as data
-   if (H=="apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
+   if (H=="_def") return 3; //function definition
+   if (H=="_lambda") return 3.5; // lambda
+   if (H=="_assign") return 4; // variable
+   if (H=="_block") return 4.2; // function as data
+   if (H=="_apply") return 4.5; // call a function [ higher order type: (x -> y) -> z ]
    if (H in predefined_replacements) return 5; // JSON replacement
    if (H in predefined_functions) return 6; // JSON function
    return 2; // anything else - data array
@@ -277,7 +291,7 @@ function encodeEach(E,environment) {
     debugMsg("encoding each of",E, E.length);
     let Res = [];
     if (E.length>0) {
-        debugMsg("encoding "+E[0]);
+        debugMsg("encoding ",E[0]);
         let First = encode(E[0],environment);
         E.shift();
         Res = encodeEach(E,environment);
@@ -291,7 +305,7 @@ function encodeEach(E,environment) {
    return Res;
 }
 
-// defun adds necessary code for the function definition and updates the list of functions available
+// defun (_def) adds necessary code for the function definition and updates the list of functions available
 // and the list of functions in use
 // not correctly chunked - the work of defining the function,
 // and its use, are tightly coupled here
@@ -299,7 +313,7 @@ function encodeEach(E,environment) {
 // the syntax is javascript: foo = function (arguments) {return body;}
 function defun(name,args,body) {
     // adds a function definition to the "predefined functions" JSON list
-    debugMsg("defun",name,args,body);
+    debugMsg("_def",name,args,body);
     includedFunctions.add(name); // needed for recursive functions
     const fd = Object.create(FunData).init();
     fd.setName(name);
@@ -309,26 +323,11 @@ function defun(name,args,body) {
 
 // lambda, see comment
 /*
-// the aim of lambda is that the compiled result,
-// creates a new function at interpret 
-// is limiting
-// because is doesn't allow dynamic setting of arguments
-// arguments (their number at least) have to be pre determined
-// to allows the creation of function interpretation at compile time
-// dynamic arguments = expression interpretation at runtime, which *may* break the security model
+The aim of lambda is that the compiled result,
+creates a new function at interpret 
+to allows the creation of function interpretation at compile time
+dynamic arguments = expression interpretation at runtime, which *probably* is a risk of injection
 
-function encodeLambda(args,body) {
-   // return an anonymous function definition 
-   debugMsg("lambda",args,body);
-   const fd = Object.create(FunData).init();
-   fd.setLambda(args,body);
-   debugMsg("lambda produces ",fd.js);
-   return fd.getLambda();
-}
-*/
-
-// lambda version 2
-/*
 Needs TLC
 Especially
  - resolution of tokens
@@ -336,7 +335,7 @@ Especially
 */
 
 function encodeLambda(argsExp,bodyExp,context) {
-   debugMsg("lambda",argsExp,bodyExp);
+   debugMsg("_lambda",argsExp,bodyExp);
    const fd = Object.create(FunData).init();
    fd.setInterpretLambda(argsExp,bodyExp,context);
       // encode the argument expression; leads to executable expression 
@@ -344,17 +343,19 @@ function encodeLambda(argsExp,bodyExp,context) {
    return fd.getInterpretLambda();
 }
 
-// version 2 needs service function
-
-
-// function should be injected in executable code
+// my_lambda: service function; should be injected in executable code
 // a lot of kludge here
-// 
+// better if args, lines and return part are three separate arguments
+// checked at run time
+// will help safeguard against injection
+// see setInterpret lambda which creates this call
 function my_lambda(args, body) {
    debugMsg(args, body)
    args.forEach(function(arg) {
       body = body.replaceAll("'"+arg+"'", arg).replaceAll('"'+arg+'"', arg);
    });
+   body = body.replaceAll("'","\\'"); // replaceAll('"','\\"').
+   debugMsg("escaped body ",body);
    const f = "("+args.join(", ")+")=>{"+body+"}";
    debugMsg(f);
    return eval(f);
@@ -363,7 +364,7 @@ function my_lambda(args, body) {
 function expCheck(v) {
    if (typeof v == "object" && v != null)
        return JSON.stringify(v);
-   else return v.toString();
+   return v.toString();
 }
 
 const FunData = {
@@ -400,12 +401,11 @@ const FunData = {
    },
 
    setInterpretLambda: function (args,body,context) {
-      const LArgs = encode(args,context); // encode(args,this.environment);
+      const LArgs = encode(args,context);
       lambdaFlag = true;
       let LBody = encode(body,this.environment);
       lambdaFlag = false;
-      LBody = (this.environment.text +"return "+LBody+';').replaceAll('\n',' ');
-          //.replaceAll('"',"'"); // was yet more replaceAll - but interferes
+      LBody = (this.environment.text + "return "+LBody+';').replaceAll('\n',' ');
       this.js = "my_lambda("+LArgs+", '"+LBody+"')";
       return this;
    },
@@ -498,55 +498,55 @@ const Substitutor = {
 */
 
 function getSubstitutor(X) {
-    let s;
 
-    if (readyReplacements.contain(X)) {
-        s = readyReplacements.get(X);
-    }
-    else {
-        let rX = predefined_replacements[X];
+   // if it's been done before: early exit
+   if (readyReplacements.contain(X)) return readyReplacements.get(X);
 
-        // parse rX.args and get strings to replace in the substitution
-        let args = rX.args.split(',').map($.trim);
+   let s;
+   debugMsg("substituting",X,"replacement is",predefined_replacements[X]);
 
-        // then parse rX.js - get the substrings that start with substitutions
-        let reps = rX.js.split('@');
+   let rX = predefined_replacements[X];
 
-        // each string in reps (bar the first) starts with one of the strings in args
-        // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
-        let indexes = [];
-        // results_parts is a list of strings that need to be concatenated
-        let result_parts = [reps[0]]; // ['','?',':',''] ;
+   // parse rX.args and get strings to replace in the substitution
+   let args = rX.args.split(',').map($.trim);
 
-        for (let i=1; i<reps.length; i++) {
-            let ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
-            indexes.push(ind); // add to indexes array
-            let res_part = reps[i].slice(args[ind].length); // find the next substring
-            result_parts.push(res_part);
-        }
+   // then parse rX.js - get the substrings that start with substitutions
+   let reps = rX.js.split('@');
 
-        // return a function that makes the subtitition
-        // the function uses indexes and results_parts which are in its environment
-        // (thank you closure!)
-        s = function(bits) {
-                let res = '(';
-            let i;
-                for (i=0; i<indexes.length; i++) {
-                    res += result_parts[i]+bits[indexes[i]];
-                }
-                res += result_parts[i] + ')';
-                return res;
-            };
-        // add prerequisites to the code
-        if (rX.requires) {
-            let pre = rX.requires.map(getOperator);
-            globalCode.line(pre.join(""));
-        }
+   // each string in reps (bar the first) starts with one of the strings in args
+   // indexes is a list e.g. [0,1,2] of which argument, by number, must be inserted
+   let indexes = [];
+   // results_parts is a list of strings that need to be concatenated
+   let result_parts = [reps[0]]; // ['','?',':',''] ;
 
-        readyReplacements.set(X,s);
-    }
+   for (let i=1; i<reps.length; i++) {
+      let ind = startsWithWhich(args, reps[i]); // find the index of the argument to use next
+      indexes.push(ind); // add to indexes array
+      let res_part = reps[i].slice(args[ind].length); // find the next substring
+      result_parts.push(res_part);
+   }
 
-    return s;
+   // return a function that makes the subtitition
+   // the function uses indexes and results_parts which are in its environment
+   // (thank you closure!)
+   s = function(bits) {
+      let res = '(';
+      let i;
+         for (i=0; i<indexes.length; i++) {
+         res += result_parts[i]+bits[indexes[i]];
+      }
+      res += result_parts[i] + ')';
+      return res;
+   };
+   // add prerequisites to the code
+   if (rX.requires) {
+      let pre = rX.requires.map(getOperator);
+      globalCode.line(pre.join(""));
+   }
+
+   readyReplacements.set(X,s);
+
+   return s;
 }
 
 function getOperator(X) {
@@ -623,6 +623,24 @@ const Bag = {
       return this;
    },
 
+   insert: function (e) {
+      const pos = this.sortedIndex(e);
+      this.list.splice(pos, 0, e);
+      return this;
+   },
+
+   sortedIndex: function(value) {
+      var lo = 0,
+          hi = this.list.length;
+
+      while (lo < hi) {
+         var mid = (lo + hi) >>> 1;
+         if (this.list[mid] < value) lo = mid + 1;
+         else hi = mid;
+      }
+      return lo;
+   },
+   
    stackAll: function (es) {
       debugMsg("stacking ",es);
       const st = this.stack.bind(this);
@@ -670,7 +688,6 @@ const Bag = {
 
 
 // Collection: a class of data {name:value, name2:value2}
-
 const Collection = {
 
    init: function() {
@@ -751,7 +768,6 @@ const Collection = {
 
 }
 
-
 const tokens = Object.create(Bag).init(); // was TokenCollection();
 
 const TokenGenerator = {
@@ -761,15 +777,15 @@ const TokenGenerator = {
       this.tokString = tok;
       return this;
    },
-   next: function() {
+   next: function() { // next token, then increment index
       const res = this.tokString+this.tokIndex;
       this.tokIndex++;
       return res;
    },
-   last: function() {
+   last: function() { // last index (index of the *last* token)
       return this.tokString+(this.tokIndex-1);
    },
-   num: function() {
+   num: function() { // current index (index of the *next* token
       return this.tokIndex;
    }
 }
@@ -777,7 +793,7 @@ const TokenGenerator = {
 /* String extensions
    repeat, replaceAll, unescape */
 String.prototype.repeat = String.prototype.repeat || function(n){
-  n= n || 1;
+  n = n || 1;
   return Array(n+1).join(this);
 }
 
@@ -813,25 +829,34 @@ function isFunction(functionToCheck) {
 
 function debugMsg() {
     if (debugMode) { // set debugMode to true to turn on debugging
-        const m = [];
-        const seen = [];
+      const m = [];
+      const seen = [];
       let i;
-        for (i in arguments) {
-            const a = arguments[i];
+         for (i in arguments) {
+            let a = arguments[i];
             if (typeof a == "object" && a != null)
-                m.push(JSON.stringify(a, function(key, val) {
-                    if (typeof val == "object" && val != null) {
-                       if (seen.indexOf(val) >= 0) {
-                            return "_seen";
-                       }
-                       seen.push(val);
-                    }
-                    return val;
-                } ) );
-            else m.push(a);
+               a = JSON.stringify(a, function(key, val) {
+                  if (typeof val == "object" && val != null) {
+                     if (seen.indexOf(val) >= 0) {
+                        return "_seen";
+                     }
+                     seen.push(val);
+                  }
+                  return val;
+               } );
+
+            m.push(a);
         }
         console.log(m.join(" "));
     }
+}
+
+function messagerise(f,text) {
+   return function() {
+      const r = f.apply(this,arguments)
+      debugMsg(text,r)
+      return r
+   }
 }
 
 jsPlumb.ready(function() {
@@ -846,8 +871,14 @@ jsPlumb.ready(function() {
         },
         success: function(json) {
             debugMsg("found js data",json);
-            predefined_functions = json.functions;
-            predefined_replacements = json.replace;
+            const p = json.functions;
+            for (let i of Object.keys(p)) {
+               predefined_functions[ '_'+i ] = p[ i ];
+            }
+            const q = json.replace;
+            for (let i of Object.keys(q)) {
+               predefined_replacements[ '_'+i ] = q[ i ];
+            }
         },
         error: function(_, status, err) {debugMsg(status+'\n'+err);}
     });
@@ -923,7 +954,7 @@ fluffy.move()
 // version 1 safe but no dynamic arguments allowed
 // version 2 in progress / in testing - December 2019
 
-[  "lambda",
+[  "_lambda",
    [  "x"  ],
    [  "plus",
       [  "assign",
@@ -935,7 +966,7 @@ fluffy.move()
 ]
 
 ["apply",
-   [  "lambda",
+   [  "_lambda",
       [  "x"  ],
       [  "plus",
          [  "assign",
@@ -952,7 +983,7 @@ fluffy.move()
 // Resulting code should be:
 
 function pipe() {
-   return lambda(["x"], "let id5 = ([\"x\"][0]); return (id5+id5)"};
+   return _lambda(["x"], "let id5 = ([\"x\"][0]); return (id5+id5)"};
 }
 
 // See function lambda version 2 which is needed to interpret that code
@@ -969,7 +1000,7 @@ result:
 ====================== minimal example of lambda / apply =============
 
 [  "apply",
-   [  "lambda",
+   [  "_lambda",
       [  "n" ],
       [  "plus", "n", 1  ]
    ],
@@ -988,10 +1019,10 @@ function pipe() {
 
 ============================ example of compose ======================
 
-[ "defun",
+[ "_def",
   "compose",
   [ "f", "g" ],
-  [ "lambda",
+  [ "_lambda",
     [ "x" ],
     [ "apply",
       "f",
@@ -1024,12 +1055,12 @@ function pipe() {
 
 ============= currying a function with 2 arguments =======================
 
-[  "defun",
+[  "_def",
    "curry",
    [  "f"  ],
-   [  "lambda",
+   [  "_lambda",
       [  "x"  ],
-      [  "lambda",
+      [  "_lambda",
          [  "y"  ],
          [  "apply",
             "f",

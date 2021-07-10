@@ -46,7 +46,7 @@
       "tip": "Store the result: link any input to the argument. You can connect the output to any number of processes",
       "args":1,
       "output":-1,
-      "getExp":"return 'assign';"      
+      "getExp":"return 'assign';"
    },
    "alert": {
       "label": "Display",
@@ -205,7 +205,9 @@
    "use block": {
       "label": "Blocks",
       "tip": "Link a block to the argument. The output will be the function represented by the block, as opposed to its result",
-      "args": 1
+      "args": 1,
+      "getExp":"return 'block';"      
+
    },
    "lambda": {
       "label": "Blocks",
@@ -214,7 +216,7 @@
    },
    "apply": {
       "label": "Blocks",
-      "tip": "The first argument is an array of arguments, and the second a function. The output will be the result of applying the arguments to the function",
+      "tip": "The first argument is a function, and the second an array of arguments. The output will be the result of applying the arguments to the function",
       "args": 2
    },
    "parameters": {

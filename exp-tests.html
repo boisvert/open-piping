@@ -46,28 +46,29 @@
 
 <body>
 
-<h1>Open piping: lowering the barriers to data science</h1>
+<h1>Open piping: visual functional programming</h1>
 
-<h2>Test page</h2>
+<h2>Run tests</h2>
 
-<a href="index.html">workflow</a> | tests | Github
+<a href="index.html">edit workflow</a> | run tests | Github:
   <a href="https://github.com/boisvert/open-piping">code</a>,
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
-  <a href="https://github.com/boisvert/open-piping/issues">issues</a>
-<p>
+  <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
+Verbose console log <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
+</p>
 
 On this page you can try any symbolic expression, which will be interpreted into a function call and function set, then executed. You can choose a ready-made test from the drop-down list, or type your own in the form below.
 
 <form>
 <select onChange="inject(this.selectedIndex-1)">
-  <option value="choose">Try one of the ready-made tests:</option>
+  <option value="choose">Try one of the ready-made tests, or type your own:</option>
   <option value="0">Number</option>
   <option value="1">Simple list</option>
   <option value="2">Booleans</option>
   <option value="3">Function substitution</option>
-  <option value="4">Defun</option>
-  <option value="5">Defun recursive (fatorial)</option>
-  <option value="6">Two embedded functions (distance)</option>
+  <option value="4">Function</option>
+  <option value="5">Recursive function (factorial)</option>
+  <option value="6">Two embedded functions (euclidean distance)</option>
   <option value="7">Higher order function (map)</option>
 </select>
 Language:
@@ -96,16 +97,16 @@ var debugMode = true; // set to true to turn on debugging
 function inject(num) {
    if (num>=0) {
       var samples = [
-        '1',
-        '[1, 2, 3, "a", "b", "c"]',
-        '["or",["isNumber", 3], ["isNumber", "a"]]',
-        '["plus", 1, 2]',
-        '[\n "defun", "square", ["x"], ["times", "x", "x"],\n  ["square", 2] \n]',
-        '[\n "defun", "fac", ["n"], ["if", ["lt", "n", 2], 1, ["times", "n", ["fac", ["minus", "n", 1]] ]],\n  [ "fac", 10 ]\n]',
-		'["defun",\n "square",\n ["x"],\n ["times", "x", "x"],\n ["defun",\n  "distance",\n  ["a","b"],\n  ["sqrt",\n   ["plus",\n    ["square","a"],\n    ["square","b"]\n   ]\n  ],\n  ["distance", 3, 4]\n ]\n]',
-        '[\n  "defun", "mymap", ["f", "arr"], ["if", ["isEmpty", "arr"], [], ["cons", ["apply", "f", [["first", "arr"]] ], ["mymap", "f", ["rest", "arr"] ] ]\n],\n  ["mymap", ["block", "isNumber"], [1,2,3,"a","b","c"] ] \n]'
+        1,
+        [1, 2, 3, "a", "b", "c"],
+        ["_or",["_isNumber", 3], ["_isNumber", "a"]],
+        ["_plus", 1, 2],
+        [ "_def", "square", ["x"], ["_times", "x", "x"],  ["square", 2] ],
+        [ "_def", "_fac", ["n"], ["_if", ["_lt", "n", 2], 1, ["_times", "n", ["_fac", ["_minus", "n", 1]] ]],  [ "_fac", 10 ]],
+		["_def", "_square", ["x"], ["_times", "x", "x"], ["_def",  "_distance",  ["a","b"],  ["_sqrt",   ["_plus",    ["_square","a"],    ["_square","b"]   ]  ],  ["_distance", 3, 4] ]],
+        [ "_def", "_mymap", ["f", "arr"], ["_if", ["_isEmpty", "arr"], [], ["_add_to_Start", ["_apply", "f", [["_first", "arr"]] ], ["_mymap", "f", ["_rest", "arr"] ] ] ],  ["_mymap", ["_block", "_isNumber"], [1,2,3,"a","b","c"] ] ]
       ];
-      $('#s-exp').val(samples[num]);
+      $('#s-exp').val(JSON.stringify(samples[num],null,3));
       getCode();
    }
 }

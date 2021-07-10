@@ -33,7 +33,6 @@ const BlockTypeList = {
             // position and add the block
             this.addBlockType(block, defGUI, numBlock);
          }
-         //numBlock++;
       }
    },
 
@@ -180,7 +179,7 @@ const PipeInstance = {
 
    init: function(element,owner) {
       debugMsg("enabling plumbing","owner",owner?(owner.name):"unknown");
-      this.canvas = element; // the document element to attach blocks etc. top
+      this.canvas = element; // the document element to attach blocks to
       this.plumber = jsPlumb.getInstance(this.canvas); // jsPlumb instance - see jsPlumb API
       this.idNum = 0; // for generating the ID of blocks in use in this pipe
       this.tokenList = Object.create(Collection).init(); // for generating the list of tokens
@@ -199,7 +198,7 @@ const PipeInstance = {
          debugMsg('detaching ', info.sourceEndpoint.getUuid(),'from ', info.targetEndpoint.getUuid());
          that.save();
       });
-      this.canvas.click(function(e) {
+      element.click(function(e) {
         // If the click was not inside the active span
         debugMsg("click");
         if(!$(e.target).hasClass('blockSelected')) {
@@ -240,8 +239,21 @@ const PipeInstance = {
    addBlockByName: function (typeName, pos, id) {
       const realType = blockTypeList.get(typeName);
 
-      debugMsg("adding block to pipe") // formerly had ,this);
+      debugMsg("adding block to pipe");
       const b = Object.create(BlockInstance).init(realType, this, pos, id);
+
+      this.blockList.add(b.id, b);
+
+      this.save();
+
+      return b;
+   },
+
+   addArgumentBlock: function () {
+      const realType = blockTypeList.get('Argument');
+
+      debugMsg("adding block to pipe");
+      const b = Object.create(BlockInstance).init(realType, this, pos);
 
       this.blockList.add(b.id, b);
 
@@ -283,18 +295,6 @@ const PipeInstance = {
       this.type = {id: 'end'};
 
       this.canvas.append(block);
-      /*
-      if (inCustomBlock) {
-         block.css({bottom:20, right:1, position:"absolute", height:"1px", width:"1px"});
-         this.plumber.addEndpoint(block, {
-            anchors:[1,0.5,-1,0],
-            uuid: "end_in0",
-            isTarget: true,
-            cssClass:"block-end",
-            maxConnections: 1
-         }, config.connectStyle);
-      } else
-      { */
          block.addClass('block').text('End');
          block.css({bottom:10, right:10});
          this.plumber.addEndpoint(block, {
@@ -303,11 +303,6 @@ const PipeInstance = {
             isTarget: true,
             maxConnections: 1
          }, config.connectStyle);
-      // } // end of "inCustomBlock" conditional
-
-      // *** this should be making an endPoint target object to add
-
-      //this.plumber.repaintEverything();
 
       const that = this;
       $(block).click(function(e) {
@@ -323,111 +318,97 @@ const PipeInstance = {
       this.save();
    },
 
-   getFullExpression: function (blockID) {
+   getFullExpression: messagerise(function (blockID) {
       this.tokenList.clear();
       this.defunList.clear();
       // debugMsg(this.blockList);
-      let exp = this.getExpression(blockID);
-      debugMsg("Exp before defuns",exp);
+
+      let exp;
+
+      // the bizarre 'end' block is different case because
+      // it be recursed from but never into.
+      if (blockID==='end' || blockID==='block-dialog' ) {
+         debugMsg("end block");
+         const connections = this.plumber.getConnections({ target:blockID });
+         if (connections.length==0) return null;
+         exp =  this.getExpression(connections[0].sourceId);
+      }
+      else exp = this.getExpression(blockID);
+
+      debugMsg("Exp before _defs",exp);
       // let elements = Object.create(Bag).init();
       if (this.defunList.empty()) {
-         debugMsg("No defuns");
-      } else {
-         debugMsg("Some defuns",this.defunList);
-         for (let id in this.defunList.list) {
-            exp = this.defunList.get(id).concat([exp]);
-         }
-         debugMsg(exp);
+         debugMsg("No defs");
+         return exp;
       }
-      debugMsg(exp);
+      debugMsg("Some defs",this.defunList);
+      for (let id in this.defunList.list) {
+         exp = this.defunList.get(id).concat([exp]);
+      }
       return exp;
-   },
+   }),
 
-   getExpression: function (blockID) {
+   getExpression: messagerise(function (blockID) {
       debugMsg("seeking expression for ",blockID);
       const block = this.blockList.get(blockID);
-      //debugMsg("block is",block);
+      
+      // argument and editing the definition: use default value
+      if (this.useDefaultArguments&&block.type.label==='Argument') {
+         debugMsg("Substituting argument name for default value");
+         return 0;
+      }
 
       // Connections is the list of connections that target this block
       // jsPlumb doesn't offer a method for filtering this by endPoint.
       const connections = this.plumber.getConnections({ target:blockID });
       debugMsg(connections.length, "connections found");
 
-      //op contains the result
-      let op;
+      // exp is the expression contained in the current block.
+      const exp = block.getExpression();
 
-      // the bizarre 'end' block breaks everything
-      // end block is a different case because
-      // inPoints are not properly set up. Needs repair
-      if (blockID==='end' || blockID==='block-dialog' ) {
-         debugMsg("end block");
-         if (connections.length==1)
-            op = this.getExpression(connections[0].sourceId)
-         else
-            op = null;
-      }
-      else if (this.useDefaultArguments&&block.type.label==='Argument') {
-         debugMsg("Substituting argument name for default value");
-         op = 0;
-      }
-      else if (block.type.label=='use block') {
+      if (exp=='_block') {
+         debugMsg("found block",exp,block.type.label);
          debugMsg("use block");
          // find if theres a connection for t input, use if yes, null if not
          debugMsg("checking input");
-         const source = block.inPoints.get(0).findConnectedSource(connections);
-         let e = source?this.blockList.get(source).getExpression():null;
-         debugMsg("found the name of the block: ",e);
-         if (custom_functions.contains(e)) {
-            if (!this.defunList.contains(e)) {
-               this.defunList.add(e,custom_functions.get(e));
-            }
-         }
-         op = ["block", e];
+         const b = (connections.length>0)?this.blockList.get(connections[0].sourceId).getExpression():null;
+         debugMsg("found the name of the block: ",b);
+         this.checkAddCustomFunction(b);
+         return ["_block", b];
       }
-      else {
-         // inputs is the list of Input endPoints for the block
-         const inputs = block.inPoints;
 
-         // exp is the expression contained in the current block.
-         let exp = block.getExpression();
+      if (exp == "_assign") {
+         if (this.tokenList.contains(blockID)) return blockID;
 
-         if (custom_functions.contains(exp)) {
-            if (!this.defunList.contains(exp)) {
-               this.defunList.add(exp,custom_functions.get(exp));
-            }
-            if (inputs.size()==0) exp = [exp];
-         }
+         // set the token value according to the expression connected source
+         // or to null if there is none
+         const val = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
+         this.tokenList.add(blockID,val);
+         return ["_assign", blockID, val];
 
-         if (inputs.size()>0) {
-            if (exp == "assign") {
-               if (!this.tokenList.contains(blockID)) {
-                  // set the token value according to the expression connected source
-                  // or to null if there is none
-                  const v = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
-                  this.tokenList.add(blockID,v);
-                  op = ["assign", blockID, v]
-               } else {
-                  op = blockID;
-               }
-            }
-            else {
-               op = [exp];
-               for (let i = 0; i<inputs.size(); i++) {
-                  // iterate through inputs
-                  // find if theres a connection for each input, use if yes, null if not
-                  debugMsg("checking input",i);
-                  const source = inputs.get(i).findConnectedSource(connections);
-                  const e = source?this.getExpression(source):null;
-                  op.push(e);
-               }
-            }
-         }
-
-         else op = exp;
       }
-      debugMsg("Got expression", op);
-      return op;
-   },
+
+      // inputs is the list of Input endPoints for the block
+      const inputs = block.inPoints;
+
+      if (this.checkAddCustomFunction(exp) && (inputs.size()==0)) return [exp];
+
+      if (inputs.size()>0) {
+         let result = [exp];
+         for (let i = 0; i<inputs.size(); i++) {
+            // iterate through inputs
+            // find if theres a connection for each input, use if yes, null if not
+            debugMsg("checking input",i);
+            const source = inputs.get(i).findConnectedSource(connections);
+            const e = source?this.getExpression(source):null;
+            result.push(e);
+         }
+         return result;
+      }
+
+      return exp;
+
+   },"Got expression:"),
 
    save: function() {
       stateStore.updateCurrentPipe(this.getJSON(),this.owner);
@@ -441,13 +422,14 @@ const PipeInstance = {
          - array of connections contains pairs [source,target]
          (source and target being the UUID of the endpoint connected
       */
-      let blocks = [];
+      const blocks = [];
+      const argList = [];
       let args = 0;
       for (let bID in this.blockList.list) {
          if (bID!='end' && bID!='block-dialog' ) {
             const b = this.blockList.get(bID);
             if (b.isArg()) {
-               blocks.unshift(b.getJSON());
+               argList.push(b.getJSON());
                args++;
             }
             else {
@@ -455,6 +437,7 @@ const PipeInstance = {
             }
          }
       }
+
       const connections = {}
       this.plumber.getConnections().map(
          conn => {
@@ -464,9 +447,7 @@ const PipeInstance = {
             connections[epin]=epout;
          }
       );
-      const result = {blocks:blocks, args:args, connections:connections};
-      // debugMsg(result);
-      return result;
+      return {blocks:argList.concat(blocks), args:args, connections:connections};
    },
 
    setArgsFromJSON: function(pipeData) {
@@ -541,6 +522,16 @@ const PipeInstance = {
       for (let i = this.blockSelection.size()-1; i>=0; i--) {
          this.removeBlock(this.blockSelection.get(i));
       }
+   },
+   
+   checkAddCustomFunction: function(fName) {
+      const result = custom_functions.contains(fName)
+      if (result) {
+         if (!this.defunList.contains(fName)) {
+            this.defunList.add(fName,custom_functions.get(fName));
+         }
+      }
+      return result;
    }
 }
 
@@ -638,9 +629,9 @@ const BlockType = {
          debugMsg("added ",label," to blockTypeList size ",blockTypeList.size());
          return true;
       }
-      else {
-         return false;
-      }
+
+      return false;
+
    },
 
    changeLabel: function(newLabel) {
@@ -657,9 +648,9 @@ const BlockType = {
          })
          return true;
       }
-      else {
-         return false;
-      }
+
+      return false;
+
    },
 
    addArgument: function() {
@@ -675,7 +666,7 @@ const BlockType = {
       if (this.inConn >= n) {
          let ct = 0;
          for (let i = this.uses.size()-1; i>=0; i--) {
-            ct += this.uses.get(i).numOfConnectors(n);
+            if (this.uses.get(i).isInputConnected(n)) ct++;
          }
          debugMsg("removing ", ct, " connectors");
          if (ct>0) {
@@ -704,7 +695,7 @@ const BlockInstance = {
       this.id = undefined;
       this.inPoints = Object.create(Bag).init(); // list of JSPlumb enpoints for inputs
       this.outPoint = undefined; // outPoint is the endPoint object, needed to find connections
-      this.element = $('<div>').addClass('block');
+      this.element = $('<div>').addClass('block').addClass(type.label);
       this.setHTML();
       this.setPosition(pos);
       this.setPipe(pipe,id);
@@ -791,11 +782,8 @@ const BlockInstance = {
       debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
    },
 
-   numOfConnectors: function(num) {
-      const input = this.inPoints.get(num);
-      const c = input.isConnected()?1:0;
-      debugMsg("Connections to remove: ",c);
-      return c;
+   isInputConnected: function(num) {
+      return this.inPoints.get(num).isConnected();
    },
 
    setPosition: function(pos) {
@@ -826,10 +814,6 @@ const BlockInstance = {
    getExpression: function() {
       let res;
       if (this.type.getExp) {
-
-         // eval("function f() {let block = this.element; "+this.type.getExp+"}");
-         // res = f();
-         // would this work instead? It's neater+passes ESlint
          let fn = "(function(block) {"+this.type.getExp+"})(this.element)";
          debugMsg("evaluating: ",fn);
          res = eval(fn);
@@ -837,7 +821,17 @@ const BlockInstance = {
       else {
          res = this.type.label;
       }
-      return res;
+
+      // if the result is not a string, return
+      if (typeof res != "string") return res
+
+      // if it's a constant, return as is, unless it starts with a _
+      
+      if (this.type.label == "constant" && res[0]!='_') return res;
+
+      // anything else is a function or varname. Prefix with _
+      // to limit the risk of function/var names conflicting with user data
+      return '_'+res;
    },
 
    copyStateTo: function(targetBlock) {
@@ -959,14 +953,17 @@ const BlockEndpoint = {
       this.setExclusive(); // target of only one source
       return this;
    },
+
    setSource: function() {
       this.properties.isTarget = false;
       this.properties.isSource = true;
       return this;
    },
+
    isTarget: function() {
       return this.properties.isTarget;
    },
+
    isSource: function() {
       return this.properties.isSource;
    },
@@ -974,9 +971,11 @@ const BlockEndpoint = {
    setExclusive: function() {
       return this.setMultiConnections(false);
    },
+
    setMulti: function() {
       return this.setMultiConnections(true);
    },
+
    setMultiConnections: function(multi) {
       if (multi && this.isSource()) {
          // sanity check - only allowed if the endPoint is a source
@@ -987,32 +986,33 @@ const BlockEndpoint = {
          this.properties.maxConnections = 1
       return this;
    },
+
    isMultiConnections: function() {
-      if (this.properties.maxConnections == -1)
-         return true
-      else
-         return false;
+      if (this.properties.maxConnections == -1) return true
+
+      return false;
    },
 
    setPos: function(side,n) {
-      let p;
-      if (n==null) p=0.5
-      else p = 0.1+n/3.5;
+      const p = (n==null)?0.5:(0.1+n/3.5);
       debugMsg("endPoint pos",n,p);
       let a = [];
       switch (side) {
          case 'left': a = [0,p,-1,0]; break;
-         case 'top': a = [p, 0, 0, 1]; break;
-         case 'right': a = [1,p,1,0];
+         case 'top': a = [p, 0, 0, -1]; break;
+         case 'right': a = [1,p,1,0]; break;
+         case 'bottom': a = [p,1,0,1];
       }
-      //debugMsg('anchors',a);
+
       return this.setAnchor(a);
    },
+
    setAnchor: function(p) {
       this.properties.anchors = p;
       debugMsg('anchors',p);
       return this;
    },
+
    getAnchor: function() {
       return this.properties.anchors;
    },
@@ -1023,6 +1023,7 @@ const BlockEndpoint = {
       this.properties.uuid = uuid;
       return this;
    },
+
    getUuid: function() {
       return this.properties.uuid;
    },
@@ -1030,38 +1031,36 @@ const BlockEndpoint = {
    isConnected: function() {
       //isConnected returns true if the endPoint is a connected-target-
       //it doesn't apply to source
-      if (this.isTarget())
-         return this.ep.isFull();
-      else
-         return null;
+      if (this.isTarget()) return this.ep.isFull();
+
+      return null;
    },
 
-   findConnectedSource: function(connList) {
+   findConnectedSource: messagerise(function(connList) {
       // to find if a block is connected to this endPoint
-      // first see if the outPoint is full
-      // if yes, go through the blocks in the connList, and for each block,
-      // find if the connList contains the matching source.
-      // not an efficient process, but a limit of JSPlumb
-      // a better setup for this might be to maintain this data
-      // when the user creates/removes the connections
-      let res = null;
-      // let i=0;
       debugMsg("Checking connection");
-      if (this.isConnected()) {
-         debugMsg("there is one, seeking among", connList.length);
-         for (let i=0; i<connList.length; i++) {
-            let e = connList[i].endpoints;
-            debugMsg("trying source",i, e[0].getUuid(), e[1].getUuid());
-            let tep = e[1];
-            if (this.ep===tep) {
-               res=$(e[0].getElement()).attr("id");
-               debugMsg("found block",res);
-               break;
-            }
+
+      // if not connected - exit now
+      if (!this.isConnected()) return null;
+
+      // it is connected
+      debugMsg("there is one, seeking among", connList.length);
+      const id = this.getUuid();
+      // go through the blocks in the connList.
+
+      for (let i=0; i<connList.length; i++) {
+         // for each block, check if the connList contains the matching source.
+         const ep = connList[i].endpoints;
+         debugMsg("trying source",i, ep[0].getUuid(), ep[1].getUuid());
+         if (id===ep[1].getUuid()) {
+            return $(ep[0].getElement()).attr("id");
          }
+         // not an efficient process
+         // a better setup for this might be to maintain this data
+         // when the user creates/removes the connections
       }
-      return res;
-   },
+
+   },"found block:"),
 
    addTo: function(b) {
       debugMsg("adding endpoint with props", this.properties);
@@ -1100,33 +1099,30 @@ const BlockEditor = {
 
       // Create dialog fro editor
       const inpt = $('');
-      const form = '<form>Block: <input type="text" size=7 /></form>';
+      const form = '<form onSubmit="return false;">Block: <input type="text" size=7 /><br /><button onClick="currentBE.addArgument();">Add Argument</button></form>';
       const blockID = 'block-dialog';
       this.editor = $('<div>').attr('id',blockID);
       this.editor.append(form);
 
-      // To move the form into the title bar, idea:
-      // jboyblogger.wordpress.com/2014/09/12/how-to-use-html-for-jquery-dialog-title
-      
-      this.editor.dialog({width: 560, height:420, title:'Edit block'});
+      // To move the form into the title bar, html in title
+      // Source: https://stackoverflow.com/questions/20741524/jquery-dialog-title-dynamically
+
+      this.editor.dialog({width: 560, height:420, title: 'Edit Block'});
 
       // create and establish the draggable 'user block'
-      this.setUserBlock(Object.create(CustomBlock).init(this));
+      const uB = Object.create(CustomBlock).init(this);
+      this.setUserBlock(uB);
 
-      //this.userBlock.pipe.addEndBlock(true);
-      
-      // replaces addEndBlock - only the endPoint
+      // the blockID ('block-dialog') is itself in the list of pipe blocks
+      // because the return endPoint is (virtually) a block
+      uB.pipe.blockList.add(blockID, this.userBlock.pipe);
 
-      this.userBlock.pipe.blockList.add(blockID, this.userBlock.pipe);
-      this.userBlock.pipe.type = {id: blockID};
-      //this.userBlock.pipe.canvas.append(this.editor);
-      this.userBlock.pipe.plumber.addEndpoint(this.editor, {
+      uB.pipe.plumber.addEndpoint(this.editor, {
          anchors:[1,0.9,-1,0],
          uuid: "end_in0",
          isTarget: true,
          maxConnections: 1
       }, config.connectStyle);
-      // end addEndBlock
 
       return this;
    },
@@ -1173,8 +1169,13 @@ const BlockEditor = {
          focusPipe.selectBlock(b);
          mainPipe.canvas.droppable('enable');
       }
-   }
+   },
 
+   // addArgument function fakes dropping an argument element
+   // working out t and l - also, argument number?
+   addArgument: function() {
+      this.userBlock.addArgument();
+   }
 }
 
 const CustomBlock = {
@@ -1184,8 +1185,9 @@ const CustomBlock = {
       debugMsg("making block");
       this.name = this.edGen.next();
       this.num = this.edGen.num();
-      this.argGen = Object.create(TokenGenerator).init('arg'); // makes argNames (arg1, arg2...)
-      this.argList = Object.create(Bag).init(); //[]; // list of arguments
+      this.argGen = Object.create(TokenGenerator).init('arg');
+                                          // makes argNames (arg1, arg2...)
+      this.argList = Object.create(Bag).init(); // list of arguments
       this.customType = this.newType(); // blockType
       this.icons();
       this.pipe = Object.create(PipeInstance).init(editDialog.editor,this);
@@ -1207,12 +1209,16 @@ const CustomBlock = {
       }
    },
 
+   addArgument: function() {
+      const t = 80*this.argGen.num();
+      const arg = this.pipe.addBlockByName('Argument',{top:t, left:40});
+   },
+
    newArgument: function(block) {
       let inpt = block.element.find('form > input')[0];
       let argName = this.argGen.next();
       inpt.value = argName;
-      this.argList.queue(block);
-      // this.argsNum++;
+      this.argList.insert(block);
       this.customType.addArgument();
       debugMsg("new argument ",block.id,argName);
    },
@@ -1256,24 +1262,24 @@ const CustomBlock = {
    },
 
    saveDefun: function() {
-      let def = this.defun();
+      const def = this.defun();
       if (def != undefined) {
          debugMsg("new function: ",this.name, def);
-         custom_functions.set(this.name, def);
+         custom_functions.set('_'+this.name, def);
       }
    },
 
-   defun: function() {
+   defun: messagerise(function() {
       this.pipe.useDefaultArguments = false;
-      let res = this.pipe.getFullExpression('block-dialog');
-                           // block-dialog = the div the endPoint is tied to
+      let exp = this.pipe.getFullExpression('block-dialog');
+                       // block-dialog is the div where the endPoint is
       this.pipe.useDefaultArguments = true;
-      if (res != undefined) {
-         res = ["defun", this.name, this.argList.map(a => a.getExpression()), res];
-      }
-      debugMsg(res);
-      return res;
-   },
+      
+      if (exp === undefined) return undefined;
+
+      return ["_def", '_'+this.name, this.argList.map(a => a.getExpression()), exp];
+
+   }),
 
    icons: function() {
 
@@ -1399,7 +1405,7 @@ const stateSaver = {
       this.loadStateGUI(); // state of interface: what block is open, whether details are up, what accordion is showing
       this.mainPipe = {}; // the main pipe, in the same format as block definitions
       this.blocks = Object.create(Collection).init(); // one entry per custom block
-      
+
       return this;
    },
 
@@ -1665,7 +1671,7 @@ function initialise() {
       drop: function(event,ui) {
          const blockType = ui.draggable;
          mainPipe.getFocus();
-         if (blockType.html()!='Argument') {
+         if (blockType.hasClass('blockType')) { //boolean was: hasClass('blockType') && blockType.html()!='Argument'
             const b = mainPipe.addBlock(blockType,ui.position); // b is the block
             mainPipe.deselectAllBlocks();
             mainPipe.selectBlock(b);
@@ -1675,33 +1681,47 @@ function initialise() {
 
    // del = delete selected block(s); backspace = suppress navigation
    $('html').keydown(function(e){
-      // check
-      if(e.keyCode == 46 && e.target==document.body) { // del key and body (not form)
+      // guard forms inputs
+      const $target = $(e.target||e.srcElement);
+      //debugMsg("key down",e.keyCode,$target)
+      if ($target.is('input,[contenteditable="true"],textarea')) return;
+
+      // delele block
+      if (e.keyCode == 46) { // && e.target==document.body) {
+         // if delete key and in body (not form), delete the block
          debugMsg("deleting");
          focusPipe.deleteSelectedBlocks();
-      } else if (e.keyCode == 8) {
-         // code 8 = backspace: suppress unless editable element
+         return;
+      }
+
+      // if backspace: only allow in an editable element
+      if (e.keyCode == 8) {
          const $target = $(e.target||e.srcElement);
-         if (!$target.is('input,[contenteditable="true"],textarea')) { e.preventDefault(); }
+         if (!$target.is('input,[contenteditable="true"],textarea')) {
+            e.preventDefault();
+         }
       }
    });
-
-   // add argType block type to custom functions
-   const argType = {
-      label: "Custom",
-      args: 0,
-      blockCode : "<form><input type='text' size=3/><form>",
-      dropCode: "currentBE.userBlock.newArgument(block);",
-      getExp: "let inpt = block.find('form > input')[0]; return inpt.value;",
-      output: -1 // number of output connections is illimited
-   }
 
    // last section, custom blocks
 
    const custom = blockTypeList.addSection("Custom");
    custom.append('<button id="createNewBlock" onClick="editBlock();">New block</button>');
-   Object.create(BlockType).init('Argument',argType).addTo({top:2, left:"-30px"}, custom);
-   // add blockType to accordion
+
+   // add argType block type to custom functions
+   const argType = {
+      label: "Custom",
+      args: 0,
+      blockCode : "<form><input type='text' size='2' disabled='disabled' /><form>",
+      dropCode: "currentBE.userBlock.newArgument(block);",
+      getExp: "let inpt = block.find('form > input')[0]; return inpt.value;",
+      output: -1 // number of output connections is illimited
+   }
+
+   // make argument blockType but add to accordion *hidden*
+   // the invisible type is used by "add argument" button in block editor
+   let a = Object.create(BlockType).init('Argument',argType);
+   a.addTo({top:0, height:1, visibility:"hidden"}, custom);
 
    $( "#accordion" ).accordion( {
       activate: function( event, ui ) {
@@ -1732,5 +1752,15 @@ jsPlumb.ready(function() {
       },
       error: function(_, status, err) {debugMsg(status+'\n'+err);}
    });
+   
+   $.widget("ui.dialog", $.extend({}, $.ui.dialog.prototype, {
+    _title: function(title) {
+        if (!this.options.title ) {
+            title.html("&#160;");
+        } else {
+            title.html(this.options.title);
+        }
+    }
+   }));
 });
 

@@ -78,13 +78,13 @@ function encode($exp) {
             $H = $exp[0];
 
     // case 2: expression is a function definition
-            if ($H == "defun") {
+            if ($H == "_def") {
                 debugMsg("is a function definition");
                 defun($exp);
             }
 
     // case 2a: expression is a variable setting
-            else if ($H == "setq") {
+            else if ($H == "_assign") {
                 $tok = '$'.$exp[1];
                 $tokens->add($tok);
                 Code::line($tok.' = '.encode($exp[2]).';');

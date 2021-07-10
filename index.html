@@ -5,7 +5,7 @@
 <meta charset="utf-8" lang="en"/>
 
 <!-- Dependencies are as follows
-   * jquery 3.2.1
+   * jquery 3.4.1
    * jquery UI 1.12.1 - js and css
    * jsplumb 2.1.8
 
@@ -206,12 +206,21 @@ async function loadFile(inp) {
       margin: 0px;
    }
 
+   /* .block.Argument {
+      position: absolute;
+      top: -20px;
+      min-height:0px; min-width: 0px;
+	   border-radius: 0px;
+      position: absolute;
+      border: 1px solid #000;
+      padding-top: 0px; padding-left: 0px; padding-right: 0px; padding-bottom: 0px;
+   } */
+
    .block {
       position: absolute;
       min-height:50px; min-width: 80px;
       border: 3px solid #33F;
 	   border-radius: 7px;
-      flex: 1;
       font-family: Calibri, Arial, "Sans serif";
       font-size: 16px;
       font-weight: bold;
@@ -267,18 +276,17 @@ async function loadFile(inp) {
 
 <body>
 
-<h1>Open piping: lowering the barriers to data science</h1>
+<h1>Open piping: visual functional programming</h1>
 
-<h2>Program a workflow</h2>
+<h2>Edit workflow</h2>
 
-wokflow | <a href="exp-tests.html">tests</a> | Github
+edit workflow | <a href="exp-tests.html">run tests</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a>,
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
   <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
-
-Debug mode <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
-<input type="button" value="Save workflow" onClick="saveData(stateStore.getAllItems());" />
-Load workflow: <input type="file" onChange="loadFile(this);" />
+Verbose console log <input type="checkbox" checked="checked" onChange="debugMode = this.checked"> |
+Workflow data:<input type="button" value="Download" onClick="saveData(stateStore.getAllItems());" />
+Load: <input type="file" onChange="loadFile(this);" />
 
 <p>
 

@@ -250,6 +250,7 @@ const PipeInstance = {
    },
 
    addArgumentBlock: function () {
+      // method currently unused
       const realType = blockTypeList.get('Argument');
 
       debugMsg("adding block to pipe");
@@ -654,8 +655,9 @@ const BlockType = {
    },
 
    addArgument: function() {
+      const n = this.inConn;
       this.uses.map(function(block) {
-         block.addInput();
+         block.addArgument(n);
       });
       this.inConn++;
    },
@@ -753,17 +755,29 @@ const BlockInstance = {
       if (inConn>0) {
          // add input connections
          debugMsg("There are ",inConn," inputs");
-         let ct;
-         for (ct=0; ct<inConn; ct++) {
-            this.addInput(ct);
+         for (let ct=1; ct<=inConn; ct++) {
+            this.addInput(ct/(inConn+1));
          }
       }
    },
 
    // *** using new endPoint object
+   addArgument: function() {
+      const num = this.inPoints.size();
+      debugMsg("adding new argument to block",num);
+      this.addInput((num+1)/(num+2));
+      for (let n = 0; n<num; n++) {
+         debugMsg("shifting up", n, "of", num);
+         let iP = this.inPoints.get(n);
+         debugMsg("endPoint to shift details",iP.ep.getParameters());
+         iP.setPos('left',(n+1)/(num+2)).updateProps();
+      }
+   },
+
+   // *** using new endPoint object
    addInput: function(num) {
-      if (num===undefined) num = this.inConnections();
-      let e = Object.create(BlockEndpoint).init().setPos('top',num).addTo(this);
+      if (num===undefined) num = 0.5;
+      const e = Object.create(BlockEndpoint).init().setPos('left',num).addTo(this);
       debugMsg("added endpoint to block",this.id,e.ep.getParameters());
       this.inPoints.queue(e);
    },
@@ -773,13 +787,15 @@ const BlockInstance = {
       debugMsg("Removing input num ",num," of block ",this.id);
       let iP = this.inPoints.get(num);
       iP.remove();
-      for (this.inPoints.remove(iP); num<this.inPoints.size(); num++) {
-         debugMsg("shifting ",num);
+      this.inPoints.remove(iP);
+      for (const size = this.inPoints.size(); num<size; num++) {
+         debugMsg("shifting", num, "of", size);
          iP = this.inPoints.get(num);
          debugMsg("endPoint to shift details",iP.ep.getParameters());
-         iP.setPos('top',num).updateProps();
+         iP.setPos('left',(num+1)/(size+1)).updateProps();
       }
       debugMsg(this.id, " has ", this.inPoints.size(), " arguments");
+
    },
 
    isInputConnected: function(num) {
@@ -994,8 +1010,8 @@ const BlockEndpoint = {
    },
 
    setPos: function(side,n) {
-      const p = (n==null)?0.5:(0.1+n/3.5);
-      debugMsg("endPoint pos",n,p);
+      const p = (n==null)?0.5:n;
+      debugMsg("endPoint pos",side,p);
       let a = [];
       switch (side) {
          case 'left': a = [0,p,-1,0]; break;
@@ -1104,8 +1120,8 @@ const BlockEditor = {
       this.editor = $('<div>').attr('id',blockID);
       this.editor.append(form);
 
-      // To move the form into the title bar, html in title
-      // Source: https://stackoverflow.com/questions/20741524/jquery-dialog-title-dynamically
+      // To move the form into the title bar, html in title, see 
+      // https://stackoverflow.com/questions/20741524/jquery-dialog-title-dynamically
 
       this.editor.dialog({width: 560, height:420, title: 'Edit Block'});
 
@@ -1157,7 +1173,7 @@ const BlockEditor = {
          }
       });
    },
-   
+
    drop: function(dropped, offset) {
       this.userBlock.pipe.getFocus();
       if (dropped.hasClass('blockType')) {
@@ -1176,6 +1192,7 @@ const BlockEditor = {
    addArgument: function() {
       this.userBlock.addArgument();
    }
+
 }
 
 const CustomBlock = {
@@ -1200,6 +1217,13 @@ const CustomBlock = {
    // Static field - current block names (newBlock1, ...)
    edGen: Object.create(TokenGenerator).init('newBlock'),
 
+   newType: function() {
+      let cT = Object.create(BlockType).init(this.name,{args:this.argList.size()});
+      debugMsg("adding type");
+      cT.addTo({left:"10px"},$("#Custom"));
+      return cT;
+   },
+
    rename: function(newName) {
       debugMsg("renaming ",this.name," to ",newName);
       if (this.customType.changeLabel(newName)) {
@@ -1215,38 +1239,37 @@ const CustomBlock = {
    },
 
    newArgument: function(block) {
-      let inpt = block.element.find('form > input')[0];
-      let argName = this.argGen.next();
-      inpt.value = argName;
-      this.argList.insert(block);
+      this.argList.queue(block);
+      const argName = this.argGen.next();
+      this.renameArgument(block, argName);
       this.customType.addArgument();
       debugMsg("new argument ",block.id,argName);
    },
 
-   isArgument: function(block) {
-      let result = this.argList.contains(block);
-      debugMsg("Block ", block.id, " in argList?",result);
-      return result;
+   argumentInput(block) {
+      if (!this.isArgument(block)) return undefined;
+      return block.element.find('form > input')[0];
    },
 
-   newType: function() {
-      let cT = Object.create(BlockType).init(this.name,{args:this.argList.size()});
-      debugMsg("adding type");
-      cT.addTo({left:"10px"},$("#Custom"));
-      return cT;
+   renameArgument: function(block, name) {
+      if (!this.isArgument(block)) return undefined;
+      this.argumentInput(block).value = name;
+      return true;
    },
 
    deleteArgument: function(arg) {
-      let ok = false;
-      if (this.argList.contains(arg)) {
-         let i = this.argList.find(arg);
-         ok = this.customType.removeArgument(i);
-         if (ok) {
-            this.argList.remove(arg);
-            // this.argsNum--;
-         }
-      }
-      return ok;
+      if (!this.isArgument(arg)) return undefined;
+      const i = this.argList.find(arg);
+      if (!this.customType.removeArgument(i)) return false;
+      this.argList.remove(arg);
+      // this.argsNum--;
+      return true;
+   },
+
+   isArgument: function(block) {
+      const result = this.argList.contains(block);
+      debugMsg("Block ", block.id, " in argList?",result);
+      return result;
    },
 
    done: function() {

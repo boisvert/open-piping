@@ -1134,7 +1134,7 @@ const BlockEditor = {
       uB.pipe.blockList.add(blockID, this.userBlock.pipe);
 
       uB.pipe.plumber.addEndpoint(this.editor, {
-         anchors:[1,0.9,-1,0],
+         anchors:[1,0.5,-1,0],
          uuid: "end_in0",
          isTarget: true,
          maxConnections: 1
@@ -1234,8 +1234,8 @@ const CustomBlock = {
    },
 
    addArgument: function() {
-      const t = 80*this.argGen.num();
-      const arg = this.pipe.addBlockByName('Argument',{top:t, left:40});
+      const t = 50*this.argGen.num();
+      const arg = this.pipe.addBlockByName('Argument',{top:t, left:-112});
    },
 
    newArgument: function(block) {
@@ -1477,14 +1477,18 @@ const stateSaver = {
    },
 
    loadBlocks: function() {
-      const len = localStorage.length, bs = [];
+      this.allKeys()
+         .filter(k=>(k != 'mainPipe' && k != 'stateGUI'))
+         .map(b=>this.loadBlock(b))
+         .map(f=>f());
+      /*
       for (let i=0 ; i < len ; i++) {
          let bN = this.key( i );
          if (bN != 'mainPipe' && bN != 'stateGUI') {
             bs.push(this.loadBlock(bN));
          }
       }
-      bs.map(f=>f());
+      */
    },
 
    loadBlock: function(blockName) {
@@ -1492,6 +1496,7 @@ const stateSaver = {
       // it creates the block and sets arguments as it runs
       // it then returns a function which when executed,
       // completes the block rebuilding.
+      debugMsg("loading",blockName);
       const blockString = this.getItem(blockName);
       this.blocks.set(blockName,blockString);
       currentBE = Object.create(BlockEditor).init();
@@ -1600,24 +1605,39 @@ const stateSaver = {
       debugMsg("store get", key, val);
       return val;
    },
-
+   
    getAllItems: function() {
-      // returns the set of blocks as a JSON string
-      const len = localStorage.length, result = {};
-      for (let i=0 ; i < len ; i++) {
-         let k = this.key( i );
-         if (k != 'stateGUI') { // all keys except for stateGUI
-            result[k] = this.getItem(k);
-         }
+      const result = {};
+      for (key of this.allKeys()) {
+         result[key] = this.getItem(key);
       }
       return result;
    },
 
    key: function(i) {
+      // key receives an item number
+      // and returns the key value if the key starts with the correct prefix
+      // if the key does not start with the correct prefix it returns null
       const k = localStorage.key(i);
+      if (!k.startsWith(this.prefix)) return null
       const l = this.prefix.length;
+      debugMsg("Local storage",i,k);
       return k.substring(l);
    },
+
+   allKeys: function() {
+      // returns the set of blocks as a JSON string
+      const len = localStorage.length, result = [];
+      for (let i=0 ; i < len ; i++) {
+         let k = this.key( i );
+         if (k!= null) { // all keys except for stateGUI
+            result.push(k);
+         }
+      }
+      debugMsg("storage keys:",result);
+      return result;
+   },
+
 
    removeItem: function(key) {
       localStorage.removeItem(this.prefix+key);
@@ -1662,7 +1682,7 @@ let focusPipe; // set to mainPipe at initialisation
 const custom_functions = Object.create(Collection).init(); // new collection();
 
 // Maintain state in local storage
-const stateStore = Object.create(stateSaver).init("local");
+const stateStore = Object.create(stateSaver).init("openpiping");
 
 /* start:
    - load the file of predefined functions

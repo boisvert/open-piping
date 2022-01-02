@@ -1607,6 +1607,7 @@ const stateSaver = {
    },
    
    getAllItems: function() {
+<<<<<<< .merge_file_a01700
       return this.allKeys().map((k)=>(this.getItem(k)));
    },
 
@@ -1620,6 +1621,38 @@ const stateSaver = {
       debugMsg("Local storage",i,k);
       return k.substring(l);
    },
+
+   allKeys: function() {
+      // returns the set of blocks as a JSON string
+      const len = localStorage.length, result = [];
+      for (let i=0 ; i < len ; i++) {
+         let k = this.key( i );
+         if (k!= null) { // all keys except for stateGUI
+            result.push(k);
+         }
+=======
+      const result = {};
+      for (key of this.allKeys()) {
+         result[key] = this.getItem(key);
+>>>>>>> .merge_file_a06392
+      }
+      debugMsg("storage keys:",result);
+      return result;
+   },
+
+<<<<<<< .merge_file_a01700
+=======
+   key: function(i) {
+      // key receives an item number
+      // and returns the key value if the key starts with the correct prefix
+      // if the key does not start with the correct prefix it returns null
+      const k = localStorage.key(i);
+      if (!k.startsWith(this.prefix)) return null
+      const l = this.prefix.length;
+      debugMsg("Local storage",i,k);
+      return k.substring(l);
+   },
+>>>>>>> .merge_file_a06392
 
    allKeys: function() {
       // returns the set of blocks as a JSON string

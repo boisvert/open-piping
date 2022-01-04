@@ -1607,7 +1607,11 @@ const stateSaver = {
    },
    
    getAllItems: function() {
-      return this.allKeys().map((k)=>(this.getItem(k)));
+      const result = {};
+	  for (k of this.allKeys()) {
+	   result[k] = this.getItem(k);
+	  }
+      return result;
    },
 
    key: function(i) {
@@ -1633,7 +1637,6 @@ const stateSaver = {
       debugMsg("storage keys:",result);
       return result;
    },
-
 
    removeItem: function(key) {
       localStorage.removeItem(this.prefix+key);
@@ -1684,6 +1687,7 @@ const stateStore = Object.create(stateSaver).init("openpiping");
    - load the file of predefined functions
    - launch initialisation
 */
+
 function initialise() {
    // initialise the GUI list of block types
 

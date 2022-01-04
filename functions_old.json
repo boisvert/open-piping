@@ -1,0 +1,36 @@
+{
+    "gui": {
+        "Number value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return Number(inpt.value);"},
+        "String value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return inpt.value;"},
+        "JSON value": {"args": 0, "blockCode":"<form><input type='text' /><form>", "getExp": "var inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"},
+        "plus": {"args": 2, "group": "arithmetic"},
+        "minus": {"args": 2, "group": "arithmetic"},
+        "times": {"args": 2, "group": "arithmetic"},
+        "divide": {"args": 2, "group": "arithmetic"},
+        "lt": {"args": 2, "group": "comparison"},
+        "mt": {"args": 2, "group": "comparison"},
+        "equals": {"args": 2, "group": "comparison"},
+        "pythagoras": {"args": 2},
+        "sqrt": {"args":1},
+        "if": {"args":3},
+        "setq": {"args":1}
+    },
+    "js": {
+        "pythagoras": {"args": "a,b", "body": "return sqrt(a*a+b*b);", "requires":["sqrt"]},
+        "sqrt": {"args":"a", "body": "return Math.sqrt(a);"}
+    },
+    "php": {
+        "pythagoras": {"args": "$a,$b", "body": "return sqrt($a*$a+$b*$b);"}
+    },
+    "replace": {
+        "if": {"args": "a,b,c", "js": "@a?@b:@c", "php":"@a?@b:@c"},
+        "plus": {"args": "a,b", "js": "(@a+@b)", "php":"(@a+@b)"},
+        "minus": {"args": "a,b", "js": "(@a-@b)", "php":"(@a-@b)"},
+        "times": {"args": "a,b", "js": "@a*@b", "php":"(@a*@b)"},
+        "divide": {"args": "a,b", "js": "@a/@b", "php":"(@a/@b)"},
+        "equals": {"args": "a,b", "js": "(@a===@b)", "php":"(@a===@b)"},
+        "lt": {"args": "a,b", "js": "(@a<@b)", "php":"(@a<@b)"},
+        "mt": {"args": "a,b", "js": "(@a>@b)", "php":"(@a>@b)"}
+    }
+}
+

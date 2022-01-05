@@ -205,7 +205,7 @@ const PipeInstance = {
           //e.stopPropagation();
           debugMsg("canvas clicked");
           that.deselectAllBlocks();
-          that.getFocus();
+          that.setFocus();
           stateStore.updateFocus();
         }
       });
@@ -213,13 +213,13 @@ const PipeInstance = {
      return this;
    },
 
-   getFocus: function() {
+   setFocus: function() {
       focusPipe = this;
       const name = (this.owner)?this.owner.name:null
       stateStore.updateFocus(name);
       return this;
    },
-   
+
    hasFocus: function() {
       return (focusPipe === this);
    },
@@ -270,7 +270,10 @@ const PipeInstance = {
             debugMsg("the block is an argument");
             ok = currentBE.userBlock.deleteArgument(block);
          }
+         else debugMsg("the block is not an argument");
       }
+      else debugMsg("block removed from main pipe");
+
       if (ok) {
          this.plumber.detachAllConnections(block.element);
          this.plumber.removeAllEndpoints(block.element);
@@ -280,7 +283,6 @@ const PipeInstance = {
          this.blockList.remove(block.id);
          block.remove();
          this.save();
-
       }
    },
 
@@ -548,7 +550,7 @@ const BlockType = {
 
    init: function(label, defGUI) {
 
-      debugMsg("new block ",label,defGUI);
+      debugMsg("new block type",label,defGUI);
 
       this.element = undefined;
       this.pos = undefined;
@@ -676,13 +678,16 @@ const BlockType = {
          }
          if (ok) {
             this.inConn--;
-            this.uses.map(function(block) {
-               debugMsg("removing input",n,"from block",block.id);
-               block.removeInput(n);
+            this.uses.map(function(blockUse) {
+               debugMsg("removing input",n,"from block",blockUse.id);
+               blockUse.removeInput(n);
             });
          }
+		 else debugMsg("not removing argument");
       }
+      debugMsg("remove argument returns",ok)
       return ok;
+
    }
 }
 
@@ -922,7 +927,7 @@ const BlockInstance = {
 
    // selecting is initiated by the block
    select: function () {
-      this.pipe.getFocus();
+      this.pipe.setFocus();
       this.pipe.selectBlock(this);
       this.element.addClass("blockSelected");
    },
@@ -1023,6 +1028,12 @@ const BlockEndpoint = {
       return this.setAnchor(a);
    },
 
+   on: function(evt,fn) {
+       debugMsg("added outpoint",evt);
+       //console.log(this.ep);
+       $(this.ep.canvas).on(evt,fn);
+   },
+
    setAnchor: function(p) {
       this.properties.anchors = p;
       debugMsg('anchors',p);
@@ -1104,8 +1115,16 @@ const BlockEndpoint = {
 }
 
 function editBlock() {
+
+   if (currentBE) {
+	  debugMsg('change edited block');
+	  currentBE.editor.dialog('close');
+   }
+
    currentBE = Object.create(BlockEditor).init();
    $('#createNewBlock').attr('disabled','disabled');
+
+   currentBE.setFocus();
 }
 
 const BlockEditor = {
@@ -1153,6 +1172,7 @@ const BlockEditor = {
 
       this.editor.on('dialogclose', function() {
          userBlock.done();
+		 mainPipe.setFocus();
       });
 
       this.editor.on('dialogresize', function() {
@@ -1175,7 +1195,7 @@ const BlockEditor = {
    },
 
    drop: function(dropped, offset) {
-      this.userBlock.pipe.getFocus();
+      this.userBlock.pipe.setFocus();
       if (dropped.hasClass('blockType')) {
          const edPos = this.editor.offset();
          const t = offset.top-edPos.top;
@@ -1191,6 +1211,14 @@ const BlockEditor = {
    // working out t and l - also, argument number?
    addArgument: function() {
       this.userBlock.addArgument();
+   },
+   
+   setFocus: function() {
+	   this.userBlock.pipe.setFocus();
+   },
+   
+   hasFocus: function() {
+	   this.userBlock.pipe.hasFocus();
    }
 
 }
@@ -1243,6 +1271,32 @@ const CustomBlock = {
       const argName = this.argGen.next();
       this.renameArgument(block, argName);
       this.customType.addArgument();
+
+      const del = $('<img>')
+        .attr('src','icons/delete.jpg')
+        .attr('width',24)
+        .attr('height',24)
+        .attr('alt','delete')
+        .css({left:-24, position:'relative'});
+      let delay;
+
+      block.outPoint.on('mouseover', function(evt) {
+         clearTimeout(delay);
+         $(evt.currentTarget).append(del);
+         //debugMsg("mouse on argument outpoint", evt.currentTarget);
+      });
+      block.outPoint.on('mouseout', function() {
+         delay = setTimeout(()=>del.detach(),1000);
+      });
+
+      const p = this.pipe;
+      del.on('click', function(evt) {
+         evt.stopPropagation();
+         del.detach();
+         debugMsg("del clicked");
+         p.removeBlock(block);
+      });
+
       debugMsg("new argument ",block.id,argName);
    },
 
@@ -1262,7 +1316,7 @@ const CustomBlock = {
       const i = this.argList.find(arg);
       if (!this.customType.removeArgument(i)) return false;
       this.argList.remove(arg);
-      // this.argsNum--;
+      //this.argsNum--;
       return true;
    },
 
@@ -1363,6 +1417,7 @@ const CustomBlock = {
             currentBE.editor.dialog('open');
             that.repaint();
          }
+		 currentBE.setFocus();
       });
 
       copy.on('click', function(e) {
@@ -1608,9 +1663,9 @@ const stateSaver = {
    
    getAllItems: function() {
       const result = {};
-	  for (k of this.allKeys()) {
-	   result[k] = this.getItem(k);
-	  }
+      for (k of this.allKeys()) {
+       result[k] = this.getItem(k);
+      }
       return result;
    },
 
@@ -1694,7 +1749,7 @@ function initialise() {
    const pipeCanvas = $('#pipeContainer');
 
    mainPipe = Object.create(PipeInstance).init(pipeCanvas);
-   mainPipe.getFocus(); // main is in focus by default
+   mainPipe.setFocus(); // main is in focus by default
 
    blockTypeList = Object.create(BlockTypeList).init(); // all block types to drag (small b!)
    blockTypeList.initBlocks();
@@ -1713,7 +1768,7 @@ function initialise() {
       },
       drop: function(event,ui) {
          const blockType = ui.draggable;
-         mainPipe.getFocus();
+         mainPipe.setFocus();
          if (blockType.hasClass('blockType')) { //boolean was: hasClass('blockType') && blockType.html()!='Argument'
             const b = mainPipe.addBlock(blockType,ui.position); // b is the block
             mainPipe.deselectAllBlocks();

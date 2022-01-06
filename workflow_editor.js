@@ -1030,8 +1030,22 @@ const BlockEndpoint = {
 
    on: function(evt,fn) {
        debugMsg("added outpoint",evt);
-       //console.log(this.ep);
-       $(this.ep.canvas).on(evt,fn);
+       return $(this.ep.canvas).on(evt,fn);
+   },
+
+   trigger: function(evt) {
+       //debugMsg("triggering",evt);
+       return $(this.ep.canvas).trigger(evt);
+   },
+
+   toolTip: function(t) {
+      const elt = $(this.ep.canvas);
+      if (t) {
+         elt.prop("title",t);
+	  }
+	  else {
+         return elt.prop("title");
+      }
    },
 
    setAnchor: function(p) {
@@ -1271,6 +1285,7 @@ const CustomBlock = {
       const argName = this.argGen.next();
       this.renameArgument(block, argName);
       this.customType.addArgument();
+	  block.outPoint.toolTip(argName);
 
       const del = $('<img>')
         .attr('src','icons/delete.jpg')
@@ -1293,6 +1308,7 @@ const CustomBlock = {
       del.on('click', function(evt) {
          evt.stopPropagation();
          del.detach();
+		 block.outPoint.trigger("mouseout");
          debugMsg("del clicked");
          p.removeBlock(block);
       });

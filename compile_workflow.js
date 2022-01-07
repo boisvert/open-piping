@@ -1,6 +1,5 @@
 
-/*
-Set of predefined functions
+/* Set of predefined functions
 predefined functions both define the gui blocks
 and this compilation, so the functions are loaded in the editor
 
@@ -126,8 +125,7 @@ const readyReplacements = {
     }
 }
 
-/*
-The "process" needs improvemet
+/* The "process" needs improvemet
 Need a wrapper object to
 - limit the scope of needed functions
 - secure the execution
@@ -321,8 +319,7 @@ function defun(name,args,body) {
     return fd.getFun();
 }
 
-// lambda, see comment
-/*
+/* Lambda, see comment
 The aim of lambda is that the compiled result,
 creates a new function at interpret 
 to allows the creation of function interpretation at compile time
@@ -419,8 +416,7 @@ const FunData = {
    }
 }
 
-/*
-TODO: Substitutor object
+/* TODO: Substitutor object
 ===
 +ready bool false // flag - true once preprocessing has been done
 +definition JSON {args:"", js:""} // from JSON file
@@ -782,6 +778,10 @@ const TokenGenerator = {
       this.tokIndex++;
       return res;
    },
+   back: function() { // next token, then increment index
+      this.tokIndex--;
+      return this;
+   },
    last: function() { // last index (index of the *last* token)
       return this.tokString+(this.tokIndex-1);
    },
@@ -790,8 +790,7 @@ const TokenGenerator = {
    }
 }
 
-/* String extensions
-   repeat, replaceAll, unescape */
+/* String extensions repeat, replaceAll, unescape */
 String.prototype.repeat = String.prototype.repeat || function(n){
   n = n || 1;
   return Array(n+1).join(this);
@@ -807,8 +806,7 @@ String.prototype.unescape = function() {
     return target //.replaceAll('\\n','\n').replaceAll('\\t','\t').replaceAll('\\\\','\\');
 };
 
-/* crude type checking
-   there is a type checking library that would be more appropriate */
+/* crude type checking */
 function enforce(X,check) {
     if (!check(X))
         throw JSON.stringify(X,null,3)+" fails the check "+check;
@@ -920,11 +918,9 @@ function getParams(func) {
     return params;
 }
 
-/*
-
 // Nov 2019: 2760 LOC (includes config data)
 
-// encapsulation in ES5
+/* encapsulation in ES5
 const Animal = {
   init: function(name,species) {
     this.name = name;
@@ -946,9 +942,11 @@ const Cat = {
 
 fluffy = Object.create(Cat).init('fluffy');
 fluffy.move()
+*/
 
+/* Examples of S-Expression code
 
-=============== minimal example of lamda with dynamic arguments ==============
+// =============== minimal example of lamda with dynamic arguments ==============
 
 // see above versions 1 and 2 of lambda
 // version 1 safe but no dynamic arguments allowed

@@ -264,26 +264,14 @@ const PipeInstance = {
    },
 
    removeBlock: function(block) {
-      let ok = true;
-      if (!mainPipe.hasFocus()) {
-         if (currentBE.userBlock.isArgument(block)) {
-            debugMsg("the block is an argument");
-            ok = currentBE.userBlock.deleteArgument(block);
-         }
-         else debugMsg("the block is not an argument");
-      }
-      else debugMsg("block removed from main pipe");
-
-      if (ok) {
-         this.plumber.detachAllConnections(block.element);
-         this.plumber.removeAllEndpoints(block.element);
-         // ***should also clean up the endpoint objects?
-         this.plumber.detach(block.element);
-         this.deselectBlock(block);
-         this.blockList.remove(block.id);
-         block.remove();
-         this.save();
-      }
+      this.plumber.detachAllConnections(block.element);
+      this.plumber.removeAllEndpoints(block.element);
+      // ***should also clean up the endpoint objects?
+      this.plumber.detach(block.element);
+      this.deselectBlock(block);
+      this.blockList.remove(block.id);
+      block.remove();
+      this.save();
    },
 
    /* adding the 'endBlock'. Unlike others,
@@ -536,6 +524,7 @@ const PipeInstance = {
       }
       return result;
    }
+
 }
 
 // block functions - add, select, deselect, remove, blocktype, endblock - are messy
@@ -683,7 +672,7 @@ const BlockType = {
                blockUse.removeInput(n);
             });
          }
-		 else debugMsg("not removing argument");
+		   else debugMsg("not removing argument");
       }
       debugMsg("remove argument returns",ok)
       return ok;
@@ -1029,13 +1018,13 @@ const BlockEndpoint = {
    },
 
    on: function(evt,fn) {
-       debugMsg("added outpoint",evt);
-       return $(this.ep.canvas).on(evt,fn);
+      debugMsg("added outpoint",evt);
+      return $(this.ep.canvas).on(evt,fn);
    },
 
    trigger: function(evt) {
-       //debugMsg("triggering",evt);
-       return $(this.ep.canvas).trigger(evt);
+      //debugMsg("triggering",evt);
+      return $(this.ep.canvas).trigger(evt);
    },
 
    toolTip: function(t) {
@@ -1222,7 +1211,7 @@ const BlockEditor = {
    },
 
    // addArgument function fakes dropping an argument element
-   // working out t and l - also, argument number?
+   // called by "Add argument" button
    addArgument: function() {
       this.userBlock.addArgument();
    },
@@ -1276,8 +1265,14 @@ const CustomBlock = {
    },
 
    addArgument: function() {
-      const t = 50*this.argGen.num();
-      const arg = this.pipe.addBlockByName('Argument',{top:t, left:-112});
+      const arg = this.pipe.addBlockByName('Argument',{top:0,left:-112});
+      this.moveArgument(arg,this.argGen.num()-1)
+   },
+
+   moveArgument: function(arg,n) {
+      const t = n*50;
+      arg.setPosition({top:t, left:-112});
+      this.repaint();
    },
 
    newArgument: function(block) {
@@ -1285,7 +1280,6 @@ const CustomBlock = {
       const argName = this.argGen.next();
       this.renameArgument(block, argName);
       this.customType.addArgument();
-	  block.outPoint.toolTip(argName);
 
       const del = $('<img>')
         .attr('src','icons/delete.jpg')
@@ -1304,13 +1298,11 @@ const CustomBlock = {
          delay = setTimeout(()=>del.detach(),1000);
       });
 
-      const p = this.pipe;
+      const that = this;
       del.on('click', function(evt) {
          evt.stopPropagation();
-         del.detach();
-		 block.outPoint.trigger("mouseout");
          debugMsg("del clicked");
-         p.removeBlock(block);
+         that.deleteArgument(block);
       });
 
       debugMsg("new argument ",block.id,argName);
@@ -1324,16 +1316,26 @@ const CustomBlock = {
    renameArgument: function(block, name) {
       if (!this.isArgument(block)) return undefined;
       this.argumentInput(block).value = name;
+      block.outPoint.toolTip(name);
       return true;
    },
 
    deleteArgument: function(arg) {
+      arg.outPoint.trigger("mouseout");
       if (!this.isArgument(arg)) return undefined;
-      const i = this.argList.find(arg);
+      //debugMsg("removing 1 arg from",this.argList);
+      var i = this.argList.find(arg);
       if (!this.customType.removeArgument(i)) return false;
       this.argList.remove(arg);
-      //this.argsNum--;
-      return true;
+      this.pipe.removeBlock(arg);
+      var nextArg = this.argList.get(i++);
+      while (nextArg) {
+         debugMsg("renaming arg",i)
+         this.renameArgument(nextArg,"arg"+i);
+         this.moveArgument(nextArg,i)
+         nextArg = this.argList.get(i++);
+      }
+      this.argGen.back();
    },
 
    isArgument: function(block) {

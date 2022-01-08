@@ -1266,19 +1266,21 @@ const CustomBlock = {
 
    addArgument: function() {
       const arg = this.pipe.addBlockByName('Argument',{top:0,left:-112});
-      this.moveArgument(arg,this.argGen.num()-1)
+      this.moveArgument(arg,this.argList.size()-1)
    },
 
    moveArgument: function(arg,n) {
+      if (n<0 || n>= this.argList.size()) return false;
+      n++;
       const t = n*50;
       arg.setPosition({top:t, left:-112});
+      this.renameArgument(arg,n);
       this.repaint();
    },
 
    newArgument: function(block) {
       this.argList.queue(block);
-      const argName = this.argGen.next();
-      this.renameArgument(block, argName);
+      const argNum = this.argList.size()+1;
       this.customType.addArgument();
 
       const del = $('<img>')
@@ -1287,15 +1289,32 @@ const CustomBlock = {
         .attr('height',24)
         .attr('alt','delete')
         .css({left:-24, position:'relative'});
+
+      const up = $('<img>')
+        .attr('src','icons/up.png')
+        .attr('width',24)
+        .attr('height',24)
+        .attr('alt','delete')
+        .css({top:-52, position:'relative'});
+
+      const down = $('<img>')
+        .attr('src','icons/down.png')
+        .attr('width',24)
+        .attr('height',24)
+        .attr('alt','delete')
+        .css({top:-32, position:'relative'});
+
       let delay;
 
       block.outPoint.on('mouseover', function(evt) {
          clearTimeout(delay);
          $(evt.currentTarget).append(del);
+         $(evt.currentTarget).append(up);
+         $(evt.currentTarget).append(down);
          //debugMsg("mouse on argument outpoint", evt.currentTarget);
       });
       block.outPoint.on('mouseout', function() {
-         delay = setTimeout(()=>del.detach(),1000);
+         delay = setTimeout(()=>{del.detach(); up.detach(); down.detach()},1000);
       });
 
       const that = this;
@@ -1304,8 +1323,20 @@ const CustomBlock = {
          debugMsg("del clicked");
          that.deleteArgument(block);
       });
+      
+      up.on('click', function(evt) {
+         evt.stopPropagation();
+         debugMsg("up clicked");
+         that.upArgument(block);
+      });
 
-      debugMsg("new argument ",block.id,argName);
+      down.on('click', function(evt) {
+         evt.stopPropagation();
+         debugMsg("up clicked");
+         that.downArgument(block);
+      });
+
+      debugMsg("new argument ",block.id,argNum);
    },
 
    argumentInput(block) {
@@ -1313,8 +1344,9 @@ const CustomBlock = {
       return block.element.find('form > input')[0];
    },
 
-   renameArgument: function(block, name) {
+   renameArgument: function(block, i) {
       if (!this.isArgument(block)) return undefined;
+      const name = "arg"+i;
       this.argumentInput(block).value = name;
       block.outPoint.toolTip(name);
       return true;
@@ -1328,14 +1360,39 @@ const CustomBlock = {
       if (!this.customType.removeArgument(i)) return false;
       this.argList.remove(arg);
       this.pipe.removeBlock(arg);
-      var nextArg = this.argList.get(i++);
+      var nextArg = this.argList.get(i);
       while (nextArg) {
          debugMsg("renaming arg",i)
-         this.renameArgument(nextArg,"arg"+i);
-         this.moveArgument(nextArg,i)
-         nextArg = this.argList.get(i++);
+         this.moveArgument(nextArg,i);
+         i++;
+         nextArg = this.argList.get(i);
       }
-      this.argGen.back();
+   },
+
+   downArgument: function(arg) {
+      var i = this.argList.find(arg);
+      if (i==-1) return false; // not an argument
+      arg.outPoint.trigger("mouseout");
+      debugMsg("swapping args",i,"with next");
+      if (i+1>=this.argList.size()) return false; // last argument - no swap
+      const nextArg = this.argList.get(i+1);
+      this.argList.set(i,nextArg);
+      this.moveArgument(nextArg,i);
+      this.argList.set(i+1,arg);
+      this.moveArgument(arg,i+1);
+   },
+
+   upArgument: function(arg) {
+      var i = this.argList.find(arg);
+      if (i==-1) return false; // not an argument
+      arg.outPoint.trigger("mouseout");
+      debugMsg("swapping args",i,"with previous");
+      if (i==0) return false; // first argument - no swap
+      const prevArg = this.argList.get(i-1);
+      this.argList.set(i,prevArg);
+      this.moveArgument(prevArg,i);
+      this.argList.set(i-1,arg);
+      this.moveArgument(arg,i-1);
    },
 
    isArgument: function(block) {

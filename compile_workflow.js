@@ -648,6 +648,13 @@ const Bag = {
       return this.list[n];
    },
 
+   set: function(n,val) {
+      if (n<0 || n>=this.size()) return false;
+      if (!val) return false;
+      this.list[n]=val;
+      return this;
+   },
+
    remove: function (e) {
       if (this.contains(e)) {
          this.list.splice(this.list.indexOf(e),1)

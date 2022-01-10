@@ -309,15 +309,15 @@ const PipeInstance = {
       this.save();
    },
 
-   getFullExpression: messagerise(function (blockID) {
+   getFullExpression: messagerise(function (blockID,defName) {
+      defName = (defName)?'_'+defName:'';
       this.tokenList.clear();
       this.defunList.clear();
       // debugMsg(this.blockList);
 
       let exp;
 
-      // the bizarre 'end' block is different case because
-      // it be recursed from but never into.
+      // the bizarre 'end' block is recursed from but never into.
       if (blockID==='end' || blockID==='block-dialog' ) {
          debugMsg("end block");
          const connections = this.plumber.getConnections({ target:blockID });
@@ -334,7 +334,11 @@ const PipeInstance = {
       }
       debugMsg("Some defs",this.defunList);
       for (let id in this.defunList.list) {
-         exp = this.defunList.get(id).concat([exp]);
+         debugMsg("adding def for ",id);
+         if (id!=defName) {
+            exp = this.defunList.get(id).concat([exp]);
+            debugMsg("exp now is",exp);
+         }
       }
       return exp;
    }),
@@ -1135,7 +1139,7 @@ const BlockEditor = {
    init: function() {
       debugMsg("making block editor");
 
-      // Create dialog fro editor
+      // Create dialog for editor
       const inpt = $('');
       const form = '<form onSubmit="return false;">Block: <input type="text" size=7 /><br /><button onClick="currentBE.addArgument();">Add Argument</button></form>';
       const blockID = 'block-dialog';
@@ -1175,7 +1179,7 @@ const BlockEditor = {
 
       this.editor.on('dialogclose', function() {
          userBlock.done();
-		 mainPipe.setFocus();
+		   mainPipe.setFocus();
       });
 
       this.editor.on('dialogresize', function() {
@@ -1423,14 +1427,13 @@ const CustomBlock = {
 
    defun: messagerise(function() {
       this.pipe.useDefaultArguments = false;
-      let exp = this.pipe.getFullExpression('block-dialog');
+      let exp = this.pipe.getFullExpression('block-dialog',this.name);
                        // block-dialog is the div where the endPoint is
       this.pipe.useDefaultArguments = true;
       
       if (exp === undefined) return undefined;
-
-      return ["_def", '_'+this.name, this.argList.map(a => a.getExpression()), exp];
-
+      const defName = '_'+this.name;
+      return ["_def", defName, this.argList.map(a => a.getExpression()), exp];
    }),
 
    icons: function() {

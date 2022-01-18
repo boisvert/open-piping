@@ -419,6 +419,7 @@ const PipeInstance = {
       */
       const blocks = [];
       const argList = [];
+      const result = {};
       let args = 0;
       for (let bID in this.blockList.list) {
          if (bID!='end' && bID!='block-dialog' ) {
@@ -433,6 +434,9 @@ const PipeInstance = {
          }
       }
 
+      result.blocks = argList.concat(blocks);
+      result.args = args;
+
       const connections = {}
       this.plumber.getConnections().map(
          conn => {
@@ -442,7 +446,15 @@ const PipeInstance = {
             connections[epin]=epout;
          }
       );
-      return {blocks:argList.concat(blocks), args:args, connections:connections};
+      
+      result.connections = connections;
+
+      if (this.owner) {
+         result.size = this.owner.getSize();
+         debugMsg("storing editor size:",result.size);
+      }
+
+      return result; // {blocks:argList.concat(blocks), args:args, connections:connections};
    },
 
    setArgsFromJSON: function(pipeData) {
@@ -1145,11 +1157,13 @@ const BlockEditor = {
       const blockID = 'block-dialog';
       this.editor = $('<div>').attr('id',blockID);
       this.editor.append(form);
+      this.width = 560;
+      this.height = 420;
 
       // To move the form into the title bar, html in title, see 
       // https://stackoverflow.com/questions/20741524/jquery-dialog-title-dynamically
 
-      this.editor.dialog({width: 560, height:420, title: 'Edit Block'});
+      this.editor.dialog({width: this.width, height: this.height, title: 'Edit Block'});
 
       // create and establish the draggable 'user block'
       const uB = Object.create(CustomBlock).init(this);
@@ -1182,11 +1196,14 @@ const BlockEditor = {
 		   mainPipe.setFocus();
       });
 
-      this.editor.on('dialogresize', function() {
+      const that = this;
+      this.editor.bind('dialogresize', function() {
+         debugMsg("resizing")
          userBlock.repaint();
+         that.width = that.editor.outerWidth();
+         that.height = that.editor.outerHeight();
       });
 
-      const that = this;
       this.editor.droppable({
          tolerance: 'pointer',
          over: function() {
@@ -1251,6 +1268,10 @@ const CustomBlock = {
 
    // Static field - current block names (newBlock1, ...)
    edGen: Object.create(TokenGenerator).init('newBlock'),
+
+   getSize: function() {
+      return {width:this.bE.width, height:this.bE.height};
+   },
 
    newType: function() {
       let cT = Object.create(BlockType).init(this.name,{args:this.argList.size()});
@@ -1811,7 +1832,7 @@ let currentBE;
 let focusPipe; // set to mainPipe at initialisation
 
 // set of custom (user-defined) functions
-const custom_functions = Object.create(Collection).init(); // new collection();
+const custom_functions = Object.create(Collection).init();
 
 // Maintain state in local storage
 const stateStore = Object.create(stateSaver).init("openpiping");

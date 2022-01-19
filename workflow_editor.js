@@ -406,7 +406,9 @@ const PipeInstance = {
    },"Got expression:"),
 
    save: function() {
-      stateStore.updateCurrentPipe(this.getJSON(),this.owner);
+      if (stateStore.saving) {
+         stateStore.updateCurrentPipe(this.getJSON(),this.owner);
+      }
    },
 
    getJSON: function() {
@@ -1148,7 +1150,7 @@ function editBlock() {
 
 const BlockEditor = {
 
-   init: function() {
+   init: function(size) {
       debugMsg("making block editor");
 
       // Create dialog for editor
@@ -1159,6 +1161,8 @@ const BlockEditor = {
       this.editor.append(form);
       this.width = 560;
       this.height = 420;
+      if (size.width) this.width = size.width;
+      if (size.height) this.height = size.height;
 
       // To move the form into the title bar, html in title, see 
       // https://stackoverflow.com/questions/20741524/jquery-dialog-title-dynamically
@@ -1236,7 +1240,7 @@ const BlockEditor = {
    addArgument: function() {
       this.userBlock.addArgument();
    },
-   
+
    setFocus: function() {
 	   this.userBlock.pipe.setFocus();
    },
@@ -1244,7 +1248,6 @@ const BlockEditor = {
    hasFocus: function() {
 	   this.userBlock.pipe.hasFocus();
    }
-
 }
 
 const CustomBlock = {
@@ -1582,15 +1585,18 @@ const stateSaver = {
       this.loadStateGUI(); // state of interface: what block is open, whether details are up, what accordion is showing
       this.mainPipe = {}; // the main pipe, in the same format as block definitions
       this.blocks = Object.create(Collection).init(); // one entry per custom block
+      this.saving = true;
 
       return this;
    },
 
    load: function() {
+      this.saving = false;
       // this.loadBlockList(); // no need?
       this.loadBlocks();
       this.loadMainPipe();
       this.loadStateGUI();
+      this.saving = true;
    },
 
    loadFile: function(data) {
@@ -1606,7 +1612,9 @@ const stateSaver = {
    },
 
    saveBlock: function(blockName) {
-      this.setItem(blockName,this.blocks.get(blockName));
+      if (this.saving) {
+         this.setItem(blockName,this.blocks.get(blockName));
+      }
    },
 
    renameBlock: function(oldName,newName) {
@@ -1623,11 +1631,15 @@ const stateSaver = {
    },
 
    saveMainPipe: function() {
-      this.setItem("mainPipe",this.mainPipe);
+      if (this.saving) {
+         this.setItem("mainPipe",this.mainPipe);
+      }
    },
 
    saveStateGUI: function() {
-      this.setItem("stateGUI",this.stateGUI);
+      if (this.saving) {
+         this.setItem("stateGUI",this.stateGUI);
+      }
    },
 
    loadBlocks: function() {
@@ -1653,7 +1665,7 @@ const stateSaver = {
       debugMsg("loading",blockName);
       const blockString = this.getItem(blockName);
       this.blocks.set(blockName,blockString);
-      currentBE = Object.create(BlockEditor).init();
+      currentBE = Object.create(BlockEditor).init(blockString.size);
       currentBE.userBlock.rename(blockName);
       currentBE.editor.find("input").val(blockName);
       currentBE.userBlock.repaint();

@@ -894,6 +894,7 @@ jsPlumb.ready(function() {
 
 // lookup regexp to find how to reomove from pattern (=>) to end of a string
 */
+
 function getParams(func) {
 
     // String representaation of the function code

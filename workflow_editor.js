@@ -709,7 +709,8 @@ const BlockInstance = {
       this.id = undefined;
       this.inPoints = Object.create(Bag).init(); // list of JSPlumb enpoints for inputs
       this.outPoint = undefined; // outPoint is the endPoint object, needed to find connections
-      this.element = $('<div>').addClass('block').addClass(type.label);
+      this.element = $('<div>')
+                     .addClass('block');
       this.setHTML();
       this.setPosition(pos);
       this.setPipe(pipe,id);
@@ -731,9 +732,17 @@ const BlockInstance = {
       this.setOutput();
       this.setInputs();
 
-      pipe.plumber.draggable(this.element, {containment: 'parent'});
+      pipe.plumber.draggable(this.element, { containment: 'parent', filter: ".ui-resizable-handle" });
 
       const self = this;
+
+      this.element.resizable({
+         containment: "parent",
+         resize: function(e, ui) {
+            self.repaint();
+        }
+      })
+
       this.element.click(function(e) {
          e.stopPropagation();
          self.pipe.deselectAllBlocks();
@@ -950,7 +959,7 @@ const BlockInstance = {
    },
 
    repaint: function() {
-      this.pipe.plumber.repaint(this.element);
+      this.pipe.plumber.revalidate(this.element);
    },
 
    nextCount: function () {
@@ -1150,7 +1159,7 @@ function editBlock() {
 
 const BlockEditor = {
 
-   init: function(size) {
+   init: function(size = {}) {
       debugMsg("making block editor");
 
       // Create dialog for editor

@@ -471,22 +471,27 @@ const PipeInstance = {
    },
 
    setExpFromJSON: function(pipeData) {
-      const pb = pipeData.blocks;
-      for (let i=pipeData.args; i<pb.length; i++) {
-            const bd = pb[i];
-            debugMsg('adding old block', bd);
-            const newB = this.addBlockByName(bd.type,bd,bd.id);
-            newB.setState(bd);
+      try {
+         const pb = pipeData.blocks;
+         for (let i=pipeData.args; i<pb.length; i++) {
+               const bd = pb[i];
+               debugMsg('adding old block', bd);
+               const newB = this.addBlockByName(bd.type,bd,bd.id);
+               newB.setState(bd);
+         }
+         const pc = pipeData.connections;
+         for (let epin in pc) {
+            const epout = pc[epin];
+            debugMsg("Connecting", epout, "to", epin);
+            this.plumber.connect({uuids:[epout,epin]});         
+         }
+         if (this.owner) {
+            debugMsg("recording function"); 
+            this.owner.done();
+         }
       }
-      const pc = pipeData.connections;
-      for (let epin in pc) {
-         const epout = pc[epin];
-         debugMsg("Connecting", epout, "to", epin);
-         this.plumber.connect({uuids:[epout,epin]});         
-      }
-      if (this.owner) {
-         debugMsg("recording function"); 
-         this.owner.done();
+      catch (e) {
+         console.error(e);
       }
    },
 
@@ -1604,8 +1609,9 @@ const stateSaver = {
       // this.loadBlockList(); // no need?
       this.loadBlocks();
       this.loadMainPipe();
-      this.loadStateGUI();
       this.saving = true;
+      this.loadStateGUI();
+      debugMsg("all loading done");
    },
 
    loadFile: function(data) {
@@ -1656,14 +1662,6 @@ const stateSaver = {
          .filter(k=>(k != 'mainPipe' && k != 'stateGUI'))
          .map(b=>this.loadBlock(b))
          .map(f=>f());
-      /*
-      for (let i=0 ; i < len ; i++) {
-         let bN = this.key( i );
-         if (bN != 'mainPipe' && bN != 'stateGUI') {
-            bs.push(this.loadBlock(bN));
-         }
-      }
-      */
    },
 
    loadBlock: function(blockName) {

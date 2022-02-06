@@ -189,14 +189,14 @@ const PipeInstance = {
       this.useDefaultArguments = true; // used to swap arguments when debugging custom blocks
       this.owner = owner; // owner is the editor for custom blocks, null otherwise
 
-      const that = this;
+      const self = this;
       this.plumber.bind("connection", function(info) {
          debugMsg('connecting ', info.sourceEndpoint.getUuid(),'to ', info.targetEndpoint.getUuid());
-         that.save();
+         self.save();
       });
       this.plumber.bind("connectionDetached", function(info) {
          debugMsg('detaching ', info.sourceEndpoint.getUuid(),'from ', info.targetEndpoint.getUuid());
-         that.save();
+         self.save();
       });
       element.click(function(e) {
         // If the click was not inside the active span
@@ -204,8 +204,8 @@ const PipeInstance = {
         if(!$(e.target).hasClass('blockSelected')) {
           //e.stopPropagation();
           debugMsg("canvas clicked");
-          that.deselectAllBlocks();
-          that.setFocus();
+          self.deselectAllBlocks();
+          self.setFocus();
           stateStore.updateFocus();
         }
       });
@@ -275,7 +275,7 @@ const PipeInstance = {
    },
 
    /* adding the 'endBlock'. Unlike others,
-      it has no output endpoint; it also can't be removed from the canvas.
+      it has no output endpoint; it also cant be removed from the canvas.
       this would be best organised with inheritance. Not done yet.
    */
    addEndBlock: function (inCustomBlock) {
@@ -295,11 +295,11 @@ const PipeInstance = {
             maxConnections: 1
          }, config.connectStyle);
 
-      const that = this;
+      const self = this;
       $(block).click(function(e) {
          e.stopPropagation();
-         that.blockSelection.clear();
-         that.displayExpression(blockID);
+         self.blockSelection.clear();
+         self.displayExpression(blockID);
       });
    },
 
@@ -354,7 +354,7 @@ const PipeInstance = {
       }
 
       // Connections is the list of connections that target this block
-      // jsPlumb doesn't offer a method for filtering this by endPoint.
+      // jsPlumb does not offer a method for filtering this by endPoint.
       const connections = this.plumber.getConnections({ target:blockID });
       debugMsg(connections.length, "connections found");
 
@@ -745,6 +745,7 @@ const BlockInstance = {
          containment: "parent",
          resize: function(e, ui) {
             self.repaint();
+            self.pipe.save();
         }
       })
 
@@ -838,6 +839,13 @@ const BlockInstance = {
       const l = this.element.css('left');
       return {'top':t, 'left':l}
    },
+   
+   getSize: function() {
+      // function should exist, but not working?
+      const w = this.element.width();
+      const h = this.element.height();
+      return {'height':h, 'width':w}
+   },
 
    setHTML: function() {
       let inHTML = this.type.label
@@ -867,7 +875,7 @@ const BlockInstance = {
       // if the result is not a string, return
       if (typeof res != "string") return res
 
-      // if it's a constant, return as is, unless it starts with a _
+      // if it is a constant, return as is, unless it starts with a _
       
       if (this.type.label == "constant" && res[0]!='_') return res;
 
@@ -924,9 +932,12 @@ const BlockInstance = {
 
    getJSON: function () {
       const result = this.getState(),
-            pos = this.getPosition();
+            pos = this.getPosition(),
+            size = this.getSize();
       result.top = pos.top;
       result.left = pos.left;
+      result.height = size.height;
+      result.width = size.width;
       result.type = this.type.label;
       result.id = this.id;
       return result;
@@ -1214,12 +1225,12 @@ const BlockEditor = {
 		   mainPipe.setFocus();
       });
 
-      const that = this;
+      const self = this;
       this.editor.bind('dialogresize', function() {
          debugMsg("resizing")
          userBlock.repaint();
-         that.width = that.editor.outerWidth();
-         that.height = that.editor.outerHeight();
+         self.width = self.editor.outerWidth();
+         self.height = self.editor.outerHeight();
       });
 
       this.editor.droppable({
@@ -1231,7 +1242,7 @@ const BlockEditor = {
             mainPipe.canvas.droppable('enable');
          },
          drop: function(event,ui) {
-            that.drop(ui.draggable,ui.offset);
+            self.drop(ui.draggable,ui.offset);
          }
       });
    },
@@ -1359,23 +1370,23 @@ const CustomBlock = {
          delay = setTimeout(()=>{del.detach(); up.detach(); down.detach()},1000);
       });
 
-      const that = this;
+      const self = this;
       del.on('click', function(evt) {
          evt.stopPropagation();
          debugMsg("del clicked");
-         that.deleteArgument(block);
+         self.deleteArgument(block);
       });
       
       up.on('click', function(evt) {
          evt.stopPropagation();
          debugMsg("up clicked");
-         that.upArgument(block);
+         self.upArgument(block);
       });
 
       down.on('click', function(evt) {
          evt.stopPropagation();
          debugMsg("up clicked");
-         that.downArgument(block);
+         self.downArgument(block);
       });
 
       debugMsg("new argument ",block.id,argNum);
@@ -1500,16 +1511,15 @@ const CustomBlock = {
             //.css({left:48, position:'relative'});
       let delay;
 
-      const that = this;
+      const self = this;
       del.on('click', function(e) {
          e.stopPropagation();
          edit.remove();
-         //debugMsg(that);
-         that.bE.userBlock.delete();
-         that.bE.editor.dialog('close');
-         that.pipe = undefined;
-         //that.remove();
-         // more needed!!
+         //debugMsg(self);
+         self.bE.userBlock.delete();
+         self.bE.editor.dialog('close');
+         self.pipe = undefined;
+         //self.remove(); // more needed!!
       });
 
       edit.on('mouseover', function() {
@@ -1523,15 +1533,15 @@ const CustomBlock = {
       edit.on('click', function(e) {
          e.stopPropagation();
          debugMsg('edit block');
-         if (currentBE != that.bE) {
+         if (currentBE != self.bE) {
             debugMsg('change edited block');
             if (currentBE) currentBE.editor.dialog('close');
-            currentBE = that.bE;
+            currentBE = self.bE;
          }
          if (currentBE.editor.is(":hidden")) {
             debugMsg('show editor');
             currentBE.editor.dialog('open');
-            that.repaint();
+            self.repaint();
          }
 		 currentBE.setFocus();
       });
@@ -1540,15 +1550,15 @@ const CustomBlock = {
          e.stopPropagation();
          // make a copy
          debugMsg('copy block');
-         // let oldBlock = that;
+         // let oldBlock = self;
          currentBE.editor.dialog('close');
          editBlock();
-         const newName = that.name+'_copy'
+         const newName = self.name+'_copy'
          currentBE.userBlock.rename(newName);
          currentBE.editor.find("input").val(currentBE.userBlock.name);
-         for (let bID in that.pipe.blockList.list) {
+         for (let bID in self.pipe.blockList.list) {
             if (bID!='end') {
-               const oB = that.pipe.blockList.get(bID);
+               const oB = self.pipe.blockList.get(bID);
                debugMsg('old block', bID);
                const oType = oB.type.element;
                const oPos = oB.getPosition();
@@ -1557,7 +1567,7 @@ const CustomBlock = {
                oB.copyStateTo(newB);
             }
          }
-         const connections = that.pipe.plumber.getConnections();
+         const connections = self.pipe.plumber.getConnections();
          connections.map(
             conn => {
                debugMsg("Connecting", conn.sourceId, "to", conn.targetId);
@@ -1567,7 +1577,7 @@ const CustomBlock = {
                currentBE.userBlock.pipe.plumber.connect({uuids:[epout,epin]});
             }
          );
-         stateStore.copyBlock(that.name,newName);
+         stateStore.copyBlock(self.name,newName);
       });
 
       let mo = function() {

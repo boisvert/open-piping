@@ -1,0 +1,318 @@
+<!doctype html>
+
+<head>
+
+<meta charset="utf-8" lang="en"/>
+
+<!-- Dependencies are as follows
+   * jquery 3.4.1
+   * jquery UI 1.12.1 - js and css
+   * jsplumb 2.1.8
+
+   Later versions of JQuery / JQuery UI are probably compatible, but this code is not compatible with
+   jsPlumb 2.2.x and above as it stands.
+
+   The commented links are to use dependencies from a shared repository. Alternatively, host a copy of them.
+-->
+
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script-->
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script-->
+<script src="libraries/jquery-3.4.1.min.js"></script>
+<script src="libraries/jquery-ui.min.js"></script>
+
+<!-- jsPlumb version: the code is incompatible version versions 2.2.x - endPoints not showing -->
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
+<script src="libraries/jsPlumb.2.1.8.min.js"></script>
+
+
+<script>
+var debugMode = true; // set to true to turn on console debug messages
+</script>
+
+<script src="compile_workflow.js"></script>
+<script src="workflow_editor.js"></script>
+
+<script>
+
+// This script governs UI functionality attached to the index page
+$( function() {
+   debugMsg("initialising layout");
+   const tgd = $( "#toggleDetails" );
+
+   tgd.on( "click", toggleDetails);
+
+   $( "#codeDetails" ).hide();
+
+   // run the
+   function toggleDetails() {
+      debugMsg("toggling details panel")
+      tgd.attr("disabled", "disabled");
+      const state = (tgd.attr("value") == "Show details")
+      if (state)
+         $( "#codeDetails" ).show( 'slow' , curriedCallback("Hide details",state) )
+      else
+         $( "#codeDetails" ).hide( 'slow' , curriedCallback("Show details",state) );
+   };
+
+   //callback function to bring a hidden box back
+   function curriedCallback(t,s) {
+      return function () { tgd.attr("value",t); tgd.removeAttr("disabled"); stateStore.updateShowDetails(s); };
+   };
+
+} );
+
+// change text
+function changeSExp(exp) {
+   $('#s-exp').val(JSON.stringify(exp,null,3));
+   debugMsg("updating s-expression");
+   getCode();
+}
+
+// compile
+function getCode() {
+   var lang = $('#chooseLang').val();
+    var exp = $('#s-exp').val();
+    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+}
+
+function chooseCompiler(Exp,lang,callBack) {
+   debugMsg("compiling in",lang);
+    if (lang==='JS') {
+      callBack(compile(JSON.parse(Exp)));
+    }
+    else if(lang==='PHP') {
+      Exp = encodeURIComponent(Exp);
+        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
+    }
+}
+
+// run result
+async function runres() {
+
+   const c = "(async () => {" + $('#result').val() + "; return await pipe();})()"
+   $("#theResult").html("");
+
+   const t0 = performance.now();
+
+   let result = await eval(c); // await pipe();
+
+   const t = performance.now()-t0;
+
+   debugMsg("done - ",result,"in ",t + " milliseconds.");
+
+   $("#theResult").append(result);
+   $("#timing").text("Time: "+t+"ms");
+}
+
+function saveData(data) {
+   // gives data to the user by giving them the 
+   const a = document.createElement("a");
+   document.body.appendChild(a);
+   a.style = "display: none";
+   const json = JSON.stringify(data),
+         blob = new Blob([json], {type: "octet/stream"}),
+         url = window.URL.createObjectURL(blob);
+   a.href = url;
+   
+   a.download = 'pipe-'+formatDate()+'.json';
+   a.click();
+   window.URL.revokeObjectURL(url);
+}
+
+function formatDate() {
+   // formats the current date as an ISO string
+   let d = new Date(),
+       month = '' + (d.getMonth() + 1),
+       day = '' + d.getDate(),
+       year = '' + d.getFullYear(),
+       hour = '' + d.getHours(),
+       min = '' + d.getMinutes(),
+       sec = '' + d.getSeconds();
+   const dateStr = [year,month,day,hour,min,sec].map((x)=>(x.length<2)?'0'+x:x).join('_');
+
+   return dateStr;
+}
+
+async function loadFile(inp) {
+   const dataText = await inp.files[0].text();
+   stateStore.loadFile(await JSON.parse(dataText));
+}
+
+</script>
+
+<title>Edit and interpret a workflow</title>
+
+  <!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
+
+<link rel="stylesheet" href="libraries/jquery-ui.min.css">
+
+<style>
+
+   #maincontainer {
+      height: 560px;
+   }
+
+   .ui-dialog-titlebar {
+      border: 3px solid #33F;
+      border-top-style: solid;
+      border-right-style: solid;
+      border-bottom-style: none;
+      border-left-style: solid;
+      border-radius: 7px 7px 0px 0px;
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+      font-weight: bold;
+   }
+
+   #block-dialog {
+      border: 3px solid #33F;
+      border-top-style: none;
+      border-right-style: solid;
+      border-bottom-style: solid;
+      border-left-style: solid;
+      border-radius: 0px 0px 7px 7px;
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+      font-weight: bold;
+   }
+
+   #pipeContainer {
+      margin-left:122px;
+      border: 1px solid gray;
+      height: 100%;
+   }
+   
+   #accordion {
+      float: left;
+      width: 120px;
+      height: 100%;
+   }
+
+   #accordion .ui-accordion-content {
+      max-height: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+   }
+
+   #accordion .ui-accordion-header {
+      padding: 0em .1em 0em .1em;
+   }
+
+   #createNewBlock {
+      width: 90px;
+      font-family: Calibri, Arial, "Sans serif";
+      position: relative;
+      left: -25px; /* top: 10px; */
+      margin: 0px;
+   }
+
+   /* .block.Argument {
+      position: absolute;
+      top: -20px;
+      min-height:0px; min-width: 0px;
+	   border-radius: 0px;
+      position: absolute;
+      border: 1px solid #000;
+      padding-top: 0px; padding-left: 0px; padding-right: 0px; padding-bottom: 0px;
+   } */
+
+   .block {
+      position: absolute;
+      min-height:50px; min-width: 80px;
+      border: 3px solid #33F;
+	   border-radius: 7px;
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+      font-weight: bold;
+      padding-top: 5px; padding-left: 5px; padding-right: 20px; padding-bottom: 5px;
+   }
+
+   .blockType {
+      position: relative;
+      left: -30px;
+      margin: 6px;
+      height:43px; width: 80px;
+      border: 3px solid #33F;
+	   border-radius: 7px;
+      font-family: Calibri, Arial, "Sans serif";
+      font-size: 16px;
+   }
+
+   .block:hover {
+	  box-shadow:
+        0 0 4px 2px #66f;
+   }
+
+   .blockType:hover{
+	  box-shadow:
+        0 0 4px 2px #66f;
+   }
+
+   .selectedBlock{
+	  box-shadow:
+        0 0 4px 2px #66f;
+   }
+
+   .editBlock {
+      position: absolute;
+      right: 10px; top: 35px;
+      border: 2px solid black;
+      height: 400px; width: 300px;
+   }
+
+   .jtk-endpoint {
+      z-index: 3000 !important;
+   }
+
+   #theResult {
+      border: 1px solid gray;
+      height: 300px;
+      width: 100%;
+   }
+
+</style>
+
+</head>
+
+<body>
+
+<h1>Open piping: visual functional programming</h1>
+
+<h2>Edit workflow</h2>
+
+edit workflow | <a href="exp-tests.html">run tests</a> | Github:
+  <a href="https://github.com/boisvert/open-piping">code</a>,
+  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
+  <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
+Verbose console log <input type="checkbox" checked="checked" onChange="debugMode = this.checked"> |
+Workflow data:<input type="button" value="Download" onClick="saveData(stateStore.getAllItems());" />
+Load: <input type="file" onChange="loadFile(this);" />
+
+<p>
+
+<div id="maincontainer">
+   <div id="accordion"></div>
+   <div id="pipeContainer"></div>
+</div>
+
+<div style="margin-left: 122px">
+Compose an expression by using the blocks above.<br />
+Language:
+<select id="chooseLang" onChange="getCode();">
+   <option value="JS" selected>JS</option>
+   <option value="PHP">PHP</option>
+</select>
+<input type="button" value="Show details" id="toggleDetails" />
+<input type="button" value="Run" onClick="runres();" />
+<span id="timing"></span>
+<br />
+
+<div id="codeDetails">
+   <textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
+   <textarea id="result" cols="60" rows="10"></textarea>
+</div> <br />
+
+<div id="theResult"></div>
+</div>
+</body>
+</html>

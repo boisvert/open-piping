@@ -23,8 +23,7 @@ let predefined_functions = {},
 let lambdaFlag = false;
 
 // String with the resulting code
-// plus simple encapsulated functions
-
+// plus simple support for layout
 const CodeString = {
    nl: "\n",
    tabbing: 3,
@@ -159,7 +158,7 @@ function encode(Exp,vars) {
       // case 7: expression is a known variable
       if (tokens.contains(Exp)) {
          if (lambdaFlag) {
-            Exp = "\'+expCheck("+Exp+")+\'"; // '\"+expCheck('+Exp+')+\"';
+            Exp = "\'+expCheck("+Exp+")+\'"; 
             debugMsg(Exp);
          }
          return Exp;

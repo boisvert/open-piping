@@ -64,7 +64,6 @@ const BlockTypeList = {
       let allHaveExp = true; // flag whether all items have a getExp
       let bc = "<form><select>";
       for (let g in defGUI.group) {
-         //
          const ghtml = document.createElement('div').appendChild(document.createTextNode(g)).parentNode.innerHTML; // vulnerable see SO html encoding
          bc += '<option value="'+ghtml+'">'+ghtml+'</option>';
          if (defGUI.group[g].getExp)
@@ -1230,7 +1229,7 @@ const BlockEditor = {
          debugMsg("resizing")
          userBlock.repaint();
          self.width = self.editor.outerWidth();
-         self.height = self.editor.outerHeight();
+         self.height = self.editor.outerHeight()+50;
       });
 
       this.editor.droppable({
@@ -1675,10 +1674,9 @@ const stateSaver = {
    },
 
    loadBlock: function(blockName) {
-      // this function loads the block in two stages
-      // it creates the block and sets arguments as it runs
-      // it then returns a function which when executed,
-      // completes the block rebuilding.
+      /* loads the block in two stages:
+          - creates the block and sets arguments as it runs
+          - returns a function to complete the block rebuilding. */
       debugMsg("loading",blockName);
       const blockString = this.getItem(blockName);
       this.blocks.set(blockName,blockString);
@@ -1833,6 +1831,7 @@ const config = {
       endpoint:"Dot",
       paintStyle:{ fillStyle:"lightgrey" },
       hoverPaintStyle:{ fillStyle:"lightgreen" },
+      connector: ["Bezier", { curviness: 50}],
       connectorStyle:{ strokeStyle:"lightgrey", lineWidth:8 },
       connectorHoverStyle:{ strokeStyle:"lightgreen", lineWidth:10 },
       ConnectorOverlays:[ ["Arrow" , { width:12, length:12, location:0.67 }] ]

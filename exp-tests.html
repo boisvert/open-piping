@@ -101,9 +101,9 @@ function inject(num) {
         [1, 2, 3, "a", "b", "c"],
         ["_or",["_isNumber", 3], ["_isNumber", "a"]],
         ["_plus", 1, 2],
-        [ "_def", "square", ["x"], ["_times", "x", "x"],  ["square", 2] ],
-        [ "_def", "_fac", ["n"], ["_if", ["_lt", "n", 2], 1, ["_times", "n", ["_fac", ["_minus", "n", 1]] ]],  [ "_fac", 10 ]],
-		["_def", "_square", ["x"], ["_times", "x", "x"], ["_def",  "_distance",  ["a","b"],  ["_sqrt",   ["_plus",    ["_square","a"],    ["_square","b"]   ]  ],  ["_distance", 3, 4] ]],
+        [ "_env", [ [ "_def", "square", [ "x" ], [ "_times", "x", "x" ] ] ], [ "square", 2 ] ],
+        [ "_env", [ [ "_def", "_fac", ["n"], ["_if", ["_lt", "n", 2], 1, ["_times", "n", ["_fac", ["_minus", "n", 1]] ]] ] ],  [ "_fac", 10 ] ],
+        [ "_env", [ ["_def", "_square", ["x"], ["_times", "x", "x"] ], ["_def", "_distance", ["a","b"], ["_sqrt", ["_plus", ["_square","a"], ["_square","b"] ] ] ] ],  ["_distance", 3, 4] ],
         [ "_def", "_mymap", ["f", "arr"], ["_if", ["_isEmpty", "arr"], [], ["_add_to_Start", ["_apply", "f", [["_first", "arr"]] ], ["_mymap", "f", ["_rest", "arr"] ] ] ],  ["_mymap", ["_block", "_isNumber"], [1,2,3,"a","b","c"] ] ]
       ];
       $('#s-exp').val(JSON.stringify(samples[num],null,3));

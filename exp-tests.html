@@ -1,0 +1,152 @@
+<!doctype html>
+<meta charset="utf-8" />
+
+<head>
+
+<!-- Dependencies are as follows
+   * jquery 3.2.1
+   * jquery UI 1.12.1 - js and css
+   * jsplumb 2.1.8
+
+   Later versions are probably compatible, but this code is not compatible with
+   jsPlumb 2.2.x and above as it stands.
+  
+   The commented links are to use dependencies from a shared repository. Alternatively, host a copy of them.
+-->
+
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script-->
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script-->
+<script src="libraries/jquery-3.4.1.min.js"></script>
+<script src="libraries/jquery-ui.min.js"></script>
+
+<!-- jsPlumb version: the code is incompatible version versions 2.2.x - endPoints not showing -->
+<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
+<script src="libraries/jsPlumb.2.1.8.min.js"></script>
+
+<script src="compile_workflow.js"></script>
+
+<style>
+   
+    #theResult {
+        border: 1px solid gray;
+      height: 300px;
+      width: 100%;
+    }
+
+</style>
+
+   
+<title>Edit and interpret a workflow</title>
+
+<!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
+
+<link rel="stylesheet" href="libraries/jquery-ui.min.css">
+
+</head>
+
+<body>
+
+<h1>Open piping: visual functional programming</h1>
+
+<h2>Run tests</h2>
+
+<a href="index.html">edit workflow</a> | run tests | Github:
+  <a href="https://github.com/boisvert/open-piping">code</a>,
+  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
+  <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
+Verbose console log <input type="checkbox" checked="checked" onChange="debugMode = this.checked">
+</p>
+
+On this page you can try any symbolic expression, which will be interpreted into a function call and function set, then executed. You can choose a ready-made test from the drop-down list, or type your own in the form below.
+
+<form>
+<select onChange="inject(this.selectedIndex-1)">
+  <option value="choose">Try one of the ready-made tests, or type your own:</option>
+  <option value="0">Number</option>
+  <option value="1">Simple list</option>
+  <option value="2">Booleans</option>
+  <option value="3">Function substitution</option>
+  <option value="4">Function</option>
+  <option value="5">Recursive function (factorial)</option>
+  <option value="6">Two embedded functions (euclidean distance)</option>
+  <option value="7">Higher order function (map)</option>
+</select>
+Language:
+<select id="chooseLang" onChange = "getCode();">
+<option value="JS" selected>JS</option>
+<option value="PHP">PHP</option>
+</select>
+<input type="button" value="Interpret it" onClick="getCode();" />
+<input type="button" value="Run" onClick="getCode(); runres();" />
+<span id="timing"></span> <br />
+
+<div id="codeDetails">
+   <textarea id="s-exp" cols="60" rows="10" onChange="getCode();"></textarea>
+   <textarea id="result" cols="60" rows="10"></textarea>
+</div> <br />
+
+<div id="theResult"></div>
+
+</form>
+
+<script>
+
+var debugMode = true; // set to true to turn on debugging
+
+// show sample of code
+function inject(num) {
+   if (num>=0) {
+      var samples = [
+        1,
+        [1, 2, 3, "a", "b", "c"],
+        ["_or",["_isNumber", 3], ["_isNumber", "a"]],
+        ["_plus", 1, 2],
+        [ "_env", [ [ "_def", "square", [ "x" ], [ "_times", "x", "x" ] ] ], [ "square", 2 ] ],
+        [ "_env", [ [ "_def", "_fac", ["n"], ["_if", ["_lt", "n", 2], 1, ["_times", "n", ["_fac", ["_minus", "n", 1]] ]] ] ],  [ "_fac", 10 ] ],
+        [ "_env", [ ["_def", "_square", ["x"], ["_times", "x", "x"] ], ["_def", "_distance", ["a","b"], ["_sqrt", ["_plus", ["_square","a"], ["_square","b"] ] ] ] ],  ["_distance", 3, 4] ],
+        [ "_def", "_mymap", ["f", "arr"], ["_if", ["_isEmpty", "arr"], [], ["_add_to_Start", ["_apply", "f", [["_first", "arr"]] ], ["_mymap", "f", ["_rest", "arr"] ] ] ],  ["_mymap", ["_block", "_isNumber"], [1,2,3,"a","b","c"] ] ]
+      ];
+      $('#s-exp').val(JSON.stringify(samples[num],null,3));
+      getCode();
+   }
+}
+
+// compile event
+
+// compile
+function getCode() {
+   var lang = $('#chooseLang').val();
+    var exp = $('#s-exp').val();
+    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+}
+
+function chooseCompiler(Exp,lang,callBack) {
+   debugMsg("compiling in",lang);
+    if (lang==='JS') {
+      callBack(compile(JSON.parse(Exp)));
+    }
+    else if(lang==='PHP') {
+      Exp = encodeURIComponent(Exp);
+        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
+    }
+}
+
+// run result
+async function runres() {
+   var c = $('#result').val();
+   eval(c);
+
+   $("#theResult").html("");
+   const t0 = performance.now();
+   const result = await pipe();
+   const t = performance.now()-t0;
+
+   debugMsg("done - ",result,"in ",t + " milliseconds.");
+
+   $("#theResult").append(result);
+   $("#timing").text("Time: "+t+"ms");
+}
+
+</script>
+</body>
+</html>

@@ -248,21 +248,8 @@ const PipeInstance = {
       return b;
    },
 
-   addArgumentBlock: function () {
-      // method currently unused
-      const realType = blockTypeList.get('Argument');
-
-      debugMsg("adding block to pipe");
-      const b = Object.create(BlockInstance).init(realType, this, pos);
-
-      this.blockList.add(b.id, b);
-
-      this.save();
-
-      return b;
-   },
-
    removeBlock: function(block) {
+      debugMsg("removing",block.id);
       this.plumber.detachAllConnections(block.element);
       this.plumber.removeAllEndpoints(block.element);
       // ***should also clean up the endpoint objects?
@@ -271,6 +258,14 @@ const PipeInstance = {
       this.blockList.remove(block.id);
       block.remove();
       this.save();
+   },
+
+   removeAllBlocks: function() {
+      debugMsg("wiping mainpipe");
+      for (let bID in this.blockList.list) {
+         if (bID != 'end')
+            this.removeBlock(this.blockList.get(bID));
+      }
    },
 
    /* adding the 'endBlock'. Unlike others,
@@ -1196,6 +1191,7 @@ const BlockEditor = {
 
       // create and establish the draggable 'user block'
       const uB = Object.create(CustomBlock).init(this);
+      newBlocks.queue(uB);
       this.setUserBlock(uB);
 
       // the blockID ('block-dialog') is itself in the list of pipe blocks
@@ -1464,6 +1460,7 @@ const CustomBlock = {
       $('#createNewBlock').removeAttr('disabled','disabled');
       this.customType.element.remove();
       stateStore.removeBlock(this.name);
+      newBlocks.remove(this);
    },
 
    saveDefun: function() {
@@ -1667,11 +1664,12 @@ const stateSaver = {
       }
    },
 
+   allBlocks: function() {
+      return this.allKeys(k=>(k != 'mainPipe' && k != 'stateGUI'));
+   },
+
    loadBlocks: function() {
-      this.allKeys()
-         .filter(k=>(k != 'mainPipe' && k != 'stateGUI'))
-         .map(b=>this.loadBlock(b))
-         .map(f=>f());
+      this.allBlocks().map(b=>this.loadBlock(b)).map(f=>f());
    },
 
    loadBlock: function(blockName) {
@@ -1742,6 +1740,10 @@ const stateSaver = {
       this.removeItem(customBlock);
    },
 
+   removeAllBlocks: function() {
+      this.allBlocks().forEach((b)=>(this.removeBlock(b)));
+   },
+
    updateMainPipe: function (pipeData) {
       this.mainPipe = pipeData;
       this.saveMainPipe();
@@ -1807,12 +1809,13 @@ const stateSaver = {
       return k.substring(l);
    },
 
-   allKeys: function() {
+   allKeys: function(filter = (k) => (true)) {
       // returns the set of blocks as a JSON string
+      // filter: f(key)->bool, optional filter.
       const len = localStorage.length, result = [];
       for (let i=0 ; i < len ; i++) {
          let k = this.key( i );
-         if (k!= null) { // all keys except for stateGUI
+         if (filter(k)) { // all keys that pass the filter
             result.push(k);
          }
       }
@@ -1865,6 +1868,8 @@ const custom_functions = Object.create(Collection).init();
 
 // Maintain state in local storage
 const stateStore = Object.create(stateSaver).init("openpiping");
+
+const newBlocks = Object.create(Bag).init();
 
 /* start:
    - load the file of predefined functions

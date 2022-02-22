@@ -137,6 +137,17 @@ async function loadFile(inp) {
    stateStore.loadFile(await JSON.parse(dataText));
 }
 
+function refresh() {
+   location.reload();
+}
+
+function wipe() {
+   // clear everything - it's a kludge: wipe stateStore then reload
+   mainPipe.removeAllBlocks(); // mainpipe first
+   stateStore.removeAllBlocks(); // remove all custom blocks by clearing off stored data
+   refresh(); // reload the page!
+}
+
 </script>
 
 <title>Edit and interpret a workflow</title>
@@ -204,16 +215,6 @@ async function loadFile(inp) {
       left: -25px; /* top: 10px; */
       margin: 0px;
    }
-
-   /* .block.Argument {
-      position: absolute;
-      top: -20px;
-      min-height:0px; min-width: 0px;
-	   border-radius: 0px;
-      position: absolute;
-      border: 1px solid #000;
-      padding-top: 0px; padding-left: 0px; padding-right: 0px; padding-bottom: 0px;
-   } */
 
    .block {
       position: absolute;
@@ -283,10 +284,11 @@ edit workflow | <a href="exp-tests.html">run tests</a> | Github:
   <a href="https://github.com/boisvert/open-piping">code</a>,
   <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
   <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
+  <input type="button" onClick="wipe();" value="Wipe" />
+  <input type="button" onClick="refresh();" value="Refresh" /> |
 Verbose console log <input type="checkbox" checked="checked" onChange="debugMode = this.checked"> |
 Workflow data:<input type="button" value="Download" onClick="saveData(stateStore.getAllItems());" />
 Load: <input type="file" onChange="loadFile(this);" />
-
 <p>
 
 <div id="maincontainer">

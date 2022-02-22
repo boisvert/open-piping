@@ -685,6 +685,10 @@ const Bag = {
 
    map: function(f) {
       return this.list.map(f);
+   },
+   
+   forEach(f) {
+      this.list.forEach(f);
    }
 
 };
@@ -767,6 +771,12 @@ const Collection = {
 
    map: function(f) {
       return this.list.map(f);
+   },
+
+   forEach: function(f) {
+      for (key in this.list) {
+         f(this.list[key]); // 'this' context is messy
+      }
    }
 
 }

@@ -137,15 +137,14 @@ async function loadFile(inp) {
    stateStore.loadFile(await JSON.parse(dataText));
 }
 
-function refresh() {
-   location.reload();
+function refresh(options) {
+   let newLocation = window.location.href.split("?")[0];
+   if (options) newLocation += "?"+options;
+   window.location = newLocation;
 }
 
 function wipe() {
-   // clear everything - it's a kludge: wipe stateStore then reload
-   mainPipe.removeAllBlocks(); // mainpipe first
-   stateStore.removeAllBlocks(); // remove all custom blocks by clearing off stored data
-   refresh(); // reload the page!
+   refresh("wipe=true"); // reload the page with wipe option
 }
 
 </script>
@@ -280,15 +279,13 @@ function wipe() {
 
 <h2>Edit workflow</h2>
 
-edit workflow | <a href="exp-tests.html">run tests</a> | Github:
-  <a href="https://github.com/boisvert/open-piping">code</a>,
-  <a href="https://github.com/boisvert/open-piping/wiki">wiki</a>,
-  <a href="https://github.com/boisvert/open-piping/issues">issues</a> |
-  <input type="button" onClick="wipe();" value="Wipe" />
-  <input type="button" onClick="refresh();" value="Refresh" /> |
+edit workflow | <a href="exp-tests.html">run tests</a> |
+  <a href="https://github.com/boisvert/open-piping">Github</a> |
 Verbose console log <input type="checkbox" checked="checked" onChange="debugMode = this.checked"> |
-Workflow data:<input type="button" value="Download" onClick="saveData(stateStore.getAllItems());" />
-Load: <input type="file" onChange="loadFile(this);" />
+  <button onClick="wipe();" title="Click to clear all your blocks">Wipe</button>
+  <button onClick="refresh();" title="Reload and draw the graph on fresh on screen">Refresh</button> |
+  <button onClick="saveData(stateStore.getAllItems());" title="Download the workflow as a file (saves to your downloads area).">Save workflow</button>
+Load workflow: <input type="file" onChange="loadFile(this);" title="Load a saved file" />
 <p>
 
 <div id="maincontainer">

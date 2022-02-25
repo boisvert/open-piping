@@ -266,8 +266,8 @@ function encodeArray(Exp, vars) {
    }
    // case 7: expression is an environment
    if (choice==7) {
-      encodeArray(Exp[0])    // Exp[0] is a list of defs
-      return encode(Exp[1]); // Exp[1] is the thing to return
+      encodeArray(Exp[0],[])    // Exp[0] is a list of defs
+      return encode(Exp[1],vars); // Exp[1] is the thing to return
    }
 
 }
@@ -805,6 +805,30 @@ const TokenGenerator = {
    num: function() { // current index (index of the *next* token
       return this.tokIndex;
    }
+}
+
+const queryString = {
+   init: function() {
+      this.values = {};
+      const s = window.location.href.split("?");
+      if (s.length != 2) return this;
+      this.parse(s[1]);
+      return this;
+   },
+
+   parse: function(str) {
+      const pairs = str.split("&");
+      pairs.forEach( (pair) => {
+         let p = pair.split("=");
+         this.values[p[0]]=p[1];
+      } )
+      debugMsg("Query string: ",this.values);
+   },
+
+   get: function(feat){
+      return this.values[feat];
+   }
+
 }
 
 /* String extensions repeat, replaceAll, unescape */

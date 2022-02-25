@@ -1613,7 +1613,6 @@ const stateSaver = {
 
    load: function() {
       this.saving = false;
-      // this.loadBlockList(); // no need?
       this.loadBlocks();
       this.loadMainPipe();
       this.saving = true;
@@ -1735,13 +1734,22 @@ const stateSaver = {
       this.saveBlock(customBlock);
    },
 
+   removeEverything: function() {
+      this.removeAllBlocks();
+      this.removeMainPipe();
+   },
+
+   removeAllBlocks: function() {
+      this.allBlocks().forEach((b)=>(this.removeBlock(b)));
+   },
+
    removeBlock: function(customBlock) {
       this.blocks.remove(customBlock);
       this.removeItem(customBlock);
    },
 
-   removeAllBlocks: function() {
-      this.allBlocks().forEach((b)=>(this.removeBlock(b)));
+   removeMainPipe: function () {
+      this.removeItem("mainPipe",this.mainPipe);
    },
 
    updateMainPipe: function (pipeData) {
@@ -1871,6 +1879,8 @@ const stateStore = Object.create(stateSaver).init("openpiping");
 
 const newBlocks = Object.create(Bag).init();
 
+const qString = Object.create(queryString).init();
+
 /* start:
    - load the file of predefined functions
    - launch initialisation
@@ -1961,7 +1971,25 @@ function initialise() {
       }
    } ) // {heightStyle: "fill");
 
-   stateStore.load();
+   // query sting option: remove previous work
+   if (qString.get("wipe")==="true") {
+      stateStore.removeEverything();
+   }
+   
+   if (qString.get("load")) {
+      const fName = 'saved/'+qString.get("load")+'.json';
+      fetch(fName).then(function(response) {
+         if(response.ok) {
+            response.text().then(function(text) {
+               stateStore.loadFile(JSON.parse(text))
+            });
+         } else {
+            debugMsg('Not found the file to load');
+         }
+      });
+   } else {
+      stateStore.load();
+   }
 
 }
 

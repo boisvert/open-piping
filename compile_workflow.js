@@ -157,18 +157,24 @@ function encode(Exp,vars) {
    if (isString(Exp)) {
       // case 7: expression is a known variable
       if (tokens.contains(Exp)) {
-         if (lambdaFlag) {
-            Exp = "\'+expCheck("+Exp+")+\'"; 
-            debugMsg(Exp);
-         }
+         // if (lambdaFlag) {
+         //    Exp = "\'+expCheck("+Exp+")+\'"; 
+         //   debugMsg(Exp);
+         // }
          return Exp;
       }
       // case 8: expression is a string
       return '"'+unescape_underscore(Exp)+'"';
    }
+   
+   // case 8.5: expression is an object {key: ...}
+   if (typeof Exp === 'object') {
+      return JSON.stringify(Exp);
+   }
+
    // case 9: expression is anything else - left unprocessed - works for number, boolean, null
    return Exp;
-   
+ 
    // unescape underscore: process initial underscore
    // which is used to mark variable tokens and function names
    function unescape_underscore(S) {
@@ -285,21 +291,21 @@ function caseOfHead(H) {
 }
 
 function encodeEach(E,environment) {
-    enforce(E, isArray);
-    debugMsg("encoding each of",E, E.length);
-    let Res = [];
-    if (E.length>0) {
-        debugMsg("encoding ",E[0]);
-        let First = encode(E[0],environment);
-        E.shift();
-        Res = encodeEach(E,environment);
-        if (First === null) {
-            debugMsg("tokens - not added to exec");
-        }
-        else {
-            Res.unshift(First);
-        }
-    }
+   enforce(E, isArray);
+   debugMsg("encoding each of",E, E.length);
+   let Res = [];
+   if (E.length>0) {
+      debugMsg("encoding ",E[0]);
+      let First = encode(E[0],environment);
+      E.shift();
+      Res = encodeEach(E,environment);
+      if (First === null) {
+         debugMsg("tokens - not added to exec");
+      }
+      else {
+         Res.unshift(First);
+      }
+   }
    return Res;
 }
 
@@ -563,6 +569,7 @@ function getOperator(X) {
       }
    }
 
+   // return function (Args) {Args = Args.map(JSON.stringify); return X+"("+Args.join(",")+")";};
    return function (Args) {return X+"("+Args.join(",")+")";};
 }
 

@@ -1,7 +1,7 @@
 {
    "constant": {
       "label": "Data",
-      "tip": "Set a constant value (can be a number, string, array, or JSON value)",
+      "tip": "Set a constant value (can be a number, string, list, boolean, or JSON value)",
       "args": 0,
       "output": -1,
       "blockCode": "<form><input type='text' /><form>",
@@ -12,7 +12,10 @@
          "String": {
             "getExp":"const inpt = block.find('form > input')[0]; return inpt.value.unescape();"
          },
-         "Array": {
+         "List": {
+            "getExp": "const inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
+         },
+         "Boolean": {
             "getExp": "const inpt = block.find('form > input')[0]; return JSON.parse(inpt.value);"
          },
          "JSON": {
@@ -144,18 +147,18 @@
       "tip": "Outputs the negation of the boolean input: true becomes false, and vice versa",
       "args": 1
    },
-   "parts of array": {
-      "label": "Arrays",
-      "tip": "Takes in an array. Returns either its first element, or an array of all but the first",
+   "parts of list": {
+      "label": "Lists",
+      "tip": "Takes in an list. Returns either its first element, or an list of all but the first",
       "args": 1,
       "group": {
          "first": {},
          "rest": {}
       }
    },
-   "array size": {
-      "label": "Arrays",
-      "tip": "Takes in an array. Returns a boolean - true if the array is empty, false otherwise",
+   "list size": {
+      "label": "Lists",
+      "tip": "Takes in an list. Returns a boolean - true if the list is empty, false otherwise",
       "args": 1,
       "group": {
          "size": {},
@@ -163,8 +166,8 @@
       }
    },
    "build": {
-      "label": "Arrays",
-      "tip": "The first argument is an element, and the second an array. Returns new array with the element added",
+      "label": "Lists",
+      "tip": "The first argument is an element, and the second an list. Returns new list with the element added",
       "args": 2,
       "group": {
          "add_to_Start": {},
@@ -173,28 +176,43 @@
       }
    },
    "map": {
-      "label": "Arrays",
-      "tip": "The first argument is an array, and the second a function to apply. Returns an array containing the application of the function to each input element",
+      "label": "Lists",
+      "tip": "The first argument is an list, and the second a function to apply. Returns an list containing the application of the function to each input element",
       "args": 2
    },
    "reduce": {
-      "label": "Arrays",
-      "tip": "The first argument is an array, the second a function, and the third is a starting value. Returns a reduction of the array to a single value obtained by applying the function to each array element and accumulating the returned value",
+      "label": "Lists",
+      "tip": "The first argument is an list, the second a function, and the third is a starting value. Returns a reduction of the list to a single value obtained by applying the function to each list element and accumulating the returned value",
       "args": 3
    },
    "filter": {
-      "label": "Arrays",
-      "tip": "The first argument is an array, and the second a function that returns a boolean. Returns an array containing the subset of the input array for which the function returns true",
+      "label": "Lists",
+      "tip": "The first argument is an list, and the second a function that returns a boolean. Returns an list containing the subset of the input list for which the function returns true",
       "args": 2
+   },
+   "set": {
+      "label": "Dictionaries",
+      "tip": "The first argument is a dictionary, the second a string for the key to set, and the third is the value it is set to. The output will be the dictionary with the new value set",
+      "args": 3
+   },
+   "get": {
+      "label": "Dictionaries",
+      "tip": "The first argument is a dictionary, and the second is a string for the key to get. The output will be the value for that key. If there is no value, the output will be undefined.",
+      "args": 2
+   },
+   "enumerate": {
+      "label": "Dictionaries",
+      "tip": "The argument is a dictionary. The output a list of the keys it contains.",
+      "args": 1
    },
    "join": {
       "label":"Strings",
-      "tip": "The first argument is an array of strings, and the second a separator string. Returns a  string formed by all elements, separated by the separator",
+      "tip": "The first argument is an list of strings, and the second a separator string. Returns a  string formed by all elements, separated by the separator",
       "args": 2
    },
    "split": {
       "label":"Strings",
-      "tip": "The first argument is a string, and the second a separator. Returns an array of substrings separated according to the separator",
+      "tip": "The first argument is a string, and the second a separator. Returns an list of substrings separated according to the separator",
       "args": 2
    },
    "string_concat": {
@@ -207,21 +225,20 @@
       "tip": "Link a block to the argument. The output will be the function represented by the block, as opposed to its result",
       "args": 1,
       "getExp":"return 'block';"      
-
    },
    "lambda": {
       "label": "Blocks",
-      "tip": "The first argument is an array of strings, and the second a graph of one or more blocks. The output will be the function formed by treating the strings as arguments to the graph",
+      "tip": "The first argument is an list of strings, and the second a graph of one or more blocks. The output will be the function formed by treating the strings as arguments to the graph",
       "args": 2
    },
    "apply": {
       "label": "Blocks",
-      "tip": "The first argument is a function, and the second an array of arguments. The output will be the result of applying the arguments to the function",
+      "tip": "The first argument is a function, and the second an list of arguments. The output will be the result of applying the arguments to the function",
       "args": 2
    },
    "parameters": {
       "label": "Blocks",
-      "tip": "The input is a function. The output is an array of the function's parameters",
+      "tip": "The input is a function. The output is an list of the function's parameters",
       "args": 1
    }
 }

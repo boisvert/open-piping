@@ -368,13 +368,14 @@ const PipeInstance = {
       }
 
       if (exp == "_assign") {
-         if (this.tokenList.contains(blockID)) return blockID;
+         const _bID = "_"+blockID;
+         if (this.tokenList.contains(_bID)) return _bID;
 
          // set the token value according to the expression connected source
          // or to null if there is none
          const val = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
-         this.tokenList.add(blockID,val);
-         return ["_assign", blockID, val];
+         this.tokenList.add(_bID,val);
+         return ["_assign", _bID, val];
 
       }
 

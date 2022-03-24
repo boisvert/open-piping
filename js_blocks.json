@@ -28,6 +28,10 @@
       "inject": {
          "args": "txt",
          "body": "$('#theResult').append(txt); return txt;"
+      },
+      "set": {
+         "args": "dict,f,v",
+         "body": "dict.f=v; return dict;"
       }
    },
 
@@ -70,6 +74,8 @@
       "size": {"args": "a", "js": "@a.length"},
       "sort": {"args": "a,b", "js": "@a.sort(b)"},
       "isArray": {"args": "a", "js": "$.isArray(@a)"},
-      "isNull": {"args": "x", "js": "@x===null"}
+      "isNull": {"args": "x", "js": "@x===null"},
+      "get": {"args": "dict,f", "js": "@dict[@f]"},
+      "enumerate": {"args": "x", "js": "Object.keys(@dict);"}
    }
 }

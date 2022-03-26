@@ -346,13 +346,13 @@ function encodeLambda(argsExp,bodyExp,context) {
    return fd.getInterpretLambda();
 }
 
-// my_lambda: service function; should be injected in executable code
+// make_lambda: service function; should be injected in executable code
 // a lot of kludge here
 // better if args, lines and return part are three separate arguments
 // checked at run time
 // will help safeguard against injection
 // see setInterpret lambda which creates this call
-function my_lambda(args, body) {
+function make_lambda(args, body) {
    debugMsg(args, body)
    args.forEach(function(arg) {
       body = body.replaceAll("'"+arg+"'", arg).replaceAll('"'+arg+'"', arg);
@@ -361,7 +361,7 @@ function my_lambda(args, body) {
    debugMsg("escaped body ",body);
    const f = "("+args.join(", ")+")=>{"+body+"}";
    debugMsg(f);
-   return eval(f);
+   return f;
 }
 
 function expCheck(v) {
@@ -409,7 +409,7 @@ const FunData = {
       let LBody = encode(body,this.environment);
       lambdaFlag = false;
       LBody = (this.environment.text + "return "+LBody+';').replaceAll('\n',' ');
-      this.js = "my_lambda("+LArgs+", '"+LBody+"')";
+      this.js = "eval(make_lambda("+LArgs+", '"+LBody+"'))";
       return this;
    },
 

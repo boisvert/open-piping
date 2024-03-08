@@ -1824,7 +1824,7 @@ const stateSaver = {
       const len = localStorage.length, result = [];
       for (let i=0 ; i < len ; i++) {
          let k = this.key( i );
-         if (filter(k)) { // all keys that pass the filter
+         if (k != null && filter(k)) { // all non-null keys that pass the filter
             result.push(k);
          }
       }

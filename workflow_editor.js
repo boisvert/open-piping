@@ -303,15 +303,14 @@ const PipeInstance = {
       this.save();
    },
 
-   getFullExpression: messagerise(function (blockID,defName) {
-      defName = (defName)?'_'+defName:'';
+   getFullExpression: messagerise(function (blockID,defName='') {
       this.tokenList.clear();
       this.defunList.clear();
       // debugMsg(this.blockList);
 
       let exp;
 
-      // the bizarre 'end' block is recursed from but never into.
+      // the 'end' block is recursed from but never into.
       if (blockID==='end' || blockID==='block-dialog' ) {
          debugMsg("end block");
          const connections = this.plumber.getConnections({ target:blockID });
@@ -319,22 +318,29 @@ const PipeInstance = {
          exp =  this.getExpression(connections[0].sourceId);
       }
       else exp = this.getExpression(blockID);
+      /**** are theree `` backticks to sanitise?? *****/
 
-      debugMsg("Exp before _defs",exp);
+      debugMsg("Exp before defs",exp);
       // let elements = Object.create(Bag).init();
-      if (this.defunList.empty()) {
-         debugMsg("No defs");
+      if (this.defunList.empty() && this.tokenList.empty()) {
+         debugMsg("No defs no tokens");
          return exp;
       }
-      debugMsg("Some defs",this.defunList);
-      const defs = [];
+      debugMsg("Some defs or tokens",this.defunList,this.tokenList);
+      const env = {};
       for (let id in this.defunList.list) {
-         if (id!=defName) {
+         if (id!=defName) { // defName is this function: no need to add to environment in that case
             debugMsg("adding def for ",id);
-            defs.push(this.defunList.get(id));
+            env[id] = this.defunList.get(id);
          }
-         exp = ["_env", defs, exp];
       }
+      for (let id in this.tokenList.list) {
+         if (id!=defName) {
+            debugMsg("adding token for ",id);
+            env[id] = this.tokenList.get(id);
+         }
+      }
+      exp = ["`let`", env, exp];
       return exp;
    }),
 
@@ -354,38 +360,56 @@ const PipeInstance = {
       debugMsg(connections.length, "connections found");
 
       // exp is the expression contained in the current block.
+
       const exp = block.getExpression();
 
-      if (exp=='_block') {
+      debugMsg("Raw expression is", exp)
+
+      if (exp=="`block`") {
          debugMsg("found block",exp,block.type.label);
          debugMsg("use block");
-         // find if theres a connection for t input, use if yes, null if not
+         // find if there's a connection for t input, use if yes, null if not
          debugMsg("checking input");
          const b = (connections.length>0)?this.blockList.get(connections[0].sourceId).getExpression():null;
          debugMsg("found the name of the block: ",b);
          this.checkAddCustomFunction(b);
-         return ["_block", b];
+         return b;
       }
 
-      if (exp == "_assign") {
-         const _bID = "_"+blockID;
-         if (this.tokenList.contains(_bID)) return _bID;
+      if (exp == "`assign`") {
 
          // set the token value according to the expression connected source
          // or to null if there is none
-         const val = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
-         this.tokenList.add(_bID,val);
-         return ["_assign", _bID, val];
+         if (!this.tokenList.contains(blockID)) {
+            const val = (connections.length>0)?this.getExpression(connections[0].sourceId):null;
+            this.tokenList.add(blockID,val);
+            // const environment = {}
+            // environment[blockID] = val
+            // return ["`let`", environment];
+         }
+
+         if (this.tokenList.contains(blockID)) return "`"+blockID+"`";
 
       }
 
       // inputs is the list of Input endPoints for the block
       const inputs = block.inPoints;
 
-      if (this.checkAddCustomFunction(exp) && (inputs.size()==0)) return [exp];
+      if (exp == "`lambda`") {
+         const paramSource = inputs.get(0).findConnectedSource(connections);
+         const paramList = paramSource?this.getExpression(paramSource):[];
+         const bodySource = inputs.get(1).findConnectedSource(connections);
+         const bodyExp = bodySource?this.getExpression(bodySource):null;
+         return ["`lambda`", paramList,bodyExp];
+      }
+
+      const customFunction = this.checkAddCustomFunction(exp)
+
+      if (customFunction && (inputs.size()==0)) return ["`app`", exp];
 
       if (inputs.size()>0) {
-         let result = [exp];
+         let result = ["`app`"]
+         result.push(exp);
          for (let i = 0; i<inputs.size(); i++) {
             // iterate through inputs
             // find if theres a connection for each input, use if yes, null if not
@@ -533,13 +557,22 @@ const PipeInstance = {
          this.removeBlock(this.blockSelection.get(i));
       }
    },
-   
+
    checkAddCustomFunction: function(fName) {
+      if (!isString(fName)) return false
+      fName = fName.substring(1,fName.length-1)
+      debugMsg("Checking if",fName,"is a custom function to add to defunList")
       const result = custom_functions.contains(fName)
       if (result) {
+         debugMsg(fName,"is a custom function")
          if (!this.defunList.contains(fName)) {
+            debugMsg("Adding to defunList")
             this.defunList.add(fName,custom_functions.get(fName));
+         } else {
+            debugMsg("Already in defunList")
          }
+      } else {
+         debugMsg(fName,"is not listed as a custom function")
       }
       return result;
    }
@@ -858,26 +891,36 @@ const BlockInstance = {
    },
 
    getExpression: function() {
-      let res;
+      let result;
       if (this.type.getExp) {
          let fn = "(function(block) {"+this.type.getExp+"})(this.element)";
          debugMsg("evaluating: ",fn);
-         res = eval(fn);
+         result = eval(fn);
       }
       else {
-         res = this.type.label;
+         result = this.type.label;
+      }
+      debugMsg("We got",result)
+
+      // if the result is not a string (number, boolean...), return
+      if (!isString(result)) {
+            debugMsg(result, "is not a string; returning it")
+            return result
       }
 
-      // if the result is not a string, return
-      if (typeof res != "string") return res
+      // if it is a constant, return as is, unless it starts with a `
 
-      // if it is a constant, return as is, unless it starts with a _
-      
-      if (this.type.label == "constant" && res[0]!='_') return res;
+      if (this.type.label == "constant") {
+         result = result.replaceAll("`","\\`") // escape the backtick special character
+         debugMsg("it's a constant, returning sanitised",result)
+         return result;
+      }
 
-      // anything else is a function or varname. Prefix with _
-      // to limit the risk of function/var names conflicting with user data
-      return '_'+res;
+      // anything else is a function or varname. Place in backticks ``
+      // to not confuse them with user data
+      debugMsg("it's a string and not data, returning in ``",result)
+      result = '`'+result+'`'
+      return result;
    },
 
    copyStateTo: function(targetBlock) {
@@ -1087,7 +1130,7 @@ const BlockEndpoint = {
    },
 
    setUuid: function() {
-      var uuid  = this.block.id+'_';
+      let uuid  = this.block.id+'_';
       uuid += (this.isSource())?'out':('in'+this.block.nextCount());
       this.properties.uuid = uuid;
       return this;
@@ -1406,11 +1449,11 @@ const CustomBlock = {
       arg.outPoint.trigger("mouseout");
       if (!this.isArgument(arg)) return undefined;
       //debugMsg("removing 1 arg from",this.argList);
-      var i = this.argList.find(arg);
+      let i = this.argList.find(arg);
       if (!this.customType.removeArgument(i)) return false;
       this.argList.remove(arg);
       this.pipe.removeBlock(arg);
-      var nextArg = this.argList.get(i);
+      let nextArg = this.argList.get(i);
       while (nextArg) {
          debugMsg("renaming arg",i)
          this.moveArgument(nextArg,i);
@@ -1420,7 +1463,7 @@ const CustomBlock = {
    },
 
    downArgument: function(arg) {
-      var i = this.argList.find(arg);
+      let i = this.argList.find(arg);
       if (i==-1) return false; // not an argument
       arg.outPoint.trigger("mouseout");
       debugMsg("swapping args",i,"with next");
@@ -1433,7 +1476,7 @@ const CustomBlock = {
    },
 
    upArgument: function(arg) {
-      var i = this.argList.find(arg);
+      let i = this.argList.find(arg);
       if (i==-1) return false; // not an argument
       arg.outPoint.trigger("mouseout");
       debugMsg("swapping args",i,"with previous");
@@ -1452,6 +1495,7 @@ const CustomBlock = {
    },
 
    done: function() {
+      debugMsg("new defun's done!")
       this.saveDefun();
       $('#createNewBlock').removeAttr('disabled','disabled');
    },
@@ -1466,9 +1510,13 @@ const CustomBlock = {
 
    saveDefun: function() {
       const def = this.defun();
+      debugMsg("saving the new defun")
       if (def != undefined) {
+         debugMsg("done, saved",this.name)
          debugMsg("new function: ",this.name, def);
-         custom_functions.set('_'+this.name, def);
+         custom_functions.set(this.name, def);
+      } else {
+         debugMsg("no defun to save")
       }
    },
 
@@ -1479,8 +1527,9 @@ const CustomBlock = {
       this.pipe.useDefaultArguments = true;
       
       if (exp === undefined) return undefined;
-      const defName = '_'+this.name;
-      return ["_def", defName, this.argList.map(a => a.getExpression()), exp];
+      const defName = this.name;
+      paramProcess = function (a) {const p = a.getExpression(); return p.substring(1,p.length-1)}
+      return ["`lambda`", this.argList.map(paramProcess), exp];
    }),
 
    icons: function() {

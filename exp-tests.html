@@ -4,7 +4,7 @@
 <head>
 
 <!-- Dependencies are as follows
-   * jquery 3.2.1
+   * jquery 3.4.1
    * jquery UI 1.12.1 - js and css
    * jsplumb 2.1.8
 
@@ -14,14 +14,14 @@
    The commented links are to use dependencies from a shared repository. Alternatively, host a copy of them.
 -->
 
-<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script-->
-<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script-->
-<script src="libraries/jquery-3.4.1.min.js"></script>
-<script src="libraries/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+<!--script src="libraries/jquery-3.4.1.min.js"></script-->
+<!--script src="libraries/jquery-ui.min.js"></script-->
 
 <!-- jsPlumb version: the code is incompatible version versions 2.2.x - endPoints not showing -->
-<!--script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script-->
-<script src="libraries/jsPlumb.2.1.8.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsPlumb/2.1.8/jsPlumb.min.js"></script>
+<!--script src="libraries/jsPlumb.2.1.8.min.js"></script-->
 
 <script src="compile_workflow.js"></script>
 
@@ -38,9 +38,9 @@
    
 <title>Edit and interpret a workflow</title>
 
-<!-- link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css" -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.css">
 
-<link rel="stylesheet" href="libraries/jquery-ui.min.css">
+<!--link rel="stylesheet" href="libraries/jquery-ui.min.css"-->
 
 </head>
 
@@ -93,16 +93,46 @@ var debugMode = true; // set to true to turn on debugging
 
 // show sample of code
 function inject(num) {
+   debugMsg("injecting",num)
    if (num>=0) {
       var samples = [
         1,
         [1, 2, 3, "a", "b", "c"],
-        ["_or",["_isNumber", 3], ["_isNumber", "a"]],
-        ["_plus", 1, 2],
-        [ "_env", [ [ "_def", "square", [ "x" ], [ "_times", "x", "x" ] ] ], [ "square", 2 ] ],
-        [ "_env", [ [ "_def", "_fac", ["n"], ["_if", ["_lt", "n", 2], 1, ["_times", "n", ["_fac", ["_minus", "n", 1]] ]] ] ],  [ "_fac", 10 ] ],
-        [ "_env", [ ["_def", "_square", ["x"], ["_times", "x", "x"] ], ["_def", "_distance", ["a","b"], ["_sqrt", ["_plus", ["_square","a"], ["_square","b"] ] ] ] ],  ["_distance", 3, 4] ],
-        [ "_def", "_mymap", ["f", "arr"], ["_if", ["_isEmpty", "arr"], [], ["_add_to_Start", ["_apply", "f", [["_first", "arr"]] ], ["_mymap", "f", ["_rest", "arr"] ] ] ],  ["_mymap", ["_block", "_isNumber"], [1,2,3,"a","b","c"] ] ]
+        [ "`app`", "`or`", [ "`app`", "`isNumber`", 3 ],  [ "`app`", "`isNumber`", "a" ] ],
+        [ "`app`", "`plus`", 1, 2 ],
+        [ "`let`", { square: [ "`lambda`", ["x"], [ "`app`", "`times`", "`x`", "`x`" ] ] }, [ "`app`", "`square`", 2 ] ],
+        [ "`let`", { fac: [ "`lambda`",
+                            ["n"],
+                            [ "`app`", "if",
+                              [ "`app`", "lt", "`n`", 2 ],
+                              1,
+                              [ "`app`", "times", "`n`", [ "`app`", "fac", ["`app`","`minus`", "`n`", 1] ] ]
+                            ]
+                          ]
+                   },
+                   [ "`app`", "`fac`", 10 ]
+        ],
+        [ "`let`", { square: [ "`lambda`", ["x"], [ "`app`", "`times`", "`x`", "`x`" ] ],
+                     distance: [ "`lambda`",
+                                 ["a","b"],
+                                 [ "`app`", "`sqrt`", [ "`app`", "`plus`", [ "`app`", "`square`", "`a`" ], [ "`app`", "`square`", "`b`" ] ] ],
+                               ]
+                   },
+                   [ "`app`", "`distance`", 3, 4 ]
+        ],
+        [ "`let`", { mymap: [ "`lambda`", 
+                          ["f", "arr"],
+                          [ "`app`", "`if`", [ "`app`", "`isEmpty`", "`arr`" ],
+                                    [],
+                                    [ "`app`", "`add_to_Start`",
+                                      [ "`app`", "`apply`", "`f`", [ [ "`app`", "`first`", "`arr`" ] ] ],
+                                      [ "`app`", "`mymap`", "`f`", [ "`app`", "`rest`", "`arr`" ] ]
+                                    ]
+                          ]
+                        ]
+                },
+                [ "`app`", "`mymap`", "`isNumber`", [1,2,3,"a","b","c"] ]
+        ]
       ];
       $('#s-exp').val(JSON.stringify(samples[num],null,3));
       getCode();

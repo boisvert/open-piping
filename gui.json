@@ -228,8 +228,16 @@
    },
    "lambda": {
       "label": "Blocks",
-      "tip": "The first argument is an list of strings, and the second a graph of one or more blocks. The output will be the function formed by treating the strings as arguments to the graph",
+      "tip": "The first argument is a list of variables, and the second a graph of one or more blocks. The output will be the function formed by treating the strings as arguments to the graph",
       "args": 2
+   },
+   "variable": {
+      "label": "Blocks",
+      "tip": "Variable to use with lambda.",
+      "args": 0,
+      "output": -1,
+      "blockCode": "<form><input type='text' /><form>",
+      "getExp":"const inpt = block.find('form > input')[0]; return inpt.value.unescape();"
    },
    "apply": {
       "label": "Blocks",
@@ -241,5 +249,6 @@
       "tip": "The input is a function. The output is an list of the function's parameters",
       "args": 1
    }
+
 }
 

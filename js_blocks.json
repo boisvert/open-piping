@@ -36,6 +36,7 @@
    },
 
    "replace": {
+      "apply": {"args": "f,a", "js": "(@f).apply(this,@a)"},
       "thenDo": {"args": "p,f", "js": "@p.then(@f)"},
       "waitFor": {"args": "p", "js": "await @p"},
       "list_Concat": {"args": "l1,l2", "js": "@l1.concat(@l2)"},

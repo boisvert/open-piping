@@ -146,6 +146,7 @@ function getCode() {
    var lang = $('#chooseLang').val();
     var exp = $('#s-exp').val();
     chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+    runres();
 }
 
 function chooseCompiler(Exp,lang,callBack) {
@@ -161,19 +162,27 @@ function chooseCompiler(Exp,lang,callBack) {
 
 // run result
 async function runres() {
-   var c = $('#result').val();
-   eval(c);
-
+   const c = "(async () => {" + $('#result').val() + "; return await pipe();})()"
    $("#theResult").html("");
-   const t0 = performance.now();
-   const result = await pipe();
-   const t = performance.now()-t0;
+   $("#timing").text("");
 
-   debugMsg("done - ",result,"in ",t + " milliseconds.");
+   try {
+      const t0 = performance.now();
 
-   $("#theResult").append(result);
-   $("#timing").text("Time: "+t+"ms");
+      const result = await eval(c); // await pipe();
+
+      const t = performance.now()-t0;
+
+      debugMsg("done - ",result,"in ",t + " milliseconds.");
+
+      $("#theResult").append(JSON.stringify(result));
+      $("#timing").text("Time: "+t+"ms");
+   } catch (error) {
+      $("#theResult").append("<em>"+error.toString()+"</em>");
+      $("#timing").html("<em>Execution time unknown</em>");
+   }
 }
+
 
 </script>
 </body>

@@ -65,24 +65,25 @@ function changeSExp(exp) {
    $('#s-exp').val(JSON.stringify(exp,null,3));
    debugMsg("updating s-expression");
    getCode();
+   runres();
 }
 
 // compile
 function getCode() {
    var lang = $('#chooseLang').val();
-    var exp = $('#s-exp').val();
-    chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
+   var exp = $('#s-exp').val();
+   chooseCompiler(exp,lang,function( res ) {$('#result').val(res);});
 }
 
 function chooseCompiler(Exp,lang,callBack) {
    debugMsg("compiling in",lang);
-    if (lang==='JS') {
+   if (lang==='JS') {
       callBack(compile(JSON.parse(Exp)));
-    }
-    else if(lang==='PHP') {
+   }
+   else if(lang==='PHP') {
       Exp = encodeURIComponent(Exp);
-        $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
-    }
+      $.post('compile_workflow.php', 'exp='+Exp).done(callBack);
+   }
 }
 
 // run result
@@ -90,17 +91,24 @@ async function runres() {
 
    const c = "(async () => {" + $('#result').val() + "; return await pipe();})()"
    $("#theResult").html("");
+   $("#timing").text("");
 
-   const t0 = performance.now();
+   try {
+      const t0 = performance.now();
 
-   let result = await eval(c); // await pipe();
+      const result = await eval(c); // await pipe();
 
-   const t = performance.now()-t0;
+      const t = performance.now()-t0;
 
-   debugMsg("done - ",result,"in ",t + " milliseconds.");
+      debugMsg("done - ",result,"in ",t + " milliseconds.");
 
-   $("#theResult").append(result);
-   $("#timing").text("Time: "+t+"ms");
+      $("#theResult").append(JSON.stringify(result));
+      $("#timing").text("Time: "+t+"ms");
+   } catch (error) {
+      $("#theResult").append("<em>"+error.toString()+"</em>");
+      $("#timing").html("<em>Execution time unknown</em>");
+   }
+
 }
 
 function saveData(data) {
